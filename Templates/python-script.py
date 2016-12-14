@@ -116,10 +116,8 @@ def _debug_info():
 #===============================================================================
 def exit_error(error_number, error_string):
     """ Report error and exit.
-    :param error_number: Number to use for Exit Code.
-    :type error_number: int.
-    :param error_string: Short description of error.
-    :type error_string: str.
+    :param int error_number: Number to use for Exit Code.
+    :param str error_string: Short description of error.
     .. warning:: This function exits the script.
     """
     if OPTIONS.debug:
