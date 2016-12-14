@@ -10,7 +10,7 @@
 #-- Recent Fedora versions (24/25) stay current on 2.7 (2.7.12 as of 20161212)
 #===============================================================================
 """
-.. program:: template.py
+.. program:: python-script.py
    :synopsis: This is a template for single-file Python scripts
 
 .. codeauthor:: awmyhr <awmyhr@gmail.com>
@@ -42,9 +42,9 @@ __contact__ = 'awmyhr <awmyhr@gmail.com>'  # primary contact for support/?'s
 __author__ = 'awmyhr <awmyhr@gmail.com>'    # coder(s) of script
 __created__ = '2016-12-12'                  # date script originlly created
 __copyright__ = ''                          # Copyright short name
-__cononical_name__ = 'template.py'          # static name, *NOT* os.path.basename(sys.argv[0])
-__project_name__ = 'SysAdminTools'          # name of overall project, if needed
-__project_home__ = 'N/A'                    # where to find source/documentation
+__cononical_name__ = 'python-script.py'     # static name, *NOT* os.path.basename(sys.argv[0])
+__project_name__ = 'nixTools'               # name of overall project, if needed
+__project_home__ = 'https://github.com/awmyhr/nixTools' # where to find source/documentation
 __template_version__ = '0.1.0'              # version of template file used
 __docformat__ = 'reStructuredText en'       # attempted style for documentation
 
@@ -160,7 +160,7 @@ if __name__ == '__main__':
             version=_version(),
             epilog=_usage_epilog()
         )
-        PARSER.add_option('-d', '--debug', help='enable debug mode',
+        PARSER.add_option('-d', '--debug', help=optparse.SUPPRESS_HELP,
                           dest='debug', action='store_true', default=False
                          )
         (OPTIONS, ARGS) = PARSER.parse_args()
