@@ -12,8 +12,8 @@
 #: .. note:: 
 #:     For guidance, please refer to:
 #:
-#:         - [POSIX.1-2008 Base Specification, Issue 7](http://pubs.opengroup.org/onlinepubs/9699919799/nframe.html)
-#:         - [GNU Coding Standard](http://www.gnu.org/prep/standards/)
+#:         - 'POSIX.1-2008 Base Specification, Issue 7 <http://pubs.opengroup.org/onlinepubs/9699919799/nframe.html>'_
+#:         - 'GNU Coding Standard <http://www.gnu.org/prep/standards/>'_
 #:
 #: .. note::
 #:     ShellCheck should be used, accepted issues should be marked w/disable comment
@@ -37,7 +37,7 @@ __copyright__=''                         #: Copyright short name
 __cononical_name__='shell-script.sh'     #: static name, *NOT* ${0}
 __project_name__='nix-Tools'             #: name of overall project, if needed
 __project_home__='https://github.com/awmyhr/nixTools' #: where to find source/documentation
-__template_version__='1.0.0'             #: version of template file used
+__template_version__='1.0.1'             #: version of template file used
 __docformat__='reStructuredText en'      #: attempted style for documentation
 
 #-- The following are string formats (prepended with strfmt_)
