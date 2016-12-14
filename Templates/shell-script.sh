@@ -12,8 +12,8 @@
 #: .. note:: 
 #:     For guidance, please refer to:
 #:
-#:      - [POSIX.1-2008 Base Specification, Issue 7](http://pubs.opengroup.org/onlinepubs/9699919799/nframe.html)
-#:      - [GNU Coding Standard](http://www.gnu.org/prep/standards/)
+#:         - [POSIX.1-2008 Base Specification, Issue 7](http://pubs.opengroup.org/onlinepubs/9699919799/nframe.html)
+#:         - [GNU Coding Standard](http://www.gnu.org/prep/standards/)
 #:
 #: .. note::
 #:     ShellCheck should be used, accepted issues should be marked w/disable comment
@@ -29,16 +29,16 @@
 #-- TODO: UPDATE meta vars
 __version__='0.1.0-alpha'
 __revised__='2016-12-14'
-__contact__='awmyhr <awmyhr@gmail.com>'  # primary contact for support/?'s
+__contact__='awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 #-- The following few variables should be relatively static over life of script
-__author__='awmyhr <awmyhr@gmail.com>'   # coders(s) of script
-__created__='2016-11-16'                 # date script originlly created
-__copyright__=''                         # Copyright short name
-__cononical_name__='shell-script.sh'     # static name, *NOT* ${0}
-__project_name__='nix-Tools'             # name of overall project, if needed
-__project_home__='https://github.com/awmyhr/nixTools' # where to find source/documentation
-__template_version__='0.6.0'             # version of template file used
-__docformat__='reStructuredText en'      # attempted style for documentation
+__author__='awmyhr <awmyhr@gmail.com>'   #: coders(s) of script
+__created__='2016-11-16'                 #: date script originlly created
+__copyright__=''                         #: Copyright short name
+__cononical_name__='shell-script.sh'     #: static name, *NOT* ${0}
+__project_name__='nix-Tools'             #: name of overall project, if needed
+__project_home__='https://github.com/awmyhr/nixTools' #: where to find source/documentation
+__template_version__='1.0.0'             #: version of template file used
+__docformat__='reStructuredText en'      #: attempted style for documentation
 
 #-- The following are string formats (prepended with strfmt_)
 #-- NOTE: (you can ignore ShellCheck [SC2059] errors in lines where these are used)
@@ -190,8 +190,8 @@ set -o nounset  # Exit if attempt to use an uninitialised variable
 #: .. note::
 #:     Setting traps seprately for 2 reasons:
 #:
-#:      - Avoid calling "$(kill -l $((trap_num - 128)))" in exti_trap
-#:      - Incase we want to handle them differently in the future
+#:         - Avoid calling "$(kill -l $((trap_num - 128)))" in exti_trap
+#:         - Incase we want to handle them differently in the future
 #:
 #: .. describe:: Bug
 #:     Passing LINENO may not be working as expected, need more real-world tests
