@@ -2,7 +2,7 @@
 #-- NOTE: Default to POSIX shell/mode. Use some level of thought before
 #--       switching to bash
 #===============================================================================
-## @file      template.sh
+## @file      shell-script.sh
 ## @brief     This is a template for POSIX shell scripts
 ## @details   Summary of script purpose/use
 ## @author    awmyhr <awmyhr@gmail.com>
@@ -28,24 +28,15 @@ __contact__='awmyhr <awmyhr@gmail.com>'  # primary contact for support/?'s
 __author__='awmyhr <awmyhr@gmail.com>'   # coders(s) of script
 __created__='2016-11-16'                 # date script originlly created
 __copyright__=''                         # Copyright short name
-__cononical_name__='template.sh'         # static name, *NOT* ${0}
-__project_name__='SysAdminTools'         # name of overall project, if needed
-__project_home__='N/A'                   # where to find source/documentation
+__cononical_name__='shell-script.sh'     # static name, *NOT* ${0}
+__project_name__='nix-Tools'             # name of overall project, if needed
+__project_home__='https://github.com/awmyhr/nixTools' # where to find source/documentation
 __template_version__='0.6.0'             # version of template file used
 __docformat__='Doxygen'                  # attempted style for documentation
 
-#-- If needed, set min/max arguments, else remove (and the check below)
-script_args_max=1
-script_args_min=0
 #-- The following are string formats (prepended with strfmt_)
 #-- NOTE: (you can ignore ShellCheck [SC2059] errors in lines where these are used)
 strfmt_error="${__cononical_name__}: %s\n"
-
-#-- Some default settings
-script_debug=false
-
-set -o errexit  # Exit if any statement returns non-true value
-set -o nounset  # Exit if attempt to use an uninitialised variable
 
 #===============================================================================
 ## @par     Functions
@@ -149,6 +140,18 @@ _init() {
 ## @par     Preperation
 #===============================================================================
 
+if [ "${*#*--debug}" != "${*}" ]; then
+    _debug_info
+    script_debug=true
+    set -o xtrace
+else
+    script_debug=false
+fi
+
+#-- Some default settings
+set -o errexit  # Exit if any statement returns non-true value
+set -o nounset  # Exit if attempt to use an uninitialised variable
+
 ## @note    Setting traps seprately for 2 reasons:
 ##          -# Avoid calling "$(kill -l $((trap_num - 128)))" in exti_trap
 ##          -# Incase we want to handle them differently in the future
@@ -158,19 +161,18 @@ trap '_exit_trap ${LINENO} INT'  INT
 trap '_exit_trap ${LINENO} TERM' TERM
 trap '_exit_trap ${LINENO} HUP'  HUP
 
-if [ "$#" -gt ${script_args_max} ] || [ "$#" -lt ${script_args_min} ]; then
-    exit_error 64 'invalid number of arguments'
-fi
+[ "${#}" -gt 0 ] && while :; do
+    case "${1}" in
+        --debug)    ;;
+        -h|--help)  _usage   && exit 0 ;;
+        --version)  _version && exit 0 ;;
+        --)         shift && break ;;
+        -?*)        exit_error 64 "invalid option: ${1}" ;;
+        *)          ;;
+    esac
 
-[ "$#" -gt 0 ] && case "${1}" in
-    --debug)    _debug_info
-                script_debug=true
-                set -o xtrace
-            ;;
-    -h|--help)  _usage   && exit 0 ;;
-    --version)  _version && exit 0 ;;
-    *)          exit_error 64 "invalid option: ${1}" ;;
-esac
+    shift
+done
 
 _init
 
