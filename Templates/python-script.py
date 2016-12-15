@@ -23,6 +23,7 @@ Sphinx-flavored reStructuredText.
 #-- NOTE: We use optparse for compatibility with python < 2.7 as (the superior)
 #--       argparse wasn't standard until 2.7 (2.7 deprecates optparse)
 #--       As of 20161212 the template is coded for optparse only
+import logging      #: Python's standard logging facilities
 import optparse     #: Argument parsing
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
@@ -35,7 +36,7 @@ import traceback    #: Print/retrieve a stack traceback
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha'
-__revised__ = '2016-12-14'
+__revised__ = '2016-12-15'
 __contact__ = 'awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -51,25 +52,9 @@ __docformat__ = 'reStructuredText en'       #: attempted style for documentation
 
 #===============================================================================
 class _ModOptionParser(optparse.OptionParser):
-    """ By default format_epilog strips newlines, we don't want that. """
+    """ By default format_epilog() strips newlines, we don't want that. """
     def format_epilog(self, formatter):
         return self.epilog
-
-
-#===============================================================================
-def _usage_epilog():
-    """ Builds the usage epilog string
-    :return: Usage text which goes after the options
-    """
-    #-- TODO: UPDATE usage text.
-    text = '\nShort description of script purpose/use\n\n'
-    text += 'Created: {0}  Contact: {1}\n'.format(__created__, __contact__)
-    text += 'Revised: {0}  Version: {1}\n'.format(__revised__, __version__)
-    text += '{0}, part of {1}. Project home: {2}\n'.format(__cononical_name__,
-                                                           __project_name__,
-                                                           __project_home__
-                                                          )
-    return text
 
 
 #===============================================================================
@@ -85,13 +70,17 @@ def _version():
     """
     #-- TODO: Like the OptionParser.epilog method, version strips newlines.
     #--        However, there is no format_version to override. If license
-    #--        info is going to be output, this'll have to be fixed.
-    text = "{0} ({1}) {2}".format(__cononical_name__, __project_name__, __version__)
+    #--        info is going to be output, this'll have to be fixed. It may
+    #--        be possible to override print_version()
+    text = '%s (%s) %s' % (__cononical_name__, __project_name__, __version__)
+    #-- NOTE: If license text is not desired, it is probably better to move
+    #--       the string to the PARSER declaration and remove this function
     #-- TODO: UPDATE license
-    #text += 'Copyright (c) 2016 awmyhr\n'
-    #text +='License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n'
-    #text +='This is free software: you are free to change and redistribute it.\n'
-    #text +='There is NO WARRANTY, to the extent permitted by law.\n'
+    # text += ('Copyright (c) 2016 awmyhr\n'
+    #          'License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n'
+    #          'This is free software: you are free to change and redistribute it.\n'
+    #          'There is NO WARRANTY, to the extent permitted by law.\n'
+    #         )
     return text
 
 
@@ -100,16 +89,20 @@ def _debug_info():
     """ Provides meta info for debug-level output
     :return: The header-text for debug-level output.
     """
-    text = '{0}\n\n'.format(_version())
-    text += 'Executeable: {0}\n\n'.format(os.path.abspath(sys.argv[0]))
-    text += 'Created: {0}  Coder(s): {1}\n'.format(__created__, __author__)
-    text += 'Revised: {0}  Version:  {1}\n'.format(__revised__, __version__)
-    text += 'Based on template.sh version: {0}\n'.format(__template_version__)
-    text += '{0}, part of {1}. Project home: {2}\n'.format(__cononical_name__,
-                                                           __project_name__,
-                                                           __project_home__
-                                                          )
-    text += '\n----- start -----\n'
+    text = ('%s\n\n'
+            'Executeable: %s\n\n'
+            'Created: %s  Coder(s): %s\n'
+            'Revised: %s  Version:  %s\n'
+            'Based on template.sh version: %s\n'
+            '%s, part of %s. Project home: %s\n'
+            '\n----- start -----\n'
+           ) % (_version(),
+                os.path.abspath(sys.argv[0]),
+                __created__, __author__,
+                __revised__, __version__,
+                __template_version__,
+                __cononical_name__, __project_name__, __project_home__
+               )
     return text
 
 
@@ -123,19 +116,8 @@ def exit_error(error_number, error_string):
     if OPTIONS.debug:
         print '\n------ end ------\n'
 
-    print '{0}: {1}'.format(__cononical_name__, error_string)
+    print '%s: %s' % (os.path.basename(sys.argv[0]), error_string)
     sys.exit(error_number)
-
-
-#===============================================================================
-def exit_clean():
-    """ Clean up everything and exit gracefully.
-    .. warning:: This function exits the script.
-    """
-    if OPTIONS.debug:
-        print '\n------ end ------\n'
-
-    sys.exit(0)
 
 
 #===============================================================================
@@ -144,7 +126,7 @@ def main():
     :return: Exit code. Should be os.EX_OK.
     """
     #-- TODO: Do something more interesting here...
-    print 'Hello world!'
+    logger.info('Hello world!')
 
     return os.EX_OK
     #-- NOTE: more exit codes here:
@@ -153,35 +135,79 @@ def main():
 
 #===============================================================================
 if __name__ == '__main__':
+    #-- Parse Options (rely on OptionsParser's exception handling)
+    PARSER = _ModOptionParser(
+        version=_version(),
+        description='Short description of script.',
+        epilog=('\nLonger explanation of script purpose &/or use.\n\n'
+                'Created: %s  Contact: %s\n'
+                'Revised: %s  Version: %s\n'
+                '%s, part of %s. Project home: %s\n'
+               ) % (__created__, __contact__,
+                    __revised__, __version__,
+                    __cononical_name__, __project_name__, __project_home__
+                   )
+    )
+    PARSER.add_option('--debug', help=optparse.SUPPRESS_HELP,
+                      dest='debug', action='store_true', default=False
+                     )
+    PARSER.add_option('--debug-file', help=optparse.SUPPRESS_HELP,
+                      dest='debugfile', type='string'
+                     )
+    (OPTIONS, ARGS) = PARSER.parse_args()
+
+    #-- Setup output(s)
+    if OPTIONS.debug:
+        LEVEL = logging.DEBUG
+        FORMATTER = logging.Formatter('%(levelname)-8s %(message)s')
+    else:
+        LEVEL = logging.INFO
+        FORMATTER = logging.Formatter('%(message)s')
+    logging.basicConfig(level=LEVEL)
+    logger = logging.getLogger(__name__) #: pylint: disable=invalid-name
+                                         #: lower-case is better here
+
+    #-- Console output
+    CONSOLE = logging.StreamHandler()
+    CONSOLE.setLevel(LEVEL)
+    CONSOLE.setFormatter(FORMATTER)
+    logger.addHandler(CONSOLE)
+
+    #-- File output
+    if OPTIONS.debug and OPTIONS.debugfile:
+        LOGFILE = logging.FileHandler(OPTIONS.debugfile, "w", encoding=None, delay="true")
+        LOGFILE.setLevel(LEVEL)
+        FORMATTER = logging.Formatter('%(levelname)-8s %(message)s')
+        LOGFILE.setFormatter(FORMATTER)
+        logger.addHandler(LOGFILE)
+
+    ## Start of output
+    logger.debug('%s (%s) %s', __cononical_name__, __project_name__, __version__)
+    logger.debug('Executeable: %s', os.path.abspath(sys.argv[0]))
+    logger.debug('Created: %s  Coder(s): %s', __created__, __author__)
+    logger.debug('Revised: %s  Version:  %s', __revised__, __version__)
+    logger.debug('Based on template.sh version: %s', __template_version__)
+    logger.debug('%s, part of %s. Project home: %s',
+                 __cononical_name__, __project_name__, __project_home__)
+    logger.debug('----- start -----')
+    ################
+    # if OPTIONS.debug:
+    #     print _debug_info()
+
+    #-- Do The Stuff
     try:
-        PARSER = _ModOptionParser(
-            version=_version(),
-            epilog=_usage_epilog()
-        )
-        PARSER.add_option('-d', '--debug', help=optparse.SUPPRESS_HELP,
-                          dest='debug', action='store_true', default=False
-                         )
-        (OPTIONS, ARGS) = PARSER.parse_args()
-        #if len(ARGS) < 1:
-        #    PARSER.error ('missing argument')
-        if OPTIONS.debug:
-            print _debug_info()
-
-        RETURN_VALUE = main()
-
-        if RETURN_VALUE == os.EX_OK:
-            exit_clean()
-        else:
-            exit_error(RETURN_VALUE, 'undefined error occured')
+        main()
     #-- NOTE: "except Exception as variable:" syntax was added in 2.6
     #-- NOTE: "try..except..finally" does not work pre 2.5
     except KeyboardInterrupt, error: # Ctrl-C
         raise error
     except SystemExit, error: # sys.exit()
         raise error
-    except Exception, error:
+    except Exception, error: # Known issue, will fix... eventually... pylint: disable=broad-except
         print 'ERROR, UNEXPECTED EXCEPTION'
         print str(error)
         traceback.print_exc()
         sys.exit(1)
-
+    else:
+        logger.debug('------ end ------')
+        sys.exit(0)
