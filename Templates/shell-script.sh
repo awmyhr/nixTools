@@ -28,7 +28,7 @@
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: UPDATE meta vars
 __version__='0.1.0-alpha'
-__revised__='2016-12-14'
+__revised__='2016-12-15'
 __contact__='awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 #-- The following few variables should be relatively static over life of script
 __author__='awmyhr <awmyhr@gmail.com>'   #: coders(s) of script
@@ -58,13 +58,16 @@ _usage() {
     #:"""
     #-- TODO: UPDATE usage text.
     printf 'Usage: %s [options]\n\n' "${0}"
+    printf 'Short description of script.\n\n'
     printf 'Options:\n'
     printf '  -h|--help      Dislay this help\n'
     printf '  --version      Display version\n\n'
-    printf 'Short description of script purpose/use\n\n'
-    printf 'Created: %s  Contact: %s\n'       "${__created__}" "${__contact__}" 
-    printf 'Revised: %s  Version: %s\n'  "${__revised__}" "${__version__}"
-    printf '%s, part of %s. Project home: %s\n' "${__cononical_name__}" "${__project_name__}" "${__project_home__}"
+    printf 'Longer explanation of script purpose &/or use.\n\n'
+    printf 'Created: %s  Contact: %s\n' "${__created__}" "${__contact__}" 
+    printf 'Revised: %s  Version: %s\n' "${__revised__}" "${__version__}"
+    printf '%s, part of %s. Project home: %s\n' "${__cononical_name__}" \
+                                                "${__project_name__}" \
+                                                "${__project_home__}"
 }
 
 #===============================================================================
