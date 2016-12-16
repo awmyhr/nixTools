@@ -28,7 +28,7 @@
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: UPDATE meta vars
 __version__='0.1.0-alpha'
-__revised__='2016-12-15'
+__revised__='2016-12-16'
 __contact__='awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 #-- The following few variables should be relatively static over life of script
 __author__='awmyhr <awmyhr@gmail.com>'   #: coders(s) of script
@@ -37,7 +37,7 @@ __copyright__=''                         #: Copyright short name
 __cononical_name__='shell-script.sh'     #: static name, *NOT* ${0}
 __project_name__='nix-Tools'             #: name of overall project, if needed
 __project_home__='https://github.com/awmyhr/nixTools' #: where to find source/documentation
-__template_version__='1.0.1'             #: version of template file used
+__template_version__='1.0.2'             #: version of template file used
 __docformat__='reStructuredText en'      #: attempted style for documentation
 
 #-- The following are string formats (prepended with strfmt_)
@@ -204,7 +204,8 @@ trap '_exit_trap ${LINENO} TERM' TERM
 trap '_exit_trap ${LINENO} HUP'  HUP
 
 #-- Process options (ignore --debug, as we already checked)
-[ "${#}" -gt 0 ] && while :; do
+# [ "${#}" -gt 0 ] && while :; do
+while [ "${#}" -gt 0 ]; do
     case "${1}" in
         --debug)    ;;
         -h|--help)  _usage   && exit 0 ;;
