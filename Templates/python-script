@@ -14,6 +14,7 @@
    :synopsis: {{ project_short_description }}
 
 .. codeauthor:: {{ full_name }} <{{ email }}>
+.. copyright:: {{ software_license }}
 
 {{ project_long_description }}
 """
@@ -45,7 +46,7 @@ __copyright__ = '{{ software_license }}' #: Copyright short name
 __cononical_name__ = '{{ script_name }}' #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__ = '{{ project_name }}'  #: name of overall project, if needed
 __project_home__ = '{{ project_home }}'  #: where to find source/documentation
-__template_version__ = '1.3.0'              #: version of template file used
+__template_version__ = '1.3.1'              #: version of template file used
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
 
 
@@ -57,7 +58,7 @@ class _ModOptionParser(optparse.OptionParser):
 
 #==============================================================================={#
 def test_func():
-    """ """
+    """ test function -- will not exist in deployed template """
     logger.debug('this is a test')
 #}
 def _version():
@@ -184,24 +185,24 @@ if __name__ == '__main__':
     #-- Do The Stuff
     try:
         main()
-    #-- NOTE: more exit codes here:
-    #--   https://docs.python.org/2/library/os.html#process-management
-    #-- NOTE: "except Exception as variable:" syntax was added in 2.6
-    #-- NOTE: "try..except..finally" does not work pre 2.5
     except (KeyboardInterrupt, SystemExit): # Catches (Ctrl-C, sys.exit())
         pass
-    except OSError, error:
-        if OPTIONS.debug:
-            print '\n------ end ------\n'
+    #-- NOTE: "except Exception as variable:" syntax was added in 2.6
+    except OSError as error:
         if error.errno == 2:
             logger.critical('%s: %s: %s', os.path.basename(sys.argv[0]),
                             error.strerror, error.filename
                            )
-            sys.exit(os.EX_UNAVAILABLE)
+            EXIT_STATUS = os.EX_UNAVAILABLE
         else:
             logger.critical('%s: %s', os.path.basename(sys.argv[0]), error.strerror)
-            sys.exit(error.errno)
+            EXIT_STATUS = error.errno
     else:
+        EXIT_STATUS = os.EX_OK
+    #-- NOTE: "try..except..finally" does not work pre 2.5
+    finally:
         if OPTIONS.debug:
             print '\n------ end ------\n'
-        sys.exit(os.EX_OK)
+        sys.exit(EXIT_STATUS)
+    #-- NOTE: more exit codes here:
+    #--   https://docs.python.org/2/library/os.html#process-management
