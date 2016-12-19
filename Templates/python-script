@@ -208,6 +208,17 @@ if __name__ == '__main__':
     #-- NOTE: "try..except..finally" does not work pre 2.5
     except (KeyboardInterrupt, SystemExit): # Catches (Ctrl-C, sys.exit())
         raise
+    except OSError, error:
+        if OPTIONS.debug:
+            print '\n------ end ------\n'
+        if error.errno == 2:
+            logger.critical('%s: %s: %s', os.path.basename(sys.argv[0]),
+                            error.strerror, error.filename
+                           )
+            sys.exit(os.EX_UNAVAILABLE)
+        else:
+            logger.critical('%s: %s', os.path.basename(sys.argv[0]), error.strerror)
+            sys.exit(error.errno)
     #: TODO: This is Not A Great Way. Known issue, will fix... eventually...
     except Exception, error: # pylint: disable=broad-except
         logger.exception('ERROR, UNEXPECTED EXCEPTION: %s', str(error))
