@@ -207,7 +207,7 @@ if __name__ == '__main__':
     #-- NOTE: "except Exception as variable:" syntax was added in 2.6
     #-- NOTE: "try..except..finally" does not work pre 2.5
     except (KeyboardInterrupt, SystemExit): # Catches (Ctrl-C, sys.exit())
-        raise
+        pass
     except OSError, error:
         if OPTIONS.debug:
             print '\n------ end ------\n'
