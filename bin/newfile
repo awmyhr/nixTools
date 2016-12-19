@@ -18,9 +18,12 @@ import logging      #: Python's standard logging facilities
 import optparse     #: Argument parsing
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
+import datetime     #: Stadard date/time library
 # import traceback    #: Print/retrieve a stack traceback
 #===============================================================================
 #-- Third Party Imports
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+                    #: Popular templating library
 #===============================================================================
 #-- Application Library Imports
 #===============================================================================
@@ -98,46 +101,60 @@ def _debug_info():
 
 
 #===============================================================================
-def exit_error(error_number, error_string):
-    """ Report error and exit.
-    :param int error_number: Number to use for Exit Code.
-    :param str error_string: Short description of error.
-    .. warning:: This function exits the script.
+def print_list(directory):
+    """ Print a list of available langauge/type combos
+    :params str directory: Full path to templates directory.
     """
-    if OPTIONS.debug:
-        print '\n------ end ------\n'
-
-    print '%s: %s' % (os.path.basename(sys.argv[0]), error_string)
-    sys.exit(error_number)
+    logger.info('%-10s %-10s', 'Language', 'Type')
+    for filename in os.listdir(directory):
+        logger.debug('Found: %s', os.path.join(directory, filename))
+        [flang, ftype] = filename.split('-')
+        logger.info('%-10s %-10s', flang, ftype)
 
 
 #===============================================================================
-def print_list():
-    """ Print a list of available langauge/type combos """
-    logger.info('Output list of lang/type')
-
-    return
-
+def get_context(script_name):
+    """ Finds and returns the context.
+    :param str script_name: Name of new file being created
+    :return: The context dictonary.
+    """
+    logger.debug('Building template context...')
+    context = {'script_name': script_name,
+               'project_short_description': '',
+               'full_name': '',
+               'email': '',
+               'version': '0.1.0-alpha',
+               'date': datetime.date.today(),
+               'project_name': '',
+               'project_long_description': '',
+               'project_home': '',
+               'contact_name': '',
+               'contact_email': '',
+               'software_license': ''
+              }
+    return context
 
 #===============================================================================
 def main():
-    """ This is where the action takes place
-    :return: Exit code. Should be os.EX_OK.
-    """
-    logger.debug('Templates: %s', OPTIONS.tempdir)
+    """ This is where the action takes place """
+    logger.debug('Template directory: %s', OPTIONS.tempdir)
     if OPTIONS.list is True:
-        print_list()
-        return os.EX_OK
+        print_list(OPTIONS.tempdir)
+        return
 
-    logger.debug('File lang: %s', OPTIONS.lang)
-    logger.debug('File type: %s', OPTIONS.type)
-    logger.debug('File name: %s', OPTIONS.filename)
+    logger.debug('Template lang: %s', OPTIONS.lang)
+    logger.debug('Template type: %s', OPTIONS.type)
+    logger.debug('New file name: %s', OPTIONS.filename)
+    context = get_context(OPTIONS.filename)
 
-    logger.info('Doing the work...')
+    templatefile = '%s-%s' % (OPTIONS.lang, OPTIONS.type)
+    logger.debug('Loading template: %s/%s', OPTIONS.tempdir, templatefile)
+    environment = Environment(loader=FileSystemLoader(OPTIONS.tempdir, followlinks=True))
+    template = environment.get_template(templatefile, globals=context)
+    with open(OPTIONS.filename, 'w') as outfile:
+        outfile.write(template.render())
 
-    return os.EX_OK
-    #-- NOTE: more exit codes here:
-    #--   https://docs.python.org/2/library/os.html#process-management
+    logger.info('File has been created: %s', OPTIONS.filename)
 
 
 #===============================================================================
@@ -166,7 +183,8 @@ if __name__ == '__main__':
                       dest='list', action='store_true', default=False
                      )
     PARSER.add_option('--template-dir', help='directory with template files [default: %default]',
-                      dest='tempdir', type='string', action='store', default='~/Templates'
+                      dest='tempdir', type='string', action='store',
+                      default=os.path.expanduser('~/Templates')
                      )
     PARSER.add_option('--debug', help=optparse.SUPPRESS_HELP,
                       dest='debug', action='store_true', default=False
@@ -201,8 +219,7 @@ if __name__ == '__main__':
 
     #-- File output
     if OPTIONS.debug and OPTIONS.debugfile:
-        #: NOTE: In Python >= 2.6 normally I give FileHandler 'delay="true"'
-        LOGFILE = logging.FileHandler(OPTIONS.debugfile)
+        LOGFILE = logging.FileHandler(OPTIONS.debugfile, delay="true")
         LOGFILE.setLevel(LEVEL)
         FORMATTER = logging.Formatter(
             '%(asctime)s.%(msecs)d:%(levelno)s:%(name)s.%(funcName)s:%(lineno)d:%(message)s',
@@ -218,16 +235,27 @@ if __name__ == '__main__':
     #-- Do The Stuff
     try:
         main()
-    #-- NOTE: "except Exception as variable:" syntax was added in 2.6
-    #-- NOTE: "try..except..finally" does not work pre 2.5
     except (KeyboardInterrupt, SystemExit): # Catches (Ctrl-C, sys.exit())
         pass
-    #: TODO: This is Not A Great Way. Known issue, will fix... eventually...
-    except Exception, error: # pylint: disable=broad-except
-        logger.exception('ERROR, UNEXPECTED EXCEPTION: %s', str(error))
-        #: TODO: This should TOTALLY not return 1, but rather errno of error
-        sys.exit(1)
+    except OSError as error:
+        if OPTIONS.debug:
+            print '\n------ end ------\n'
+        if error.errno == 2:
+            logger.critical('%s: %s: %s', os.path.basename(sys.argv[0]),
+                            error.strerror, error.filename
+                           )
+            sys.exit(os.EX_UNAVAILABLE)
+        else:
+            logger.critical('%s: %s', os.path.basename(sys.argv[0]), error.strerror)
+            sys.exit(error.errno)
+    except TemplateNotFound as error:
+        if OPTIONS.debug:
+            print '\n------ end ------\n'
+        logger.critical('%s: No such template: %s',
+                        os.path.basename(sys.argv[0]), error
+                       )
+        sys.exit(os.EX_UNAVAILABLE)
     else:
         if OPTIONS.debug:
             print '\n------ end ------\n'
-        sys.exit(0)
+        sys.exit(os.EX_OK)
