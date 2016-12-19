@@ -36,7 +36,7 @@ import sys          #: System-specific parameters & functions
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha'
-__revised__ = '2016-12-16'
+__revised__ = '2016-12-19'
 __contact__ = 'awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -46,7 +46,7 @@ __copyright__ = ''                          #: Copyright short name
 __cononical_name__ = 'python-script.py'     #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__ = 'nixTools'               #: name of overall project, if needed
 __project_home__ = 'https://github.com/awmyhr/nixTools' #: where to find source/documentation
-__template_version__ = '1.1.0'              #: version of template file used
+__template_version__ = '1.1.3'              #: version of template file used
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
 
 
@@ -126,9 +126,7 @@ def exit_error(error_number, error_string):
 
 #===============================================================================
 def main():
-    """ This is where the action takes place
-    :return: Exit code. Should be os.EX_OK.
-    """
+    """ This is where the action takes place """
     #-- TODO: Do something more interesting here...
     logger.debug('debug message')
     logger.info('info message')
@@ -137,10 +135,6 @@ def main():
     logger.critical('critical message')
 
     test_func()
-
-    return os.EX_OK
-    #-- NOTE: more exit codes here:
-    #--   https://docs.python.org/2/library/os.html#process-management
 
 
 #===============================================================================
@@ -204,6 +198,8 @@ if __name__ == '__main__':
     #-- Do The Stuff
     try:
         main()
+    #-- NOTE: more exit codes here:
+    #--   https://docs.python.org/2/library/os.html#process-management
     #-- NOTE: "except Exception as variable:" syntax was added in 2.6
     #-- NOTE: "try..except..finally" does not work pre 2.5
     except (KeyboardInterrupt, SystemExit): # Catches (Ctrl-C, sys.exit())
