@@ -219,11 +219,6 @@ if __name__ == '__main__':
         else:
             logger.critical('%s: %s', os.path.basename(sys.argv[0]), error.strerror)
             sys.exit(error.errno)
-    #: TODO: This is Not A Great Way. Known issue, will fix... eventually...
-    except Exception, error: # pylint: disable=broad-except
-        logger.exception('ERROR, UNEXPECTED EXCEPTION: %s', str(error))
-        #: TODO: This should TOTALLY not return 1, but rather errno of error
-        sys.exit(1)
     else:
         if OPTIONS.debug:
             print '\n------ end ------\n'
