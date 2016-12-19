@@ -111,6 +111,33 @@ def _debug_info():
 
 
 #===============================================================================
+def which(program):
+    """ Test if a program exists in $PATH.
+    :param str program: Name of program to find.
+    :return str: String to use for program execution.
+    .. note::
+        Originally found this here:
+        http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+    """
+    def _is_exe(fpath):
+        """ Private test for executeable """
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if _is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if _is_exe(exe_file):
+                return exe_file
+
+    return None
+
+
+#===============================================================================
 def main():
     """ This is where the action takes place """
     #-- TODO: Do something more interesting here...{#
