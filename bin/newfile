@@ -18,7 +18,6 @@ import logging      #: Python's standard logging facilities
 import optparse     #: Argument parsing
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
-import datetime     #: Stadard date/time library
 # import traceback    #: Print/retrieve a stack traceback
 #===============================================================================
 #-- Third Party Imports
@@ -117,18 +116,55 @@ def print_list(directory):
 
 
 #===============================================================================
+def which(program):
+    """ Test if a program exists in $PATH.
+    :param str program: Name of program to find.
+    :return str: String to use for program execution.
+    .. note::
+        Originally found this here:
+        http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+    """
+    def _is_exe(fpath):
+        """ Private test for executeable """
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if _is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if _is_exe(exe_file):
+                return exe_file
+
+    return None
+
+
+#===============================================================================
 def get_context(script_name):
     """ Finds and returns the context.
     :param str script_name: Name of new file being created
     :return: The context dictonary.
     """
+    import datetime     #: Stadard date/time library
+    import subprocess   #: used to call external commands
     logger.debug('Building template context...')
-    context = {'script_name': script_name,
-               'project_short_description': '',
-               'full_name': '',
-               'email': '',
-               'version': '0.1.0-alpha',
+    if which('git'):
+        logger.debug('Found git')
+        git_name = subprocess.check_output(
+            ['/usr/bin/git', 'config', '--get', 'user.name']
+        ).rstrip()
+        git_mail = subprocess.check_output(
+            ['/usr/bin/git', 'config', '--get', 'user.email']
+        ).rstrip()
+    context = {'version': '0.1.0-alpha',
+               'script_name': script_name,
                'date': datetime.date.today(),
+               'full_name': git_name,
+               'email': git_mail,
+               'project_short_description': '',
                'project_name': '',
                'project_long_description': '',
                'project_home': '',
@@ -137,6 +173,7 @@ def get_context(script_name):
                'software_license': ''
               }
     return context
+
 
 #===============================================================================
 def main():
