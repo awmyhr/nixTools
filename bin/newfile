@@ -108,8 +108,12 @@ def print_list(directory):
     logger.info('%-10s %-10s', 'Language', 'Type')
     for filename in os.listdir(directory):
         logger.debug('Found: %s', os.path.join(directory, filename))
-        [flang, ftype] = filename.split('-')
-        logger.info('%-10s %-10s', flang, ftype)
+        try:
+            [flang, ftype] = filename.split('-')
+        except ValueError:
+            pass
+        else:
+            logger.info('%-10s %-10s', flang, ftype)
 
 
 #===============================================================================
@@ -238,24 +242,24 @@ if __name__ == '__main__':
     except (KeyboardInterrupt, SystemExit): # Catches (Ctrl-C, sys.exit())
         pass
     except OSError as error:
-        if OPTIONS.debug:
-            print '\n------ end ------\n'
         if error.errno == 2:
             logger.critical('%s: %s: %s', os.path.basename(sys.argv[0]),
                             error.strerror, error.filename
                            )
-            sys.exit(os.EX_UNAVAILABLE)
+            EXIT_STATUS = os.EX_UNAVAILABLE
         else:
             logger.critical('%s: %s', os.path.basename(sys.argv[0]), error.strerror)
-            sys.exit(error.errno)
+            EXIT_STATUS = error.errno
     except TemplateNotFound as error:
-        if OPTIONS.debug:
-            print '\n------ end ------\n'
         logger.critical('%s: No such template: %s',
                         os.path.basename(sys.argv[0]), error
                        )
-        sys.exit(os.EX_UNAVAILABLE)
+        logger.info('Possible templates in %s:', OPTIONS.tempdir)
+        print_list(OPTIONS.tempdir)
+        EXIT_STATUS = os.EX_UNAVAILABLE
     else:
+        EXIT_STATUS = os.EX_OK
+    finally:
         if OPTIONS.debug:
             print '\n------ end ------\n'
-        sys.exit(os.EX_OK)
+        sys.exit(EXIT_STATUS)
