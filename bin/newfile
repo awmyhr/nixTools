@@ -28,8 +28,8 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '0.1.0-alpha'
-__revised__ = '2016-12-19'
+__version__ = '0.9.0-beta'
+__revised__ = '2016-12-20'
 __contact__ = 'awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -41,7 +41,8 @@ __project_name__ = 'nixTools'               #: name of overall project, if neede
 __project_home__ = 'https://github.com/awmyhr/nixTools' #: where to find source/documentation
 __template_version__ = '1.1.0'              #: version of template file used
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
-
+__basename__ = os.path.basename(sys.argv[0])#: name script run as
+EXIT_STATUS = None
 
 #===============================================================================
 class _ModOptionParser(optparse.OptionParser):
@@ -124,11 +125,13 @@ def which(program):
         Originally found this here:
         http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
     """
+    logger.debug('Looking for: %s.', program)
     def _is_exe(fpath):
         """ Private test for executeable """
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
-    fpath, fname = os.path.split(program)
+    fpath, fname = os.path.split(program) #: pylint: disable=unused-variable
+                                          #: We are totally throwing fname away
     if fpath:
         if _is_exe(program):
             return program
@@ -139,6 +142,7 @@ def which(program):
             if _is_exe(exe_file):
                 return exe_file
 
+    logger.debug('Could not find: %s.', program)
     return None
 
 
@@ -151,22 +155,26 @@ def get_context(script_name):
     import datetime     #: Stadard date/time library
     import subprocess   #: used to call external commands
     logger.debug('Building template context...')
-    if which('git'):
-        logger.debug('Found git')
+    git = which('git')
+    if git != None:
+        logger.debug('Found git at: %s', git)
         git_name = subprocess.check_output(
-            ['/usr/bin/git', 'config', '--get', 'user.name']
+            [git, 'config', '--get', 'user.name']
         ).rstrip()
         git_mail = subprocess.check_output(
-            ['/usr/bin/git', 'config', '--get', 'user.email']
+            [git, 'config', '--get', 'user.email']
         ).rstrip()
+    else:
+        git_name = ''
+        git_mail = ''
     context = {'version': '0.1.0-alpha',
                'script_name': script_name,
                'date': datetime.date.today(),
                'full_name': git_name,
                'email': git_mail,
                'project_short_description': '',
-               'project_name': '',
                'project_long_description': '',
+               'project_name': '',
                'project_home': '',
                'contact_name': '',
                'contact_email': '',
@@ -186,6 +194,13 @@ def main():
     logger.debug('Template lang: %s', OPTIONS.lang)
     logger.debug('Template type: %s', OPTIONS.type)
     logger.debug('New file name: %s', OPTIONS.filename)
+    #-- Refuse to replace existing file
+    if os.path.isfile(OPTIONS.filename):
+        #return os.EX_CANTCREAT
+        raise OSError(
+            os.EX_CANTCREAT,
+            'Cowardly refusing to overwrite existing file: %s.' % OPTIONS.filename
+        )
     context = get_context(OPTIONS.filename)
 
     templatefile = '%s-%s' % (OPTIONS.lang, OPTIONS.type)
@@ -280,16 +295,16 @@ if __name__ == '__main__':
         pass
     except OSError as error:
         if error.errno == 2:
-            logger.critical('%s: %s: %s', os.path.basename(sys.argv[0]),
+            logger.critical('%s: %s: %s', __basename__,
                             error.strerror, error.filename
                            )
             EXIT_STATUS = os.EX_UNAVAILABLE
         else:
-            logger.critical('%s: %s', os.path.basename(sys.argv[0]), error.strerror)
+            logger.critical('%s: %s', __basename__, error.strerror)
             EXIT_STATUS = error.errno
     except TemplateNotFound as error:
         logger.critical('%s: No such template: %s',
-                        os.path.basename(sys.argv[0]), error
+                        __basename__, error
                        )
         logger.info('Possible templates in %s:', OPTIONS.tempdir)
         print_list(OPTIONS.tempdir)
@@ -297,6 +312,10 @@ if __name__ == '__main__':
     else:
         EXIT_STATUS = os.EX_OK
     finally:
+        if EXIT_STATUS is None:
+            EXIT_STATUS = 1
+            raise #: pylint: disable=misplaced-bare-raise
+                  #: Ignoring this here until I find a Better Way(TM)
         if OPTIONS.debug:
             print '\n------ end ------\n'
         sys.exit(EXIT_STATUS)
