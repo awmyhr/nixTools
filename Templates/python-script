@@ -49,6 +49,7 @@ __project_home__ = '{{ project_home }}'  #: where to find source/documentation
 __template_version__ = '1.3.2'              #: version of template file used
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
 __basename__ = os.path.basename(sys.argv[0])#: name script run as
+EXIT_STATUS = None
 
 
 #===============================================================================
@@ -226,10 +227,18 @@ if __name__ == '__main__':
         else:
             logger.critical('%s: %s', __basename__, error.strerror)
             EXIT_STATUS = error.errno
+    # except:       #: This is _not_ working, see hack below
+    #     EXIT_STATUS = 1
+    #     # print "Unexpected error:", sys.exc_info()[0]
+    #     raise
     else:
         EXIT_STATUS = os.EX_OK
     #-- NOTE: "try..except..finally" does not work pre 2.5
     finally:
+        if EXIT_STATUS is None:
+            EXIT_STATUS = 1
+            raise #: pylint: disable=misplaced-bare-raise
+                  #: Ignoring this here until I find a Better Way(TM)
         if OPTIONS.debug:
             print '\n------ end ------\n'
         sys.exit(EXIT_STATUS)
