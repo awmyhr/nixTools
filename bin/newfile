@@ -291,8 +291,10 @@ if __name__ == '__main__':
     #-- Do The Stuff
     try:
         main()
-    except (KeyboardInterrupt, SystemExit): # Catches (Ctrl-C, sys.exit())
-        pass
+    except KeyboardInterrupt: # Catches Ctrl-C
+        EXIT_STATUS = 130
+    except SystemExit: # Catches sys.exit()
+        raise
     except TemplateNotFound as error:
         logger.critical('%s: No such template: %s',
                         __basename__, error
@@ -301,22 +303,27 @@ if __name__ == '__main__':
         print_list(OPTIONS.tempdir)
         EXIT_STATUS = os.EX_UNAVAILABLE
     except IOError as error:
-        if error.errno == 13:
-            logger.critical('%s: %s: %s', __basename__,
+        if error.errno == 2:                #: No such file/directory
+            logger.critical('%s: [IOError] %s: %s', __basename__,
+                            error.strerror, error.filename
+                           )
+            EXIT_STATUS = os.EX_UNAVAILABLE
+        elif error.errno == 13:                #: Permission Denied
+            logger.critical('%s: [IOError] %s: %s', __basename__,
                             error.strerror, error.filename
                            )
             EXIT_STATUS = os.EX_NOPERM
         else:
-            logger.critical('%s: %s', __basename__, error.strerror)
+            logger.critical('%s: [IOError] %s', __basename__, error.strerror)
             EXIT_STATUS = error.errno
     except OSError as error:
-        if error.errno == 2:
-            logger.critical('%s: %s: %s', __basename__,
+        if error.errno == 2:                #: No such file/directory
+            logger.critical('%s: [OSError] %s: %s', __basename__,
                             error.strerror, error.filename
                            )
             EXIT_STATUS = os.EX_UNAVAILABLE
         else:
-            logger.critical('%s: %s', __basename__, error.strerror)
+            logger.critical('%s: [OSError] %s', __basename__, error.strerror)
             EXIT_STATUS = error.errno
     else:
         EXIT_STATUS = os.EX_OK
