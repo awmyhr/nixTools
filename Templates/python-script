@@ -93,11 +93,10 @@ def _version():
 #===============================================================================
 def _debug_info():
     """ Provides meta info for debug-level output """
+    import platform #: Easily get platforms identifying info
     logger.debug('Cononical: %s', __cononical_name__)
     logger.debug('Abs Path:  %s', os.path.abspath(sys.argv[0]))
-    logger.debug('Python:    %s (%s.%s.%s)',
-                 sys.executable, sys.version_info[0], sys.version_info[1], sys.version_info[2]
-                )
+    logger.debug('Python:    %s (%s)', sys.executable, platform.python_version())
     logger.debug('Version:   %s', __version__)
     logger.debug('Created:   %s', __created__)
     logger.debug('Revised:   %s', __revised__)
@@ -106,8 +105,15 @@ def _debug_info():
     logger.debug('Project:   %s', __project_name__)
     logger.debug('Project Home: %s', __project_home__)
     logger.debug('Template Version: %s', __template_version__)
-    logger.debug('Platform:  %s (%s)', sys.platform, os.name)
-    logger.debug('uname:     %s', os.uname())
+    logger.debug('System:    %s',
+                 platform.system_alias(platform.system(),
+                                       platform.release(),
+                                       platform.version()
+                                      )
+                )
+    if platform.system() in 'Linux':
+        logger.debug('Distro:    %s', platform.linux_distribution())
+    logger.debug('Hostname:  %s', platform.node())
     logger.debug('[res]uid:  %s', os.getresuid())
     logger.debug('PID/PPID:  %s/%s', os.getpid(), os.getppid())
 
