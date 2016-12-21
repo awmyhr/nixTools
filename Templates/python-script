@@ -10,13 +10,13 @@
 #-- Recent Fedora versions (24/25) stay current on 2.7 (2.7.12 as of 20161212)
 #===============================================================================
 """
-.. program:: {{ script_name }}
-   :synopsis: {{ project_short_description }}
+.. program:: {{ script_name|default('TODO: CHANGEME', true) }}
+   :synopsis: {{ script_short_description|default('TODO: CHANGEME', true) }}
 
-.. codeauthor:: {{ full_name }} <{{ email }}>
-.. copyright:: {{ software_license }}
+.. codeauthor:: {{ full_name|default('TODO: CHANGEME', true) }} <{{ email|default('TODO: CHANGEME', true) }}>
+.. copyright:: {{ software_license|default('TODO: CHANGEME', true) }}
 
-{{ project_long_description }}
+{{ script_long_description|default('TODO: CHANGEME', true) }}
 """
 #===============================================================================
 #-- Standard Imports
@@ -35,18 +35,18 @@ import sys          #: System-specific parameters & functions
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '{{ version }}' #: current version
-__revised__ = '{{ date }}' #: date of most recent revision
-__contact__ = '{{ contact_name }} <{{ contact_email }}>' #: primary contact for support/?'s
+__version__ = '{{ version|default("TODO: CHANGEME", true) }}' #: current version
+__revised__ = '{{ date|default("TODO: CHANGEME", true) }}' #: date of most recent revision
+__contact__ = '{{ contact_name|default("TODO: CHANGEME", true) }} <{{ contact_email|default("TODO: CHANGEME", true) }}>' #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
-__author__ = '{{ full_name }} <{{ email }}>' #: coder(s) of script
-__created__ = '{{ date }}'               #: date script originlly created
-__copyright__ = '{{ software_license }}' #: Copyright short name
-__cononical_name__ = '{{ script_name }}' #: static name, *NOT* os.path.basename(sys.argv[0])
-__project_name__ = '{{ project_name }}'  #: name of overall project, if needed
-__project_home__ = '{{ project_home }}'  #: where to find source/documentation
-__template_version__ = '1.4.1'              #: version of template file used
+__author__ = '{{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>' #: coder(s) of script
+__created__ = '{{ date|default("TODO: CHANGEME", true) }}'               #: date script originlly created
+__copyright__ = '{{ software_license|default("TODO: CHANGEME", true) }}' #: Copyright short name
+__cononical_name__ = '{{ script_name|default("TODO: CHANGEME", true) }}' #: static name, *NOT* os.path.basename(sys.argv[0])
+__project_name__ = '{{ project_name|default("TODO: CHANGEME", true) }}'  #: name of overall project, if needed
+__project_home__ = '{{ project_home|default("TODO: CHANGEME", true) }}'  #: where to find source/documentation
+__template_version__ = '1.5.0'              #: version of template file used
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
 __basename__ = os.path.basename(sys.argv[0])#: name script run as
 EXIT_STATUS = None
@@ -83,7 +83,7 @@ def _version():
     #-- NOTE: If license text is not desired, it is probably better to move
     #--       the string to the PARSER declaration and remove this function
     #-- TODO: UPDATE license
-    # text += ('Copyright (c) 2016 awmyhr\n'
+    # text += ('Copyright (c) 2016 {{ full_name|default("TODO: CHANGEME", true) }}\n'
     #          'License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n'
     #          'This is free software: you are free to change and redistribute it.\n'
     #          'There is NO WARRANTY, to the extent permitted by law.\n'
@@ -170,8 +170,8 @@ if __name__ == '__main__':
     #-- Parse Options (rely on OptionsParser's exception handling)
     PARSER = _ModOptionParser(
         version='%s (%s) %s' % (__cononical_name__, __project_name__, __version__),
-        description='{{ project_short_description }}',
-        epilog=('\n{{ project_long_description }}\n\n'
+        description='{{ script_short_description|default("TODO: CHANGEME", true) }}',
+        epilog=('\n{{ script_long_description|default("TODO: CHANGEME", true) }}\n\n'
                 'Created: %s  Contact: %s\n'
                 'Revised: %s  Version: %s\n'
                 '%s, part of %s. Project home: %s\n'
