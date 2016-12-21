@@ -130,11 +130,9 @@ def get_context(script_name, config_file):
     logger.debug('Building template context for %s with values from %s.',
                  script_name, config_file
                 )
-    context = {'abcd': 'zyx',
-               'version': '0.1.0-alpha',
+    context = {'version': '0.1.0-alpha',
                'script_name': script_name,
-               'date': datetime.date.today(),
-               'wtf': 'fthis'
+               'date': datetime.date.today()
               }
     for key, value in yaml.load(open(config_file, 'r')).iteritems():
         context[key] = value
