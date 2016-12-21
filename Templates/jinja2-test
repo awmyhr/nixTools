@@ -1,0 +1,22 @@
+{{ contact_email }} = contact_email
+{{ date }} = date
+{{ email }} = email
+{{ full_name }} = full_name
+{{ project_home }} = project_home
+{{ script_long_description }} = script_long_description
+{{ script_name }} = script_name
+{{ script_short_description }} = script_short_description
+{{ software_license }} = software_license
+{{ version }} = version
+
+contact_name                = {{ contact_name|default('TODO: CHANGEME', true) }}
+date                        = {{ date|default('TODO: CHANGEME', true) }}
+email                       = {{ email|default('TODO: CHANGEME', true) }}
+full_name                   = {{ full_name|default('TODO: CHANGEME', true) }}
+project_name                = {{ project_name|default('TODO: CHANGEME', true) }}
+script_long_description     = {{ script_long_description|default('TODO: CHANGEME', true) }}
+script_name                 = {{ script_name|default('TODO: CHANGEME', true) }}
+script_short_description    = {{ script_short_description|default('TODO: CHANGEME', true) }}
+software_license            = {{ software_license|default('TODO: CHANGEME', true) }}
+version                     = {{ version|default('TODO: CHANGEME', true) }}
+
