@@ -3,11 +3,11 @@
 #--       switching to bash
 #===============================================================================
 #:"""
-#: .. program:: {{ script_name }}
-#:    :synopsis: {{ project_short_description }}
+#: .. program:: {{ script_name|default("TODO: CHANGEME", true) }}
+#:    :synopsis: {{ script_short_description|default("TODO: CHANGEME", true) }}
 #:
-#: .. codeauthor:: {{ full_name }} <{{ email }}>
-#: .. copyright:: {{ software_license }}
+#: .. codeauthor:: {{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>
+#: .. copyright:: {{ software_license|default("TODO: CHANGEME", true) }}
 #:
 #: .. note:: 
 #:     For guidance, please refer to:
@@ -21,22 +21,22 @@
 #: .. warning::
 #:     Option parsing is currently less-than-ideal
 #:
-#: {{ project_long_description }}
+#: {{ script_long_description|default("TODO: CHANGEME", true) }}
 #:"""
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: UPDATE meta vars
-__version__='{{ version }}' #: current version
-__revised__='{{ date }}' #: date of most recent revision
-__contact__='{{ contact_name }} <{{ contact_email }}>' #: primary contact for support/?'s
+__version__='{{ version|default("TODO: CHANGEME", true) }}' #: current version
+__revised__='{{ date|default("TODO: CHANGEME", true) }}' #: date of most recent revision
+__contact__='{{ contact_name|default("TODO: CHANGEME", true) }} <{{ contact_email|default("TODO: CHANGEME", true) }}>' #: primary contact for support/?'s
 #-- The following few variables should be relatively static over life of script
-__author__='{{ full_name }} <{{ email }}>' #: coder(s) of script
-__created__='{{ date }}'               #: date script originlly created
-__copyright__='{{ software_license }}' #: Copyright short name
-__cononical_name__='{{ script_name }}' #: static name, *NOT* os.path.basename(sys.argv[0])
-__project_name__='{{ project_name }}'  #: name of overall project, if needed
-__project_home__='{{ project_home }}'  #: where to find source/documentation
-__template_version__='1.1.0'             #: version of template file used
+__author__='{{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>' #: coder(s) of script
+__created__='{{ date|default("TODO: CHANGEME", true) }}'               #: date script originlly created
+__copyright__='{{ software_license|default("TODO: CHANGEME", true) }}' #: Copyright short name
+__cononical_name__='{{ script_name|default("TODO: CHANGEME", true) }}' #: static name, *NOT* os.path.basename(sys.argv[0])
+__project_name__='{{ project_name|default("TODO: CHANGEME", true) }}'  #: name of overall project, if needed
+__project_home__='{{ project_home|default("TODO: CHANGEME", true) }}'  #: where to find source/documentation
+__template_version__='1.2.0'             #: version of template file used
 __docformat__='reStructuredText en'      #: attempted style for documentation
 
 #-- The following are string formats (prepended with strfmt_)
@@ -57,11 +57,11 @@ _usage() {
     #:"""
     #-- TODO: UPDATE usage text.
     printf 'Usage: %s [options]\n\n' "${0}"
-    printf '{{ project_short_description }}\n\n'
+    printf '{{ script_short_description|default("TODO: CHANGEME", true) }}\n\n'
     printf 'Options:\n'
     printf '  -h|--help      Dislay this help\n'
     printf '  --version      Display version\n\n'
-    printf '{{ project_long_description }}\n\n'
+    printf '{{ script_long_description|default("TODO: CHANGEME", true) }}\n\n'
     printf 'Created: %s  Contact: %s\n' "${__created__}" "${__contact__}" 
     printf 'Revised: %s  Version: %s\n' "${__revised__}" "${__version__}"
     printf '%s, part of %s. Project home: %s\n' "${__cononical_name__}" \
@@ -85,7 +85,7 @@ _version() {
     #:"""
     printf '%s (%s) %s\n' "${__cononical_name__}" "${__project_name__}" "${__version__}"
     #-- TODO: UPDATE license
-    # printf 'Copyright (c) 2016 awmyhr\n'
+    # printf 'Copyright (c) 2016 {{ full_name|default("TODO: CHANGEME", true)  }}\n'
     # printf 'License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n'
     # printf 'This is free software: you are free to change and redistribute it.\n'
     # printf 'There is NO WARRANTY, to the extent permitted by law.\n'
