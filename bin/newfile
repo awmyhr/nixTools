@@ -29,7 +29,7 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.9.0-beta'
-__revised__ = '2016-12-20'
+__revised__ = '2016-12-21'
 __contact__ = 'awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -49,6 +49,7 @@ class _ModOptionParser(optparse.OptionParser):
     """ By default format_epilog() strips newlines, we don't want that. """
     def format_epilog(self, formatter):
         return self.epilog
+
 
 #===============================================================================
 def _version():
@@ -105,6 +106,7 @@ def print_list(directory):
     """ Print a list of available langauge/type combos
     :params str directory: Full path to templates directory.
     """
+    logger.debug('Checking for templates in: %s', directory)
     logger.info('%-10s %-10s', 'Language', 'Type')
     for filename in os.listdir(directory):
         logger.debug('Found: %s', os.path.join(directory, filename))
@@ -117,69 +119,26 @@ def print_list(directory):
 
 
 #===============================================================================
-def which(program):
-    """ Test if a program exists in $PATH.
-    :param str program: Name of program to find.
-    :return str: String to use for program execution.
-    .. note::
-        Originally found this here:
-        http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
-    """
-    logger.debug('Looking for: %s.', program)
-    def _is_exe(fpath):
-        """ Private test for executeable """
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-    fpath, fname = os.path.split(program) #: pylint: disable=unused-variable
-                                          #: We are totally throwing fname away
-    if fpath:
-        if _is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if _is_exe(exe_file):
-                return exe_file
-
-    logger.debug('Could not find: %s.', program)
-    return None
-
-
-#===============================================================================
-def get_context(script_name):
+def get_context(script_name, config_file):
     """ Finds and returns the context.
-    :param str script_name: Name of new file being created
+    :param str script_name: Name of new file being created.
+    :param str config_file: Name (w/path if neded) of config file.
     :return: The context dictonary.
     """
     import datetime     #: Stadard date/time library
-    import subprocess   #: used to call external commands
-    logger.debug('Building template context...')
-    git = which('git')
-    if git != None:
-        logger.debug('Found git at: %s', git)
-        git_name = subprocess.check_output(
-            [git, 'config', '--get', 'user.name']
-        ).rstrip()
-        git_mail = subprocess.check_output(
-            [git, 'config', '--get', 'user.email']
-        ).rstrip()
-    else:
-        git_name = ''
-        git_mail = ''
-    context = {'version': '0.1.0-alpha',
+    import yaml         #: using YAML format for config file
+    logger.debug('Building template context for %s with values from %s.',
+                 script_name, config_file
+                )
+    context = {'abcd': 'zyx',
+               'version': '0.1.0-alpha',
                'script_name': script_name,
                'date': datetime.date.today(),
-               'full_name': git_name,
-               'email': git_mail,
-               'project_short_description': '',
-               'project_long_description': '',
-               'project_name': '',
-               'project_home': '',
-               'contact_name': '',
-               'contact_email': '',
-               'software_license': ''
+               'wtf': 'fthis'
               }
+    for key, value in yaml.load(open(config_file, 'r')).iteritems():
+        context[key] = value
+    logger.debug('Returning template values: %s', context)
     return context
 
 
@@ -190,18 +149,16 @@ def main():
     if OPTIONS.list is True:
         print_list(OPTIONS.tempdir)
         return
-
     logger.debug('Template lang: %s', OPTIONS.lang)
     logger.debug('Template type: %s', OPTIONS.type)
     logger.debug('New file name: %s', OPTIONS.filename)
     #-- Refuse to replace existing file
     if os.path.isfile(OPTIONS.filename):
-        #return os.EX_CANTCREAT
         raise OSError(
             os.EX_CANTCREAT,
             'Cowardly refusing to overwrite existing file: %s.' % OPTIONS.filename
         )
-    context = get_context(OPTIONS.filename)
+    context = get_context(OPTIONS.filename, '.newfilerc')
 
     templatefile = '%s-%s' % (OPTIONS.lang, OPTIONS.type)
     logger.debug('Loading template: %s/%s', OPTIONS.tempdir, templatefile)
