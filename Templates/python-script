@@ -46,7 +46,7 @@ __copyright__ = '{{ software_license }}' #: Copyright short name
 __cononical_name__ = '{{ script_name }}' #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__ = '{{ project_name }}'  #: name of overall project, if needed
 __project_home__ = '{{ project_home }}'  #: where to find source/documentation
-__template_version__ = '1.4.0'              #: version of template file used
+__template_version__ = '1.4.1'              #: version of template file used
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
 __basename__ = os.path.basename(sys.argv[0])#: name script run as
 EXIT_STATUS = None
@@ -121,6 +121,7 @@ def which(program):
         Originally found this here:
         http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
     """
+    logger.debug('Looking for command: %s', program)
     def _is_exe(fpath):
         """ Private test for executeable """
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
@@ -129,20 +130,24 @@ def which(program):
                                           #: We are totally throwing fname away
     if fpath:
         if _is_exe(program):
+            logger.debug('Found %s here.', program)
             return program
     else:
         for path in os.environ["PATH"].split(os.pathsep):
             path = path.strip('"')
             exe_file = os.path.join(path, program)
             if _is_exe(exe_file):
+                logger.debug('Found %s here: %s', program, exe_file)
                 return exe_file
 
+    logger.debug('Could not find %s.', program)
     return None
 
 
 #===============================================================================
 def main():
     """ This is where the action takes place """
+    logger.debug('Starting main()')
     #-- TODO: Do something more interesting here...{#
     logger.debug('debug message')
     logger.info('info message')
@@ -215,36 +220,50 @@ if __name__ == '__main__':
     #-- Do The Stuff
     try:
         main()
-    except (KeyboardInterrupt, SystemExit): # Catches (Ctrl-C, sys.exit())
-        pass
+    except KeyboardInterrupt: # Catches Ctrl-C
+        logger.debug('Caught Ctrl-C')
+        EXIT_STATUS = 130
+    except SystemExit: # Catches sys.exit()
+        logger.debug('Caught SystemExit')
+        raise
     #-- NOTE: "except Exception as variable:" syntax was added in 2.6
     except IOError as error:
-        if error.errno == 13:                #: Permission Denied
-            logger.critical('%s: %s: %s', __basename__,
+        logger.debug('Caught IOError')
+        if error.errno == 2:                #: No such file/directory
+            logger.critical('%s: [IOError] %s: %s', __basename__,
+                            error.strerror, error.filename
+                           )
+            EXIT_STATUS = os.EX_UNAVAILABLE
+        elif error.errno == 13:                #: Permission Denied
+            logger.critical('%s: [IOError] %s: %s', __basename__,
                             error.strerror, error.filename
                            )
             EXIT_STATUS = os.EX_NOPERM
         else:
-            logger.critical('%s: %s', __basename__, error.strerror)
+            logger.critical('%s: [IOError] %s', __basename__, error.strerror)
             EXIT_STATUS = error.errno
     except OSError as error:
+        logger.debug('Caught OSError')
         if error.errno == 2:                #: No such file/directory
-            logger.critical('%s: %s: %s', __basename__,
+            logger.critical('%s: [OSError] %s: %s', __basename__,
                             error.strerror, error.filename
                            )
             EXIT_STATUS = os.EX_UNAVAILABLE
         else:
-            logger.critical('%s: %s', __basename__, error.strerror)
+            logger.critical('%s: [OSError] %s', __basename__, error.strerror)
             EXIT_STATUS = error.errno
     # except:       #: This is _not_ working, see hack below
     #     EXIT_STATUS = 1
     #     # print "Unexpected error:", sys.exc_info()[0]
     #     raise
     else:
+        logger.debug('main() exited cleanly.')
         EXIT_STATUS = os.EX_OK
     #-- NOTE: "try..except..finally" does not work pre 2.5
     finally:
+        logger.debug('Mandatory clean-up.')
         if EXIT_STATUS is None:
+            logger.debug('EXIT_STATUS is still None.')
             EXIT_STATUS = 1
             raise #: pylint: disable=misplaced-bare-raise
                   #: Ignoring this here until I find a Better Way(TM)
