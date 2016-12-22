@@ -96,6 +96,7 @@ def _debug_info():
     import platform #: Easily get platforms identifying info
     logger.debug('Cononical: %s', __cononical_name__)
     logger.debug('Abs Path:  %s', os.path.abspath(sys.argv[0]))
+    logger.debug('Full Args: %s', ' '.join(sys.argv[:]))
     logger.debug('Python:    %s (%s)', sys.executable, platform.python_version())
     logger.debug('Version:   %s', __version__)
     logger.debug('Created:   %s', __created__)
