@@ -43,12 +43,14 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '0.9.0-beta'
-__revised__ = '2016-12-21'
+__version__ = '1.0.0-beta'
+__revised__ = '2016-12-22'
 __contact__ = 'awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
-__author__ = 'awmyhr <awmyhr@gmail.com>'    #: coder(s) of script
+__author__ = ['awmyhr <awmyhr@gmail.com>',
+              'MyHR, Andy <andy.myhr@metlife.com'
+             ]    #: coder(s) of script
 __created__ = '2016-12-19'                  #: date script originlly created
 __copyright__ = 'Apache-2.0'                          #: Copyright short name
 __cononical_name__ = 'newfile'              #: static name, *NOT* os.path.basename(sys.argv[0])
@@ -140,6 +142,46 @@ def print_list(directory):
 
 
 #===============================================================================
+def get_git(setting):
+    """ Get a config setting from git
+    :param str setting: Name of git setting to retrieve
+    :return: Value of setting, or 'TODO: Change <setting>'
+    """
+    from subprocess import check_output, CalledProcessError
+    logger.debug('Checking git for setting: %s', setting)
+    try:
+        return check_output(['git', 'config', '--get', setting]).rstrip()
+    except (OSError, CalledProcessError):
+        return 'TODO: Change %s' % setting
+
+
+#===============================================================================
+def find_config_file():
+    """ Look for .newfilerc in current + all parents
+    .. Note:: Based on code found here: http://stackoverflow.com/a/37560251
+    :return: fully qualified file, or None
+    """
+    logger.debug('Looking for .newfilerc')
+    file_name = '.newfilerc'
+    cur_dir = os.getcwd()
+
+    while True:
+        file_list = os.listdir(cur_dir)
+        parent_dir = os.path.dirname(cur_dir)
+        if file_name in file_list:
+            logger.debug('Returning config file: %s',
+                         os.path.join(cur_dir, file_name)
+                        )
+            return os.path.join(cur_dir, file_name)
+        else:
+            if cur_dir == parent_dir:
+                logger.debug('No config file found.')
+                return None
+            else:
+                cur_dir = parent_dir
+
+
+#===============================================================================
 def get_context(script_name, config_file):
     """ Finds and returns the context.
     :param str script_name: Name of new file being created.
@@ -155,8 +197,13 @@ def get_context(script_name, config_file):
                'script_name': script_name,
                'date': datetime.date.today()
               }
-    for key, value in yaml.load(open(config_file, 'r')).iteritems():
-        context[key] = value
+    context['full_name'] = get_git('user.name')
+    context['email'] = get_git('user.email')
+    if config_file is not None:
+        for key, value in yaml.load(open(config_file, 'r')).iteritems():
+            context[key] = value
+    else:
+        logger.warning('No config file found, check TODOs.')
     logger.debug('Returning template values: %s', context)
     return context
 
@@ -177,7 +224,16 @@ def main():
             os.EX_CANTCREAT,
             'Cowardly refusing to overwrite existing file: %s.' % OPTIONS.filename
         )
-    context = get_context(OPTIONS.filename, '.newfilerc')
+    if OPTIONS.configfile:
+        if not os.path.isfile(OPTIONS.configfile):
+            raise OSError(
+                os.EX_NOINPUT,
+                'Indicated config file not found: %s.' % OPTIONS.configfile
+            )
+    else:
+        OPTIONS.configfile = find_config_file()
+    logger.debug('Config file: %s', OPTIONS.configfile)
+    context = get_context(OPTIONS.filename, OPTIONS.configfile)
 
     templatefile = '%s-%s' % (OPTIONS.lang, OPTIONS.type)
     logger.debug('Loading template: %s/%s', OPTIONS.tempdir, templatefile)
@@ -199,14 +255,14 @@ if __name__ == '__main__':
         epilog=('\nThis program will create a new file from a template, auto-filling fields.\n\n'
                 'Created: %s  Contact: %s\n'
                 'Revised: %s  Version: %s\n'
-                '%s, part of %s. Project home: %s\n'
+                '%s, part of %s.\nProject home: %s\n'
                ) % (__created__, __contact__,
                     __revised__, __version__,
                     __cononical_name__, __project_name__, __project_home__
                    )
     )
-    PARSER.add_option('-l', '--language', help='language/app of file [default: %default]',
-                      dest='lang', type='string', default='python'
+    PARSER.add_option('-l', '--language', dest='lang', type='string', default='python',
+                      help='language/app of file [default: %default]'
                      )
     PARSER.add_option('-t', '--type', help='type of file [default: %default]',
                       dest='type', type='string', default='script'
@@ -217,6 +273,9 @@ if __name__ == '__main__':
     PARSER.add_option('--template-dir', help='directory with template files [default: %default]',
                       dest='tempdir', type='string', action='store',
                       default=os.path.expanduser('~/Templates')
+                     )
+    PARSER.add_option('--config-file', dest='configfile', type='string',
+                      help='config file to use [default: will search for .newfilerc'
                      )
     PARSER.add_option('--debug', help=optparse.SUPPRESS_HELP,
                       dest='debug', action='store_true', default=False
