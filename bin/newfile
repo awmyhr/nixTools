@@ -84,6 +84,7 @@ def _debug_info():
     """ Provides meta info for debug-level output """
     logger.debug('Cononical: %s', __cononical_name__)
     logger.debug('Abs Path:  %s', os.path.abspath(sys.argv[0]))
+    logger.debug('Full Args: %s', ' '.join(sys.argv[:]))
     logger.debug('Python:    %s (%s.%s.%s)',
                  sys.executable, sys.version_info[0], sys.version_info[1], sys.version_info[2]
                 )
