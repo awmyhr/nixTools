@@ -7,6 +7,21 @@
 
 .. codeauthor:: awmyhr <awmyhr@gmail.com>
 
+.. copyright:: Apache-2.0
+    Copyright 2016 awmyhr <awmyhr@gmail.com>
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
 This program will create a new file from a template, auto-filling fields.
 """
 #===============================================================================
@@ -35,7 +50,7 @@ __contact__ = 'awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 #-- The following few variables should be relatively static over life of script
 __author__ = 'awmyhr <awmyhr@gmail.com>'    #: coder(s) of script
 __created__ = '2016-12-19'                  #: date script originlly created
-__copyright__ = ''                          #: Copyright short name
+__copyright__ = 'Apache-2.0'                          #: Copyright short name
 __cononical_name__ = 'newfile'              #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__ = 'nixTools'               #: name of overall project, if needed
 __project_home__ = 'https://github.com/awmyhr/nixTools' #: where to find source/documentation
@@ -73,9 +88,14 @@ def _version():
     #--       the string to the PARSER declaration and remove this function
     #-- TODO: UPDATE license
     # text += ('Copyright (c) 2016 awmyhr\n'
-    #          'License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n'
-    #          'This is free software: you are free to change and redistribute it.\n'
-    #          'There is NO WARRANTY, to the extent permitted by law.\n'
+    #          'Licensed under the Apache License, Version 2.0 (the "License");\n'
+    #          'you may not use this file except in compliance with the License.\n'
+    #          'You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0\n'
+    #          'Unless required by applicable law or agreed to in writing, software\n'
+    #          'distributed under the License is distributed on an "AS IS" BASIS,\n'
+    #          'WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n'
+    #          'See the License for the specific language governing permissions and\n'
+    #          'limitations under the License.'
     #         )
 
 

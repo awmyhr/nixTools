@@ -15,6 +15,7 @@
 
 .. codeauthor:: {{ full_name|default('TODO: CHANGEME', true) }} <{{ email|default('TODO: CHANGEME', true) }}>
 .. copyright:: {{ software_license|default('TODO: CHANGEME', true) }}
+TODO: UPDATE license - a boilerplate notice should go here
 
 {{ script_long_description|default('TODO: CHANGEME', true) }}
 """
@@ -82,11 +83,9 @@ def _version():
     # text = '%s (%s) %s' % (__cononical_name__, __project_name__, __version__)
     #-- NOTE: If license text is not desired, it is probably better to move
     #--       the string to the PARSER declaration and remove this function
-    #-- TODO: UPDATE license
+    #-- TODO: UPDATE license - a boilerplate notice should go here as well
     # text += ('Copyright (c) 2016 {{ full_name|default("TODO: CHANGEME", true) }}\n'
-    #          'License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n'
-    #          'This is free software: you are free to change and redistribute it.\n'
-    #          'There is NO WARRANTY, to the extent permitted by law.\n'
+    #          'License {{ software_license|default("TODO: CHANGEME", true) }}\n'
     #         )
 
 

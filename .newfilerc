@@ -5,5 +5,5 @@
   full_name: 'awmyhr',
   project_home: 'https://github.com/awmyhr/nixTools',
   project_name: 'nixTools',
-  software_license: ''
+  software_license: 'Apache-2.0'
 }

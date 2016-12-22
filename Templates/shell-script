@@ -8,6 +8,7 @@
 #:
 #: .. codeauthor:: {{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>
 #: .. copyright:: {{ software_license|default("TODO: CHANGEME", true) }}
+#:      TODO: UPDATE license - a boilerplate notice should go here
 #:
 #: .. note:: 
 #:     For guidance, please refer to:
@@ -84,11 +85,9 @@ _version() {
     #:     If not, REMOVE these lines -- do NOT leave them commented!
     #:"""
     printf '%s (%s) %s\n' "${__cononical_name__}" "${__project_name__}" "${__version__}"
-    #-- TODO: UPDATE license
+    #-- TODO: UPDATE license - a boilerplate notice should go here as well
     # printf 'Copyright (c) 2016 {{ full_name|default("TODO: CHANGEME", true)  }}\n'
-    # printf 'License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n'
-    # printf 'This is free software: you are free to change and redistribute it.\n'
-    # printf 'There is NO WARRANTY, to the extent permitted by law.\n'
+    # printf 'License {{ software_license|default("TODO: CHANGEME", true) }}\n'
 }
 
 #===============================================================================
