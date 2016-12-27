@@ -47,6 +47,11 @@ __project_home__ = 'https://github.com/awmyhr/nixTools' #: where to find source/
 __template_version__ = '1.1.0'              #: version of template file used
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
 __basename__ = os.path.basename(sys.argv[0])#: name script run as
+__synopsis__ = 'Creates a new file from a template, auto-filling some fields.'
+__description__ = """This program will create a new file from a template, automagically filling in
+fields.
+"""
+
 EXIT_STATUS = None
 
 #===============================================================================
@@ -55,6 +60,33 @@ class _ModOptionParser(optparse.OptionParser):
     def format_epilog(self, formatter):
         return self.epilog
 
+
+#===============================================================================
+class _ReSTHelpFormatter(optparse.HelpFormatter):
+    """Format help for ReST output"""
+
+    def __init__(self, indent_increment=0, max_help_position=24, width=80, short_first=0):
+        optparse.HelpFormatter.__init__(self, indent_increment,
+                                        max_help_position, width, short_first
+                                       )
+
+    def format_usage(self, usage):
+        retval = ["%s\n" % (__cononical_name__)]
+        retval.append("%s\n\n" % ("=-"[self.level] * len(__cononical_name__)))
+        retval.append("%s" % self.format_heading('Synopsis'))
+        retval.append("**%s** %s\n\n" % (__basename__, usage))
+        return ''.join(retval)
+
+    def format_heading(self, heading):
+        return "%s\n%s\n\n" % (heading, "--"[self.level] * len(heading))
+
+    def format_description(self, description):
+        if description:
+            retval = ["%s" % self.format_heading('Description')]
+            retval.append("%s\n" % self._format_text(description))
+            return ''.join(retval)
+        else:
+            return ""
 
 #===============================================================================
 def _version():
@@ -262,12 +294,13 @@ if __name__ == '__main__':
     PARSER = _ModOptionParser(
         version='%s (%s) %s' % (__cononical_name__, __project_name__, __version__),
         usage='Usage: %prog [options] filename',
-        description='Creates a new file from a template, auto-filling some fields.',
-        epilog=('\nThis program will create a new file from a template, auto-filling fields.\n\n'
+        description=__synopsis__,
+        epilog=('\n%s\n\n'
                 'Created: %s  Contact: %s\n'
                 'Revised: %s  Version: %s\n'
                 '%s, part of %s.\nProject home: %s\n'
-               ) % (__created__, __contact__,
+               ) % (__description__,
+                    __created__, __contact__,
                     __revised__, __version__,
                     __cononical_name__, __project_name__, __project_home__
                    )
@@ -288,6 +321,10 @@ if __name__ == '__main__':
     PARSER.add_option('--config-file', dest='configfile', type='string',
                       help='config file to use [default: will search for .newfilerc'
                      )
+    #-- 'Invisible' optoins
+    PARSER.add_option('--help-rest', help=optparse.SUPPRESS_HELP,
+                      dest='helprest', action='store_true', default=False
+                     )
     PARSER.add_option('--debug', help=optparse.SUPPRESS_HELP,
                       dest='debug', action='store_true', default=False
                      )
@@ -295,6 +332,14 @@ if __name__ == '__main__':
                       dest='debugfile', type='string'
                      )
     (OPTIONS, ARGS) = PARSER.parse_args()
+    if OPTIONS.helprest:
+        PARSER.formatter = _ReSTHelpFormatter()
+        PARSER.usage = '[*options*] *filename*'
+        PARSER.description = __description__
+        PARSER.epilog = ''
+        PARSER.print_help()
+        sys.exit(os.EX_OK)
+
     if len(ARGS) != 1 and OPTIONS.list is False:
         PARSER.error('incorrect number of arguments')
     elif OPTIONS.list is False:
