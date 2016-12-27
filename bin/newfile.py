@@ -2,27 +2,15 @@
 #-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.
 #===============================================================================
 """
-.. program:: newfile
-   :synopsis: Creates a new file from a template, auto-filling some fields.
+    newfile
+    =======
 
-.. codeauthor:: awmyhr <awmyhr@gmail.com>
+    :synopsis: Creates a new file from a template, auto-filling some fields.
 
-.. copyright:: Apache-2.0
-    Copyright 2016 awmyhr <awmyhr@gmail.com>
+    :copyright: Copyright (c) 2016, awmyhr <awmyhr@gmail.com>
+    :license: Apache-2.0 (See LICENSE for details)
 
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-
-This program will create a new file from a template, auto-filling fields.
+    .. codeauthor:: awmyhr <awmyhr@gmail.com>
 """
 #===============================================================================
 #-- Standard Imports
@@ -70,12 +58,16 @@ class _ModOptionParser(optparse.OptionParser):
 
 #===============================================================================
 def _version():
-    """ Build formatted version output
-    :return: The version string.
-    .. note::
+    """Build formatted version output
+
+    Returns:
+        The version string.
+
+    Note:
         GNU guidelines dictate adding copyright/license info (see
         commented code)
-    .. warning::
+
+    Warning:
         HOWEVER, this may not always be desierable.
         If not, REMOVE these lines -- do NOT leave them commented!
     """
@@ -126,8 +118,10 @@ def _debug_info():
 
 #===============================================================================
 def print_list(directory):
-    """ Print a list of available langauge/type combos
-    :params str directory: Full path to templates directory.
+    """Print a list of available langauge/type combos.
+
+    Args:
+        directory (str): Full path to templates directory.
     """
     logger.debug('Checking for templates in: %s', directory)
     logger.info('%-10s %-10s', 'Language', 'Type')
@@ -143,9 +137,13 @@ def print_list(directory):
 
 #===============================================================================
 def get_git(setting):
-    """ Get a config setting from git
-    :param str setting: Name of git setting to retrieve
-    :return: Value of setting, or 'TODO: Change <setting>'
+    """Get a config setting from git.
+
+    Args:
+        setting (str): Name of git setting to retrieve.
+
+    Returns:
+        Value of setting, or a TODO string.
     """
     from subprocess import check_output, CalledProcessError
     logger.debug('Checking git for setting: %s', setting)
@@ -157,9 +155,13 @@ def get_git(setting):
 
 #===============================================================================
 def find_config_file():
-    """ Look for .newfilerc in current + all parents
-    .. Note:: Based on code found here: http://stackoverflow.com/a/37560251
-    :return: fully qualified file, or None
+    """Look for .newfilerc in current + all parents
+
+    Returns:
+        Full path to file if found, or 'None'.
+
+    Note:
+        Based on code found here: http://stackoverflow.com/a/37560251
     """
     logger.debug('Looking for .newfilerc')
     file_name = '.newfilerc'
@@ -183,10 +185,14 @@ def find_config_file():
 
 #===============================================================================
 def get_context(script_name, config_file):
-    """ Finds and returns the context.
-    :param str script_name: Name of new file being created.
-    :param str config_file: Name (w/path if neded) of config file.
-    :return: The context dictonary.
+    """Finds and returns the context.
+
+    Args:
+        script_name (str): Name of new file being created.
+        config_file (str): Name (w/path if neded) of config file.
+
+    Returns:
+        The context dictonary.
     """
     import datetime     #: Stadard date/time library
     import yaml         #: using YAML format for config file
@@ -210,7 +216,12 @@ def get_context(script_name, config_file):
 
 #===============================================================================
 def main():
-    """ This is where the action takes place """
+    """This is where the action takes place
+
+    Raises:
+        OSError: Cowardly refusing to overwrite existing file: %s.
+        OSError: Indicated config file not found: %s.
+    """
     logger.debug('Template directory: %s', OPTIONS.tempdir)
     if OPTIONS.list is True:
         print_list(OPTIONS.tempdir)
@@ -249,8 +260,8 @@ def main():
 if __name__ == '__main__':
     #-- Parse Options (rely on OptionsParser's exception handling)
     PARSER = _ModOptionParser(
-        usage='Usage: %prog [options] filename',
         version='%s (%s) %s' % (__cononical_name__, __project_name__, __version__),
+        usage='Usage: %prog [options] filename',
         description='Creates a new file from a template, auto-filling some fields.',
         epilog=('\nThis program will create a new file from a template, auto-filling fields.\n\n'
                 'Created: %s  Contact: %s\n'
