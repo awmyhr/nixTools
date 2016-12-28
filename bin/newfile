@@ -7,7 +7,7 @@
 
     :synopsis: Creates a new file from a template, auto-filling some fields.
 
-    :copyright: Copyright (c) 2016, awmyhr <awmyhr@gmail.com>
+    :copyright: Copyright (c) 2016 awmyhr <awmyhr@gmail.com>
     :license: Apache-2.0 (See LICENSE for details)
 
     .. codeauthor:: awmyhr <awmyhr@gmail.com>
@@ -40,7 +40,8 @@ __author__ = ['awmyhr <awmyhr@gmail.com>',
               'MyHR, Andy <andy.myhr@metlife.com>'
              ]    #: coder(s) of script
 __created__ = '2016-12-19'                  #: date script originlly created
-__copyright__ = 'Apache-2.0'                          #: Copyright short name
+__copyright__ = '(c) 2016 awmyhr'           #: Copyright short name
+__license__ = 'Apache-2.0'                  #: license short name
 __cononical_name__ = 'newfile'              #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__ = 'nixTools'               #: name of overall project, if needed
 __project_home__ = 'https://github.com/awmyhr/nixTools' #: where to find source/documentation
