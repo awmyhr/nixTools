@@ -1,5 +1,7 @@
 #!/usr/bin/python -tt
-#-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.
+#-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.{#
+# pylint: disable=line-too-long
+#-- line-too-long is inevitable with the Jinga2 strings #}
 #===============================================================================
 #-- NOTE: default Python versions:
 #--       RHEL4    2.3.4
@@ -10,6 +12,9 @@
 #-- Recent Fedora versions (24/25) stay current on 2.7 (2.7.12 as of 20161212)
 #===============================================================================
 """
+    {#
+    .. py:module:: python_script
+    #}
     {{ script_name|default("TODO: CHANGEME", true) }}
     =================================================
 
