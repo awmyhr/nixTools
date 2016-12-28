@@ -18,8 +18,7 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../bin'))
-sys.path.insert(0, os.path.abspath('../Templates'))
+sys.path.insert(0, os.path.abspath('../.pylink'))
 
 # -- General configuration ------------------------------------------------
 
