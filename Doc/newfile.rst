@@ -1,7 +1,8 @@
-Command: newfile
-================
-
 .. include:: newfile.inc
+
+
+Code Details
+------------
 
 .. automodule:: newfile
     :members:

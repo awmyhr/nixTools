@@ -3,8 +3,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-nixTools from \*NIXLand
-=======================
+======================
+nixTools from *NIXLand
+======================
+
+This project brings together a variety of scripts, libraries, templates, and other
+odds & ends which do not fit into any other project.
 
 Contents:
 
@@ -12,6 +16,7 @@ Contents:
    :maxdepth: 1
 
    newfile
+   python-script
 
 Indices and tables
 ==================
