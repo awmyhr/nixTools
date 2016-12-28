@@ -31,13 +31,13 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.0.0-beta'
-__revised__ = '2016-12-22'
+__version__ = '1.1.0'
+__revised__ = '2016-12-28'
 __contact__ = 'awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
 __author__ = ['awmyhr <awmyhr@gmail.com>',
-              'MyHR, Andy <andy.myhr@metlife.com'
+              'MyHR, Andy <andy.myhr@metlife.com>'
              ]    #: coder(s) of script
 __created__ = '2016-12-19'                  #: date script originlly created
 __copyright__ = 'Apache-2.0'                          #: Copyright short name
@@ -48,8 +48,8 @@ __template_version__ = '1.1.0'              #: version of template file used
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
 __basename__ = os.path.basename(sys.argv[0])#: name script run as
 __synopsis__ = 'Creates a new file from a template, auto-filling some fields.'
-__description__ = """This program will create a new file from a template, automagically filling in
-fields.
+__description__ = """This program will create a new file from a Jinga2 template,
+automagically filling in various fields.
 """
 
 EXIT_STATUS = None
@@ -65,13 +65,14 @@ class _ModOptionParser(optparse.OptionParser):
 class _ReSTHelpFormatter(optparse.HelpFormatter):
     """Format help for ReST output"""
 
-    def __init__(self, indent_increment=0, max_help_position=24, width=80, short_first=0):
+    def __init__(self, indent_increment=0, max_help_position=4, width=80, short_first=0):
         optparse.HelpFormatter.__init__(self, indent_increment,
                                         max_help_position, width, short_first
                                        )
 
     def format_usage(self, usage):
-        retval = ["%s\n" % (__cononical_name__)]
+        retval = ["%s\n" % ("=-"[self.level] * len(__cononical_name__))]
+        retval.append("%s\n" % (__cononical_name__))
         retval.append("%s\n\n" % ("=-"[self.level] * len(__cononical_name__)))
         retval.append("%s" % self.format_heading('Synopsis'))
         retval.append("**%s** %s\n\n" % (__basename__, usage))
@@ -87,6 +88,39 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
             return ''.join(retval)
         else:
             return ""
+
+    def format_option(self, option):
+        opts = self.option_strings[option]
+        retval = ['.. option:: %s\n\n' % opts]
+        if option.help:
+            # help_text = self.expand_default(option)
+            # help_lines = textwrap.wrap(help_text, self.help_width)
+            retval.append("%4s%s\n\n" % ("", self.expand_default(option)))
+            # retval.extend(["%4s%s\n" % ("", line)
+            #                for line in help_lines[1:]])
+        elif opts[-1] != "\n":
+            retval.append("\n")
+        return "".join(retval)
+
+    def format_option_strings(self, option):
+        """Return a comma-separated list of option strings & metavariables."""
+        if option.takes_value():
+            metavar = option.metavar or option.dest.upper()
+            short_opts = ["%s <%s>" % (sopt, metavar)
+                          for sopt in option._short_opts]
+            long_opts = ["%s=<%s>" % (lopt, metavar)
+                         for lopt in option._long_opts]
+        else:
+            short_opts = option._short_opts
+            long_opts = option._long_opts
+
+        if self.short_first:
+            opts = short_opts + long_opts
+        else:
+            opts = long_opts + short_opts
+
+        return ", ".join(opts)
+
 
 #===============================================================================
 def _version():
@@ -319,7 +353,7 @@ if __name__ == '__main__':
                       default=os.path.expanduser('~/Templates')
                      )
     PARSER.add_option('--config-file', dest='configfile', type='string',
-                      help='config file to use [default: will search for .newfilerc'
+                      help='config file to use [default: will search for .newfilerc]'
                      )
     #-- 'Invisible' optoins
     PARSER.add_option('--help-rest', help=optparse.SUPPRESS_HELP,
@@ -336,7 +370,9 @@ if __name__ == '__main__':
         PARSER.formatter = _ReSTHelpFormatter()
         PARSER.usage = '[*options*] *filename*'
         PARSER.description = __description__
-        PARSER.epilog = ''
+        PARSER.epilog = ('\nAuthor\n------\n\n'
+                         '%s\n'
+                        ) % ('; '.join(__author__))
         PARSER.print_help()
         sys.exit(os.EX_OK)
 
