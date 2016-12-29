@@ -90,7 +90,7 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
         retval.append("%s\n" % (__cononical_name__))
         retval.append("%s\n\n" % ("=-"[self.level] * len(__cononical_name__)))
         retval.append("%s" % self.format_heading('Synopsis'))
-        retval.append("**%s** %s\n\n" % (__basename__, usage))
+        retval.append("**%s** %s\n\n" % (__cononical_name__, usage))
         return ''.join(retval)
 
     def format_heading(self, heading):
@@ -169,7 +169,7 @@ def _version():
     #-- NOTE: If license text is not desired, it is probably better to move
     #--       the string to the PARSER declaration and remove this function
     #-- TODO: UPDATE license - a boilerplate notice should go here as well
-    # text += ('Copyright (c) 2016 {{ full_name|default("TODO: CHANGEME", true) }}\n'
+    # text += ('Copyright {{ software_copyright|default("TODO: CHANGEME", true) }}\n'
     #          'License {{ software_license|default("TODO: CHANGEME", true) }}\n'
     #         )
 
@@ -260,6 +260,7 @@ if __name__ == '__main__':
     #-- Parse Options (rely on OptionsParser's exception handling)
     PARSER = _ModOptionParser(
         version='%s (%s) %s' % (__cononical_name__, __project_name__, __version__),
+        usage='%s [options]' % (__basename__),
         description=__synopsis__,
         epilog=('\n%s\n\n'
                 'Created: %s  Contact: %s\n'
@@ -284,7 +285,7 @@ if __name__ == '__main__':
     (OPTIONS, ARGS) = PARSER.parse_args()
     if OPTIONS.helprest:
         PARSER.formatter = _ReSTHelpFormatter()
-        PARSER.usage = '[*options*] *filename*'
+        PARSER.usage = '[*options*]'
         PARSER.description = __description__
         PARSER.epilog = ('\nAuthor\n------\n\n'
                          '%s\n'
