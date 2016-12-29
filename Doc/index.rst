@@ -17,6 +17,7 @@ Contents:
 
    newfile
    python-script
+   shell-script
 
 Indices and tables
 ==================

@@ -55,7 +55,8 @@ clean:
 .PHONY: html
 html:
 	../bin/newfile --help-rest >_inc/newfile.inc
-	../Templates/python_script --help-rest >_inc/python-script.inc
+	../Templates/python-script --help-rest >_inc/python-script.inc
+	../Templates/shell-script --help-rest >_inc/shell-script.inc
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
