@@ -11,8 +11,7 @@
 #--       REHL7    2.7.5
 #-- Recent Fedora versions (24/25) stay current on 2.7 (2.7.12 as of 20161212)
 #===============================================================================
-"""
-    {#
+"""{#
     .. py:module:: python_script
     #}
     {{ script_name|default("TODO: CHANGEME", true) }}
@@ -20,7 +19,7 @@
 
     :synopsis: {{ script_short_description|default("TODO: CHANGEME", true) }}
 
-    :copyright: {{ software_license|default("TODO: CHANGEME", true) }}
+    :copyright: {{ software_copyright|default("TODO: CHANGEME", true) }}
     :license: {{ software_license|default("TODO: CHANGEME", true) }}
 
     .. codeauthor:: {{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>
@@ -66,14 +65,20 @@ EXIT_STATUS = None
 
 #===============================================================================
 class _ModOptionParser(optparse.OptionParser):
-    """ By default format_epilog() strips newlines, we don't want that. """
+    """By default format_epilog() strips newlines, we don't want that, os override."""
+
     def format_epilog(self, formatter):
+        """We'll preformat the epilog in the decleration, just pass it through"""
         return self.epilog
 
 
 #===============================================================================
 class _ReSTHelpFormatter(optparse.HelpFormatter):
-    """Format help for ReST output"""
+    """Format help for Sphinx/ReST output.
+
+    All over-ridden methods started life as copy'n'paste from original's source
+    code.
+    """
 
     def __init__(self, indent_increment=0, max_help_position=4, width=80, short_first=0):
         optparse.HelpFormatter.__init__(self, indent_increment,
@@ -117,12 +122,15 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
         if option.takes_value():
             metavar = option.metavar or option.dest.upper()
             short_opts = ["%s <%s>" % (sopt, metavar)
-                          for sopt in option._short_opts]
+                          for sopt in option._short_opts] #: pylint: disable=protected-access
+                                                          #: We're over-riding the default
+                                                          #:    method, keeping most the code.
+                                                          #:    Not sure how else we'd do this.
             long_opts = ["%s=<%s>" % (lopt, metavar)
-                         for lopt in option._long_opts]
+                         for lopt in option._long_opts]   #: pylint: disable=protected-access
         else:
-            short_opts = option._short_opts
-            long_opts = option._long_opts
+            short_opts = option._short_opts               #: pylint: disable=protected-access
+            long_opts = option._long_opts                 #: pylint: disable=protected-access
 
         if self.short_first:
             opts = short_opts + long_opts
