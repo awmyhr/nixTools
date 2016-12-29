@@ -1,28 +1,29 @@
 #!/bin/sh
-#-- NOTE: Default to POSIX shell/mode. Use some level of thought before
+#-- NOTE: Default to POSIX shell/mode. Be mindful of your reasons before
 #--       switching to bash
 #===============================================================================
 #:"""
 #: .. program:: {{ script_name|default("TODO: CHANGEME", true) }}
-#:    :synopsis: {{ script_short_description|default("TODO: CHANGEME", true) }}
+#:    :synopsis: {{ script_synopsis|default("TODO: CHANGEME", true) }}
+#:
+#:    :copyright: {{ software_copyright|default("TODO: CHANGEME", true) }}
+#:    :license: {{ software_license|default("TODO: CHANGEME", true) }}
 #:
 #: .. codeauthor:: {{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>
-#: .. copyright:: {{ software_license|default("TODO: CHANGEME", true) }}
-#:      TODO: UPDATE license - a boilerplate notice should go here
 #:
-#: .. note:: 
+#: .. note:
 #:     For guidance, please refer to:
 #:
 #:         - 'POSIX.1-2008 Base Specification, Issue 7 <http://pubs.opengroup.org/onlinepubs/9699919799/nframe.html>'_
 #:         - 'GNU Coding Standard <http://www.gnu.org/prep/standards/>'_
 #:
-#: .. note::
+#: .. note:
 #:     ShellCheck should be used, accepted issues should be marked w/disable comment
 #:
-#: .. warning::
+#: .. warning:
 #:     Option parsing is currently less-than-ideal
 #:
-#: {{ script_long_description|default("TODO: CHANGEME", true) }}
+#: {{ script_description|default("TODO: CHANGEME", true) }}
 #:"""
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
@@ -30,23 +31,45 @@
 __version__='{{ version|default("TODO: CHANGEME", true) }}' #: current version
 __revised__='{{ date|default("TODO: CHANGEME", true) }}' #: date of most recent revision
 __contact__='{{ contact_name|default("TODO: CHANGEME", true) }} <{{ contact_email|default("TODO: CHANGEME", true) }}>' #: primary contact for support/?'s
+
 #-- The following few variables should be relatively static over life of script
 __author__='{{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>' #: coder(s) of script
 __created__='{{ date|default("TODO: CHANGEME", true) }}'               #: date script originlly created
-__copyright__='{{ software_license|default("TODO: CHANGEME", true) }}' #: Copyright short name
+__copyright__='{{ software_copyright|default("TODO: CHANGEME", true) }}' #: Copyright short name
+__license__='{{ software_license|default("TODO: CHANGEME", true) }}'
 __cononical_name__='{{ script_name|default("TODO: CHANGEME", true) }}' #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__='{{ project_name|default("TODO: CHANGEME", true) }}'  #: name of overall project, if needed
 __project_home__='{{ project_home|default("TODO: CHANGEME", true) }}'  #: where to find source/documentation
-__template_version__='1.2.0'             #: version of template file used
+__template_version__='1.3.0'             #: version of template file used
 __docformat__='reStructuredText en'      #: attempted style for documentation
+__basename__="${0}" #: name script run as
+__synopsis__='{{ script_synopsis|default("TODO: CHANGEME", true) }}'
+read -r -d '' __description__ <<EOF
+{{ script_description|default("TODO: CHANGEME", true) }}
+EOF
 
 #-- The following are string formats (prepended with strfmt_)
 #-- NOTE: (you can ignore ShellCheck [SC2059] errors in lines where these are used)
 strfmt_error="${__cononical_name__}: %s\n"
 
 #===============================================================================
+_usage_options() {
+    #:"""
+    #: .. function:: _usage_options()
+    #:
+    #: Lists options usign format passed to it.
+    #:
+    #: :param str strfmt_option: The format to use.
+    #:"""
+    #-- TODO: UPDATE option list.
+    strfmt_option="${1}"
+    printf "${strfmt_option}" '--help, -h' 'Dislay this help'
+    printf "${strfmt_option}" '--version ' 'Display version'
+}
+
+#===============================================================================
 _usage() {
-    #"""
+    #:"""
     #: .. function:: _usage()
     #:
     #: Provides usage information
@@ -56,18 +79,43 @@ _usage() {
     #:     I do not recommend short option for, nor display of, debug option.
     #:     but I do recommend short option for help.
     #:"""
-    #-- TODO: UPDATE usage text.
-    printf 'Usage: %s [options]\n\n' "${0}"
-    printf '{{ script_short_description|default("TODO: CHANGEME", true) }}\n\n'
+    printf 'Usage: %s [options]\n\n' "${__basename__}"
+    printf '%s\n\n' "${__synopsis__}"
     printf 'Options:\n'
-    printf '  -h|--help      Dislay this help\n'
-    printf '  --version      Display version\n\n'
-    printf '{{ script_long_description|default("TODO: CHANGEME", true) }}\n\n'
-    printf 'Created: %s  Contact: %s\n' "${__created__}" "${__contact__}" 
+    _usage_options '  %s     %s\n'
+    printf '\n%s\n\n' "${__description__}"
+    printf 'Created: %s  Contact: %s\n' "${__created__}" "${__contact__}"
     printf 'Revised: %s  Version: %s\n' "${__revised__}" "${__version__}"
     printf '%s, part of %s. Project home: %s\n' "${__cononical_name__}" \
                                                 "${__project_name__}" \
                                                 "${__project_home__}"
+}
+
+#===============================================================================
+_usage_rest() {
+    #:"""
+    #: .. function:: _usage_rest()
+    #:
+    #: Provides usage information in Sphinx/ReST format.
+    #:
+    #:"""
+    char="%${#__cononical_name__}s"
+    printf "${char}\n" | tr " " "="
+    printf '%s\n' "${__cononical_name__}"
+    printf "${char}\n" | tr " " "="
+    printf '\n'
+    printf 'Synopsis\n'
+    printf '%s\n\n' '--------'
+    printf '**%s** [*options*]\n\n' "${__cononical_name__}" #: TODO: UPDATE usage
+    printf 'Description\n'
+    printf '%s\n\n' '-----------'
+    printf '%s\n\n' "${__description__}"
+    printf 'Options\n'
+    printf '%s\n\n' '-------'
+    _usage_options '.. option:: %s\n\n    %s\n\n'
+    printf 'Author\n'
+    printf '%s\n\n' '------'
+    printf '%s\n\n' "${__author__}"
 }
 
 #===============================================================================
@@ -80,14 +128,15 @@ _version() {
     #: .. note::
     #:     GNU guidelines dictate adding copyright and license info
     #:     (see commented code.)
+    #:
     #: .. warning::
     #:     HOWEVER, this may not always be desierable.
     #:     If not, REMOVE these lines -- do NOT leave them commented!
     #:"""
     printf '%s (%s) %s\n' "${__cononical_name__}" "${__project_name__}" "${__version__}"
     #-- TODO: UPDATE license - a boilerplate notice should go here as well
-    # printf 'Copyright (c) 2016 {{ full_name|default("TODO: CHANGEME", true)  }}\n'
-    # printf 'License {{ software_license|default("TODO: CHANGEME", true) }}\n'
+    # printf '%s\n' "${__copyright__}"
+    # printf '%s\n' "${__license__}"
 }
 
 #===============================================================================
@@ -103,13 +152,21 @@ _debug_info() {
     # shellcheck disable=SC1007
     script_path="$(CDPATH= cd -- "$(dirname -- "${0}")" && pwd )"
 
-    _version
-
-    printf '\nExecuteable: %s\n\n'        "${script_path}/${0}"
-    printf 'Created: %s  Coder(s): %s\n'  "${__created__}"  "${__author__}" 
-    printf 'Revised: %s  Version:  %s\n'  "${__revised__}"  "${__version__}"
-    printf '%s, part of %s. Project home: %s\n' "${__cononical_name__}" "${__project_name__}" "${__project_home__}"
-    printf 'Based on template.sh version: %s\n' "${__template_version__}"
+    printf 'DEBUG    Cononical: %s\n' "${__cononical_name__}"
+    printf 'DEBUG    Abs Path:  %s\n' "${script_path}/${__basename__}"
+    printf 'DEBUG    Args List: %s\n' "$@"
+    printf 'DEBUG    Version:   %s\n' "${__version__}"
+    printf 'DEBUG    Created:   %s\n' "${__created__}"
+    printf 'DEBUG    Revised:   %s\n' "${__revised__}"
+    printf 'DEBUG    Coder(s):  %s\n' "${__author__}"
+    printf 'DEBUG    Contact:   %s\n' "${__contact__}"
+    printf 'DEBUG    Project:   %s\n' "${__project_name__}"
+    printf 'DEBUG    Project Home: %s\n' "${__project_home__}"
+    printf 'DEBUG    Template Version: %s\n' "${__template_version__}"
+    printf 'DEBUG    System:    %s\n' "$(uname -orv)"
+    printf 'DEBUG    Hostname:  %s\n' "$(hostname)"
+    printf 'DEBUG    [re]uid:   %s/%s\n' "${UID}", "${EUID}"
+    printf 'DEBUG    PID/PPID:  %s/%s\n' "", "${PPID}"
     printf '\n%s\n' '----- start -----'
 }
 
@@ -176,7 +233,7 @@ _init() {
 #===============================================================================
 #-- Check for debug flag & process
 if [ "${*#*--debug}" != "${*}" ]; then
-    _debug_info
+    _debug_info "$@"
     script_debug=true
     set -o xtrace
 else
@@ -205,12 +262,13 @@ trap '_exit_trap ${LINENO} HUP'  HUP
 # [ "${#}" -gt 0 ] && while :; do
 while [ "${#}" -gt 0 ]; do
     case "${1}" in
-        --debug)    ;;
-        -h|--help)  _usage   && exit 0 ;;
-        --version)  _version && exit 0 ;;
-        --)         shift && break ;;
-        -?*)        exit_error 64 "invalid option: ${1}" ;;
-        *)          ;;
+        --debug)     ;;
+        -h|--help)   _usage   && exit 0 ;;
+        --help-rest) _usage_rest   && exit 0 ;;
+        --version)   _version && exit 0 ;;
+        --)          shift && break ;;
+        -?*)         exit_error 64 "invalid option: ${1}" ;;
+        *)           ;;
     esac
 
     shift
