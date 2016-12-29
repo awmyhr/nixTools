@@ -1,5 +1,4 @@
-.. include:: newfile.inc
-
+.. include:: _inc/newfile.inc
 
 Code Details
 ------------

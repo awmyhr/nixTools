@@ -1,8 +1,4 @@
-======================
-Python Script Template
-======================
-
-.. include:: python-script.inc
+.. include:: _inc/python-script.inc
 
 Code Details
 ------------
