@@ -4,8 +4,8 @@ Template: Python Script
 
 .. include:: _inc/python-script.inc
 
-Code Details
-------------
+Code Commentary
+---------------
 
 .. automodule:: python_script
     :noindex:
