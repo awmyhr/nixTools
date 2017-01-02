@@ -14,13 +14,16 @@ however the project itself uses date versioning.
 
 ## [Unreleased]
 ### Added
-- python-script template will now output Sphinx/reST-style usage.
+- Script templates will now output Sphinx/reST-style usage.
 - newfile will now output Sphinx/reST-style usage.
 - Create .pylink directory w/symlinks to Python scripts using '.py' extension.
   This is needed so Sphinx sees them as Python modules and works its magic.
-- Started working out a documentation process.
+- Worked out a documentation process using Sphinx/reStructuredText.
 
 ### Changed
+- Options for newfile (--template-dir & --config-file) have been shortened for 
+  better useability (--templates & --config), as well as given short options
+  (-T & -c).
 
 ### Deprecated
 
