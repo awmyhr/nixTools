@@ -9,3 +9,6 @@
 .user
 Thumbs.db
 /build
+_build
+*.inc
+*.pyc

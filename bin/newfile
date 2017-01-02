@@ -2,27 +2,32 @@
 #-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.
 #===============================================================================
 """
-.. program:: newfile
-   :synopsis: Creates a new file from a template, auto-filling some fields.
+    :program:`newfile`
+    ==================
 
-.. codeauthor:: awmyhr <awmyhr@gmail.com>
+    In addition to the options listed in help output, :program:`newfile` includes
+    the following 'hidden' optoins:
 
-.. copyright:: Apache-2.0
-    Copyright 2016 awmyhr <awmyhr@gmail.com>
+    .. option:: --help-rest
 
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+        Output usage information in Sphinx/reST-style markup.
 
-       http://www.apache.org/licenses/LICENSE-2.0
+    .. option:: --debug
 
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+        Output debug-level information.
 
-This program will create a new file from a template, auto-filling fields.
+    .. option:: --debug-file <FILE>
+
+        Save debug-level information to specified file.
+
+        .. note:: This output is more detailed, but less readable, than simple --debug
+
+    :synopsis: Creates a new file from a template, auto-filling some fields.
+
+    :copyright: Copyright (c) 2016 awmyhr <awmyhr@gmail.com>
+    :license: Apache-2.0 (See LICENSE for details)
+
+    .. codeauthor:: awmyhr <awmyhr@gmail.com>
 """
 #===============================================================================
 #-- Standard Imports
@@ -43,22 +48,57 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.0.0-beta'
-__revised__ = '2016-12-22'
+__version__ = '1.2.0'
+__revised__ = '2017-01-02'
 __contact__ = 'awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
 __author__ = ['awmyhr <awmyhr@gmail.com>',
-              'MyHR, Andy <andy.myhr@metlife.com'
+              'MyHR, Andy <andy.myhr@metlife.com>'
              ]    #: coder(s) of script
 __created__ = '2016-12-19'                  #: date script originlly created
-__copyright__ = 'Apache-2.0'                          #: Copyright short name
+__copyright__ = '(c) 2016 awmyhr'           #: Copyright short name
+__license__ = 'Apache-2.0'                  #: license short name
 __cononical_name__ = 'newfile'              #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__ = 'nixTools'               #: name of overall project, if needed
 __project_home__ = 'https://github.com/awmyhr/nixTools' #: where to find source/documentation
 __template_version__ = '1.1.0'              #: version of template file used
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
 __basename__ = os.path.basename(sys.argv[0])#: name script run as
+__synopsis__ = 'Creates a new file from a template, auto-filling some fields.'
+__description__ = """This program will create a new file from a Jinga2 template, automagically
+filling in various fields. The values for the fields come from several
+different places:
+
+    * Hardcoded/Generated
+
+        * version            (Pre-set to 1.0.0-alpha)
+        * script_name        (Provided on command-line)
+        * date               (Pre-set to current date)
+
+    * Git
+
+        * full_name          (Coder's name)
+        * email              (Coder's e-mail)
+
+    * Config file (YAML-formated)
+
+        * contact_name       (Name of person/group to contact)
+        * contact_email      (Email of person/group to contact)
+        * project_name       (Name of project file is part of)
+        * project_home       (Where to find more info/source of project)
+        * software_copyright (Simple copyright line)
+        * software_license   (License short-name)
+
+If not given a specific config file, the program will look for a file named
+'.newfilerc' in the current directory and all parents. If not found, the fields
+will be set to 'TODO' strings. If a specific config file is given but not
+found, the program will error out.
+
+The program will look for template files in '~/Templates' unless directed
+elsewhere. Template file names are in the format of <language>-<type>.
+"""
+
 EXIT_STATUS = None
 
 #===============================================================================
@@ -69,13 +109,78 @@ class _ModOptionParser(optparse.OptionParser):
 
 
 #===============================================================================
+class _ReSTHelpFormatter(optparse.HelpFormatter):
+    """Format help for ReST output"""
+
+    def __init__(self, indent_increment=0, max_help_position=4, width=80, short_first=0):
+        optparse.HelpFormatter.__init__(self, indent_increment,
+                                        max_help_position, width, short_first
+                                       )
+
+    def format_usage(self, usage):
+        retval = ["%s\n" % ("=-"[self.level] * len(__cononical_name__))]
+        retval.append("%s\n" % (__cononical_name__))
+        retval.append("%s\n\n" % ("=-"[self.level] * len(__cononical_name__)))
+        retval.append("%s" % self.format_heading('Synopsis'))
+        retval.append("**%s** %s\n\n" % (__basename__, usage))
+        return ''.join(retval)
+
+    def format_heading(self, heading):
+        return "%s\n%s\n\n" % (heading, "--"[self.level] * len(heading))
+
+    def format_description(self, description):
+        if description:
+            retval = ["%s" % self.format_heading('Description')]
+            retval.append("%s\n" % (description))
+            return ''.join(retval)
+        else:
+            return ""
+
+    def format_option(self, option):
+        opts = self.option_strings[option]
+        retval = ['.. option:: %s\n\n' % opts]
+        if option.help:
+            # help_text = self.expand_default(option)
+            # help_lines = textwrap.wrap(help_text, self.help_width)
+            retval.append("%4s%s\n\n" % ("", self.expand_default(option)))
+            # retval.extend(["%4s%s\n" % ("", line)
+            #                for line in help_lines[1:]])
+        elif opts[-1] != "\n":
+            retval.append("\n")
+        return "".join(retval)
+
+    def format_option_strings(self, option):
+        """Return a comma-separated list of option strings & metavariables."""
+        if option.takes_value():
+            metavar = option.metavar or option.dest.upper()
+            short_opts = ["%s <%s>" % (sopt, metavar)
+                          for sopt in option._short_opts]
+            long_opts = ["%s=<%s>" % (lopt, metavar)
+                         for lopt in option._long_opts]
+        else:
+            short_opts = option._short_opts
+            long_opts = option._long_opts
+
+        if self.short_first:
+            opts = short_opts + long_opts
+        else:
+            opts = long_opts + short_opts
+
+        return ", ".join(opts)
+
+
+#===============================================================================
 def _version():
-    """ Build formatted version output
-    :return: The version string.
-    .. note::
+    """Build formatted version output
+
+    Returns:
+        The version string.
+
+    Note:
         GNU guidelines dictate adding copyright/license info (see
         commented code)
-    .. warning::
+
+    Warning:
         HOWEVER, this may not always be desierable.
         If not, REMOVE these lines -- do NOT leave them commented!
     """
@@ -126,8 +231,10 @@ def _debug_info():
 
 #===============================================================================
 def print_list(directory):
-    """ Print a list of available langauge/type combos
-    :params str directory: Full path to templates directory.
+    """Print a list of available langauge/type combos.
+
+    Args:
+        directory (str): Full path to templates directory.
     """
     logger.debug('Checking for templates in: %s', directory)
     logger.info('%-10s %-10s', 'Language', 'Type')
@@ -143,9 +250,13 @@ def print_list(directory):
 
 #===============================================================================
 def get_git(setting):
-    """ Get a config setting from git
-    :param str setting: Name of git setting to retrieve
-    :return: Value of setting, or 'TODO: Change <setting>'
+    """Get a config setting from git.
+
+    Args:
+        setting (str): Name of git setting to retrieve.
+
+    Returns:
+        Value of setting, or a TODO string.
     """
     from subprocess import check_output, CalledProcessError
     logger.debug('Checking git for setting: %s', setting)
@@ -157,9 +268,13 @@ def get_git(setting):
 
 #===============================================================================
 def find_config_file():
-    """ Look for .newfilerc in current + all parents
-    .. Note:: Based on code found here: http://stackoverflow.com/a/37560251
-    :return: fully qualified file, or None
+    """Look for .newfilerc in current + all parents
+
+    Returns:
+        Full path to file if found, or 'None'.
+
+    Note:
+        Based on code found here: http://stackoverflow.com/a/37560251
     """
     logger.debug('Looking for .newfilerc')
     file_name = '.newfilerc'
@@ -183,10 +298,14 @@ def find_config_file():
 
 #===============================================================================
 def get_context(script_name, config_file):
-    """ Finds and returns the context.
-    :param str script_name: Name of new file being created.
-    :param str config_file: Name (w/path if neded) of config file.
-    :return: The context dictonary.
+    """Finds and returns the context.
+
+    Args:
+        script_name (str): Name of new file being created.
+        config_file (str): Name (w/path if neded) of config file.
+
+    Returns:
+        The context dictonary.
     """
     import datetime     #: Stadard date/time library
     import yaml         #: using YAML format for config file
@@ -210,7 +329,12 @@ def get_context(script_name, config_file):
 
 #===============================================================================
 def main():
-    """ This is where the action takes place """
+    """This is where the action takes place
+
+    Raises:
+        OSError: Cowardly refusing to overwrite existing file: %s.
+        OSError: Indicated config file not found: %s.
+    """
     logger.debug('Template directory: %s', OPTIONS.tempdir)
     if OPTIONS.list is True:
         print_list(OPTIONS.tempdir)
@@ -249,14 +373,15 @@ def main():
 if __name__ == '__main__':
     #-- Parse Options (rely on OptionsParser's exception handling)
     PARSER = _ModOptionParser(
-        usage='Usage: %prog [options] filename',
         version='%s (%s) %s' % (__cononical_name__, __project_name__, __version__),
-        description='Creates a new file from a template, auto-filling some fields.',
-        epilog=('\nThis program will create a new file from a template, auto-filling fields.\n\n'
+        usage='Usage: %prog [options] filename',
+        description=__synopsis__,
+        epilog=('\n%s\n\n'
                 'Created: %s  Contact: %s\n'
                 'Revised: %s  Version: %s\n'
                 '%s, part of %s.\nProject home: %s\n'
-               ) % (__created__, __contact__,
+               ) % (__description__,
+                    __created__, __contact__,
                     __revised__, __version__,
                     __cononical_name__, __project_name__, __project_home__
                    )
@@ -270,12 +395,16 @@ if __name__ == '__main__':
     PARSER.add_option('--list', help='list available language/type combos',
                       dest='list', action='store_true', default=False
                      )
-    PARSER.add_option('--template-dir', help='directory with template files [default: %default]',
-                      dest='tempdir', type='string', action='store',
-                      default=os.path.expanduser('~/Templates')
+    PARSER.add_option('-T', '--templates', dest='tempdir', type='string', action='store',
+                      help='directory with template files [default: %default]',
+                      metavar='DIR', default=os.path.expanduser('~/Templates')
                      )
-    PARSER.add_option('--config-file', dest='configfile', type='string',
-                      help='config file to use [default: will search for .newfilerc'
+    PARSER.add_option('-c', '--config', dest='configfile', type='string', metavar='FILE',
+                      help='config file to use [default: will search for .newfilerc]'
+                     )
+    #-- 'Hidden' optoins
+    PARSER.add_option('--help-rest', help=optparse.SUPPRESS_HELP,
+                      dest='helprest', action='store_true', default=False
                      )
     PARSER.add_option('--debug', help=optparse.SUPPRESS_HELP,
                       dest='debug', action='store_true', default=False
@@ -284,6 +413,16 @@ if __name__ == '__main__':
                       dest='debugfile', type='string'
                      )
     (OPTIONS, ARGS) = PARSER.parse_args()
+    if OPTIONS.helprest:
+        PARSER.formatter = _ReSTHelpFormatter()
+        PARSER.usage = '[*options*] *filename*'
+        PARSER.description = __description__
+        PARSER.epilog = ('\nAuthor\n------\n\n'
+                         '%s\n'
+                        ) % ('; '.join(__author__))
+        PARSER.print_help()
+        sys.exit(os.EX_OK)
+
     if len(ARGS) != 1 and OPTIONS.list is False:
         PARSER.error('incorrect number of arguments')
     elif OPTIONS.list is False:

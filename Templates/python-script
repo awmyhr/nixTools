@@ -1,5 +1,7 @@
 #!/usr/bin/python -tt
-#-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.
+#-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.{#
+# pylint: disable=line-too-long
+#-- line-too-long is inevitable with the Jinga2 strings #}
 #===============================================================================
 #-- NOTE: default Python versions:
 #--       RHEL4    2.3.4
@@ -9,15 +11,35 @@
 #--       REHL7    2.7.5
 #-- Recent Fedora versions (24/25) stay current on 2.7 (2.7.12 as of 20161212)
 #===============================================================================
-"""
-.. program:: {{ script_name|default('TODO: CHANGEME', true) }}
-   :synopsis: {{ script_short_description|default('TODO: CHANGEME', true) }}
+"""{#
+    .. py:module:: python_script
+    #}
+    :program:`{{ script_name|default("TODO: CHANGEME", true) }}`
+    ============================================================
 
-.. codeauthor:: {{ full_name|default('TODO: CHANGEME', true) }} <{{ email|default('TODO: CHANGEME', true) }}>
-.. copyright:: {{ software_license|default('TODO: CHANGEME', true) }}
-TODO: UPDATE license - a boilerplate notice should go here
+    In addition to the options listed in help output, :program:`{{ script_name|default("TODO: CHANGEME", true) }}` includes
+    the following 'hidden' optoins:
 
-{{ script_long_description|default('TODO: CHANGEME', true) }}
+    .. option:: --help-rest
+
+        Output usage information in Sphinx/reST-style markup.
+
+    .. option:: --debug
+
+        Output debug-level information.
+
+    .. option:: --debug-file <FILE>
+
+        Save debug-level information to specified file.
+
+        .. note:: This output is more detailed, but less readable, than simple --debug
+
+    :synopsis: {{ script_synopsis|default("TODO: CHANGEME", true) }}
+
+    :copyright: {{ software_copyright|default("TODO: CHANGEME", true) }}
+    :license: {{ software_license|default("TODO: CHANGEME", true) }}
+
+    .. codeauthor:: {{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>
 """
 #===============================================================================
 #-- Standard Imports
@@ -41,23 +63,99 @@ __revised__ = '{{ date|default("TODO: CHANGEME", true) }}' #: date of most recen
 __contact__ = '{{ contact_name|default("TODO: CHANGEME", true) }} <{{ contact_email|default("TODO: CHANGEME", true) }}>' #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
-__author__ = '{{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>' #: coder(s) of script
+__author__ = ['{{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>'] #: coder(s) of script
 __created__ = '{{ date|default("TODO: CHANGEME", true) }}'               #: date script originlly created
-__copyright__ = '{{ software_license|default("TODO: CHANGEME", true) }}' #: Copyright short name
+__copyright__ = '{{ software_copyright|default("TODO: CHANGEME", true) }}' #: Copyright short name
+__license__ = '{{ software_license|default("TODO: CHANGEME", true) }}'
 __cononical_name__ = '{{ script_name|default("TODO: CHANGEME", true) }}' #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__ = '{{ project_name|default("TODO: CHANGEME", true) }}'  #: name of overall project, if needed
 __project_home__ = '{{ project_home|default("TODO: CHANGEME", true) }}'  #: where to find source/documentation
-__template_version__ = '1.5.0'              #: version of template file used
+__template_version__ = '1.6.1'              #: version of template file used
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
-__basename__ = os.path.basename(sys.argv[0])#: name script run as
+__basename__ = os.path.basename(sys.argv[0]) #: name script run as
+__synopsis__ = '{{ script_synopsis|default("TODO: CHANGEME", true) }}'
+__description__ = """{{ script_description|default("TODO: CHANGEME", true) }}
+"""
+
 EXIT_STATUS = None
 
 
 #===============================================================================
 class _ModOptionParser(optparse.OptionParser):
-    """ By default format_epilog() strips newlines, we don't want that. """
+    """By default format_epilog() strips newlines, we don't want that, os override."""
+
     def format_epilog(self, formatter):
+        """We'll preformat the epilog in the decleration, just pass it through"""
         return self.epilog
+
+
+#===============================================================================
+class _ReSTHelpFormatter(optparse.HelpFormatter):
+    """Format help for Sphinx/ReST output.
+
+    All over-ridden methods started life as copy'n'paste from original's source
+    code.
+    """
+
+    def __init__(self, indent_increment=0, max_help_position=4, width=80, short_first=0):
+        optparse.HelpFormatter.__init__(self, indent_increment,
+                                        max_help_position, width, short_first
+                                       )
+
+    def format_usage(self, usage):
+        retval = ["%s\n" % ("=-"[self.level] * len(__cononical_name__))]
+        retval.append("%s\n" % (__cononical_name__))
+        retval.append("%s\n\n" % ("=-"[self.level] * len(__cononical_name__)))
+        retval.append("%s" % self.format_heading('Synopsis'))
+        retval.append("**%s** %s\n\n" % (__cononical_name__, usage))
+        return ''.join(retval)
+
+    def format_heading(self, heading):
+        return "%s\n%s\n\n" % (heading, "--"[self.level] * len(heading))
+
+    def format_description(self, description):
+        if description:
+            retval = ["%s" % self.format_heading('Description')]
+            retval.append("%s\n" % self._format_text(description))
+            return ''.join(retval)
+        else:
+            return ""
+
+    def format_option(self, option):
+        opts = self.option_strings[option]
+        retval = ['.. option:: %s\n\n' % opts]
+        if option.help:
+            # help_text = self.expand_default(option)
+            # help_lines = textwrap.wrap(help_text, self.help_width)
+            retval.append("%4s%s\n\n" % ("", self.expand_default(option)))
+            # retval.extend(["%4s%s\n" % ("", line)
+            #                for line in help_lines[1:]])
+        elif opts[-1] != "\n":
+            retval.append("\n")
+        return "".join(retval)
+
+    def format_option_strings(self, option):
+        """Return a comma-separated list of option strings & metavariables."""
+        if option.takes_value():
+            metavar = option.metavar or option.dest.upper()
+            short_opts = ["%s <%s>" % (sopt, metavar)
+                          for sopt in option._short_opts] #: pylint: disable=protected-access
+                                                          #: We're over-riding the default
+                                                          #:    method, keeping most the code.
+                                                          #:    Not sure how else we'd do this.
+            long_opts = ["%s=<%s>" % (lopt, metavar)
+                         for lopt in option._long_opts]   #: pylint: disable=protected-access
+        else:
+            short_opts = option._short_opts               #: pylint: disable=protected-access
+            long_opts = option._long_opts                 #: pylint: disable=protected-access
+
+        if self.short_first:
+            opts = short_opts + long_opts
+        else:
+            opts = long_opts + short_opts
+
+        return ", ".join(opts)
+
 
 #==============================================================================={#
 def test_func():
@@ -65,12 +163,16 @@ def test_func():
     logger.debug('this is a test')
 #}
 def _version():
-    """ Build formatted version output
-    :return: The version string.
-    .. note::
+    """Build formatted version output
+
+    Returns:
+        The version string.
+
+    Note:
         GNU guidelines dictate adding copyright/license info (see
         commented code)
-    .. warning::
+
+    Warning:
         HOWEVER, this may not always be desierable.
         If not, REMOVE these lines -- do NOT leave them commented!
     """
@@ -84,7 +186,7 @@ def _version():
     #-- NOTE: If license text is not desired, it is probably better to move
     #--       the string to the PARSER declaration and remove this function
     #-- TODO: UPDATE license - a boilerplate notice should go here as well
-    # text += ('Copyright (c) 2016 {{ full_name|default("TODO: CHANGEME", true) }}\n'
+    # text += ('Copyright {{ software_copyright|default("TODO: CHANGEME", true) }}\n'
     #          'License {{ software_license|default("TODO: CHANGEME", true) }}\n'
     #         )
 
@@ -120,10 +222,15 @@ def _debug_info():
 
 #===============================================================================
 def which(program):
-    """ Test if a program exists in $PATH.
-    :param str program: Name of program to find.
-    :return str: String to use for program execution.
-    .. note::
+    """Test if a program exists in $PATH.
+
+    Args:
+        program (str): Name of program to find.
+
+    Returns:
+        String to use for program execution.
+
+    Note:
         Originally found this here:
         http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
     """
@@ -170,23 +277,38 @@ if __name__ == '__main__':
     #-- Parse Options (rely on OptionsParser's exception handling)
     PARSER = _ModOptionParser(
         version='%s (%s) %s' % (__cononical_name__, __project_name__, __version__),
-        description='{{ script_short_description|default("TODO: CHANGEME", true) }}',
-        epilog=('\n{{ script_long_description|default("TODO: CHANGEME", true) }}\n\n'
+        usage='%s [options]' % (__basename__),
+        description=__synopsis__,
+        epilog=('\n%s\n\n'
                 'Created: %s  Contact: %s\n'
                 'Revised: %s  Version: %s\n'
                 '%s, part of %s. Project home: %s\n'
-               ) % (__created__, __contact__,
+               ) % (__description__,
+                    __created__, __contact__,
                     __revised__, __version__,
                     __cononical_name__, __project_name__, __project_home__
                    )
     )
-    PARSER.add_option('--debug', help=optparse.SUPPRESS_HELP,
-                      dest='debug', action='store_true', default=False
+    #-- 'Hidden' optoins
+    PARSER.add_option('--help-rest', dest='helprest', action='store_true',
+                      help=optparse.SUPPRESS_HELP, default=False
                      )
-    PARSER.add_option('--debug-file', help=optparse.SUPPRESS_HELP,
-                      dest='debugfile', type='string'
+    PARSER.add_option('--debug', dest='debug', action='store_true',
+                      help=optparse.SUPPRESS_HELP, default=False
+                     )
+    PARSER.add_option('--debug-file', dest='debugfile', type='string',
+                      help=optparse.SUPPRESS_HELP
                      )
     (OPTIONS, ARGS) = PARSER.parse_args()
+    if OPTIONS.helprest:
+        PARSER.formatter = _ReSTHelpFormatter()
+        PARSER.usage = '[*options*]'
+        PARSER.description = __description__
+        PARSER.epilog = ('\nAuthor\n------\n\n'
+                         '%s\n'
+                        ) % ('; '.join(__author__))
+        PARSER.print_help()
+        sys.exit(os.EX_OK)
 
     #-- Setup output(s)
     if OPTIONS.debug:
