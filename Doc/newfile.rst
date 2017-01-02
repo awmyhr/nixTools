@@ -1,9 +1,13 @@
+****************
+Command: newfile
+****************
+
 .. include:: _inc/newfile.inc
 
-Code Details
-------------
+Code Commentary
+---------------
 
 .. automodule:: newfile
-    :members:
-    :undoc-members:
-    :show-inheritance:
+    :noindex:
+
+More details :doc:`here<codedetails/newfile>`.

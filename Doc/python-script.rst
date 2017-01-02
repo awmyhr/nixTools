@@ -1,9 +1,13 @@
+***********************
+Template: Python Script
+***********************
+
 .. include:: _inc/python-script.inc
 
 Code Details
 ------------
 
 .. automodule:: python_script
-    :members:
-    :undoc-members:
-    :show-inheritance:
+    :noindex:
+
+More details :doc:`here<codedetails/python-script>`.
