@@ -14,8 +14,25 @@
 """{#
     .. py:module:: python_script
     #}
-    {{ script_name|default("TODO: CHANGEME", true) }}
-    =================================================
+    :program:`{{ script_name|default("TODO: CHANGEME", true) }}`
+    ============================================================
+
+    In addition to the options listed in help output, :program:`{{ script_name|default("TODO: CHANGEME", true) }}` includes
+    the following 'hidden' optoins:
+
+    .. option:: --help-rest
+
+        Output usage information in Sphinx/reST-style markup.
+
+    .. option:: --debug
+
+        Output debug-level information.
+
+    .. option:: --debug-file <FILE>
+
+        Save debug-level information to specified file.
+
+        .. note:: This output is more detailed, but less readable, than simple --debug
 
     :synopsis: {{ script_synopsis|default("TODO: CHANGEME", true) }}
 
