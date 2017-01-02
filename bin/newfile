@@ -2,8 +2,25 @@
 #-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.
 #===============================================================================
 """
-    newfile
-    =======
+    :program:`newfile`
+    ==================
+
+    In addition to the options listed in help output, :program:`newfile` includes
+    the following 'hidden' optoins:
+
+    .. option:: --help-rest
+
+        Output usage information in Sphinx/reST-style markup.
+
+    .. option:: --debug
+
+        Output debug-level information.
+
+    .. option:: --debug-file <FILE>
+
+        Save debug-level information to specified file.
+
+        .. note:: This output is more detailed, but less readable, than simple --debug
 
     :synopsis: Creates a new file from a template, auto-filling some fields.
 
@@ -55,16 +72,16 @@ different places:
 
     * Hardcoded/Generated
 
-        * version     (Pre-set to 1.0.0-alpha)
-        * script_name (Provided on command-line)
-        * date        (Pre-set to current date)
+        * version            (Pre-set to 1.0.0-alpha)
+        * script_name        (Provided on command-line)
+        * date               (Pre-set to current date)
 
     * Git
 
-        * full_name (Coder's name)
-        * email     (Coder's e-mail)
+        * full_name          (Coder's name)
+        * email              (Coder's e-mail)
 
-    * Config file
+    * Config file (YAML-formated)
 
         * contact_name       (Name of person/group to contact)
         * contact_email      (Email of person/group to contact)
