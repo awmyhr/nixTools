@@ -31,8 +31,8 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.1.0'
-__revised__ = '2016-12-28'
+__version__ = '1.2.0'
+__revised__ = '2017-01-02'
 __contact__ = 'awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -49,8 +49,37 @@ __template_version__ = '1.1.0'              #: version of template file used
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
 __basename__ = os.path.basename(sys.argv[0])#: name script run as
 __synopsis__ = 'Creates a new file from a template, auto-filling some fields.'
-__description__ = """This program will create a new file from a Jinga2 template,
-automagically filling in various fields.
+__description__ = """This program will create a new file from a Jinga2 template, automagically
+filling in various fields. The values for the fields come from several
+different places:
+
+    * Hardcoded/Generated
+
+        * version     (Pre-set to 1.0.0-alpha)
+        * script_name (Provided on command-line)
+        * date        (Pre-set to current date)
+
+    * Git
+
+        * full_name (Coder's name)
+        * email     (Coder's e-mail)
+
+    * Config file
+
+        * contact_name       (Name of person/group to contact)
+        * contact_email      (Email of person/group to contact)
+        * project_name       (Name of project file is part of)
+        * project_home       (Where to find more info/source of project)
+        * software_copyright (Simple copyright line)
+        * software_license   (License short-name)
+
+If not given a specific config file, the program will look for a file named
+'.newfilerc' in the current directory and all parents. If not found, the fields
+will be set to 'TODO' strings. If a specific config file is given but not
+found, the program will error out.
+
+The program will look for template files in '~/Templates' unless directed
+elsewhere. Template file names are in the format of <language>-<type>.
 """
 
 EXIT_STATUS = None
@@ -85,7 +114,7 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
     def format_description(self, description):
         if description:
             retval = ["%s" % self.format_heading('Description')]
-            retval.append("%s\n" % self._format_text(description))
+            retval.append("%s\n" % (description))
             return ''.join(retval)
         else:
             return ""
@@ -349,14 +378,14 @@ if __name__ == '__main__':
     PARSER.add_option('--list', help='list available language/type combos',
                       dest='list', action='store_true', default=False
                      )
-    PARSER.add_option('--template-dir', help='directory with template files [default: %default]',
-                      dest='tempdir', type='string', action='store',
-                      default=os.path.expanduser('~/Templates')
+    PARSER.add_option('-T', '--templates', dest='tempdir', type='string', action='store',
+                      help='directory with template files [default: %default]',
+                      metavar='DIR', default=os.path.expanduser('~/Templates')
                      )
-    PARSER.add_option('--config-file', dest='configfile', type='string',
+    PARSER.add_option('-c', '--config', dest='configfile', type='string', metavar='FILE',
                       help='config file to use [default: will search for .newfilerc]'
                      )
-    #-- 'Invisible' optoins
+    #-- 'Hidden' optoins
     PARSER.add_option('--help-rest', help=optparse.SUPPRESS_HELP,
                       dest='helprest', action='store_true', default=False
                      )
