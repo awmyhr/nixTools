@@ -1,0 +1,188 @@
+#!/bin/sh
+#===============================================================================
+#
+#         FILE: repo_pkg_count
+#
+#        USAGE: repo_pkg_count [all|enabled|disabled]
+#
+#  DESCRIPTION: Lists number of packages installed from each repo
+#
+#     EXTERNAL: ---
+# REQUIREMENTS: rpm   (via 'rpm')
+#               yum   (via 'yum')
+#               yumdb (via 'yum-utils')
+#    OPTIONALS: ---
+#===============================================================================
+#-- Variables which are meta for the script should be prepended with script_
+script_version='1.2.0'
+script_revised='2016-11-17'
+#-- If needed, set min/max arguments, else remove (and the check below)
+script_args_max=1
+script_args_min=0
+#-- The following few variables should be relatively static over life of script
+script_author='awmyhr <awmyhr@gmail.com>'   # primary author of initial version
+script_created='2016-11-16'                 # date script originlly created
+script_cononical_name='repo_pkg_count'      # static name, *NOT* ${0}
+script_project_name='nixTools'         # name of overall project, if needed
+script_project_home='https://github.com/awmyhr/nixTools'                   # where to find source/documentation
+script_template_version='0.2.0'             # version of template file used
+#-- The following are string formats (prepended with strfmt_)
+#   (you can ignore ShellCheck [SC2059] errors in lines where these are used)
+strfmt_error="${script_cononical_name}: %s\n"
+
+#-- Some default settings
+script_debug=false
+repos='enabled'
+
+#===============================================================================
+#----------------------------------------------------------------------
+#-- Notes/known bugs/other issues
+#   '--debug' is of limited use due to my brain-dead argument handling
+#----------------------------------------------------------------------
+
+#-- Exit on error. Even with this you should try to catch & process anticipated
+#   erros. Alternatively, append '||true' when script run if error expected.
+set -o errexit
+#-- Exit if attempt to use an empty variable
+set -o nounset
+
+#=== FUNCTION ==================================================================
+# NAME: usage
+# DESCRIPTION: Provide usage information
+#===============================================================================
+usage() {
+    printf '%s [all|enabled|disabled]\n\n' "${0}"
+    printf '\t-e|--enabled     Enabled repos (default)\n'
+    printf '\t-d|--disabled    Disabled repos\n'
+    printf '\t-a|--all         All repos\n'
+    printf '\t-h|--help        Dislay this help\n'
+    printf '\t--version        Display version\n\n'
+    printf 'Displays a report of number of packages installed from each repo.\n\n'
+    printf 'Created: %s By: %s\n'       "${script_created}" "${script_author}" 
+    printf 'Revised: %s Version: %s\n'  "${script_revised}" "${script_version}"
+    printf '%s, part of %s. Project home: %s\n' "${script_cononical_name}" "${script_project_name}" "${script_project_home}"
+    printf '\nNOTE: script may need to be executed as root\n'
+}
+
+#=== FUNCTION ==================================================================
+# NAME: version
+# DESCRIPTION: Provide version information
+#===============================================================================
+version() {
+    printf '%s (%s) %s\n' "${script_cononical_name}" "${script_project_name}" "${script_version}"
+}
+
+#=== FUNCTION ==================================================================
+# NAME: debug_info
+# DESCRIPTION: Provide meta info for debug-level output
+#===============================================================================
+debug_info() {
+    #-- We set this here to avoid calling cd/dirname/pwd when not really needed
+    # shellcheck disable=SC1007
+    script_path="$(CDPATH= cd -- "$(dirname -- "${0}")" && pwd )"
+
+    version
+
+    printf '\nExecuteable: %s\n\n'        "${script_path}/${0}"
+    printf 'Min args: %s\tMax args: %s\n' "${script_args_min}" "${script_args_max}"
+    printf 'Created: %s By: %s\n'         "${script_created}"  "${script_author}" 
+    printf 'Revised: %s Version: %s\n'    "${script_revised}"  "${script_version}"
+    printf '%s, part of %s. Project home: %s\n' "${script_cononical_name}" "${script_project_name}" "${script_project_home}"
+    printf 'Based on template.sh version: %s\n' "${script_template_version}"
+    printf '\n%s\n' '----- start -----'
+}
+
+#=== FUNCTION ==================================================================
+# NAME: exit_error
+# DESCRIPTION: Report error and exit
+# ARGUMENTS: error_number error_string
+#===============================================================================
+exit_error() {
+    # shellcheck disable=SC2059
+    printf "${strfmt_error}" "${2}" 1>&2
+    exit "${1}"
+}
+
+#=== FUNCTION ==================================================================
+# NAME: init
+# DESCRIPTION: Check for requirements, other set-up stuff
+#===============================================================================
+init() {
+    command -v rpm   >/dev/null 2>&1 || exit_error 69 'rpm not found'
+
+    command -v yum   >/dev/null 2>&1 || exit_error 69 'yum not found'
+
+    command -v yumdb >/dev/null 2>&1 || exit_error 69 'yumdb not found'
+}
+
+#=== FUNCTION ==================================================================
+# NAME: debug_info
+# DESCRIPTION: Provide meta info for debug-level output
+#===============================================================================
+debug_info() {
+    #-- We set this here to avoid calling cd/dirname/pwd when not really needed
+    # shellcheck disable=SC1007
+    script_path="$(CDPATH= cd -- "$(dirname -- "${0}")" && pwd )"
+
+    version
+
+    printf '\nExecuteable: %s\n\n'        "${script_path}/${0}"
+    printf 'Min args: %s\tMax args: %s\n' "${script_args_min}" "${script_args_max}"
+    printf 'Created: %s By: %s\n'         "${script_created}"  "${script_author}" 
+    printf 'Revised: %s Version: %s\n'    "${script_revised}"  "${script_version}"
+    printf '%s, part of %s. Project home: %s\n' "${script_cononical_name}" "${script_project_name}" "${script_project_home}"
+    printf 'Based on template.sh version: %s\n' "${script_template_version}"
+    printf '\n%s\n' '----- start -----'
+}
+
+#===============================================================================
+#=== PREP ======================================================================
+#===============================================================================
+
+if [ "$#" -gt ${script_args_max} ] || [ "$#" -lt ${script_args_min} ]; then
+    exit_error 64 'invalid number of arguments'
+fi
+
+[ "$#" -gt 0 ] && case "${1}" in
+    -e|--enabled)  repos='enabled';;
+    -d|--disabled) repos='disabled';;
+    -a|--all)      repos='all';;
+    --debug)       debug_info
+                   script_debug=true
+                   set -o xtrace
+                   ;;
+    -h|--help)     usage   && exit 0 ;;
+    --version)     version && exit 0 ;;
+    *)             exit_error 64 "invalid option: ${1}" ;;
+esac
+
+init
+
+#===============================================================================
+#=== MAIN ======================================================================
+#===============================================================================
+
+printf '%+6s\tTotal Packages Installed\n' "$(rpm -qa | wc -l)"
+printf '%+6s\t%s\n' "$(yumdb unset from_repo | tail -n +3 | wc -l)" 'No Repo Set'
+
+for repo_id in $(yum repolist ${repos} | cut -f1 -d" "); do
+    if [ "${repo_id}" = 'repo'   -o "${repo_id}" = 'repolist:' \
+      -o "${repo_id}" = 'Loaded' -o "${repo_id}" = 'This' ]; then
+        printf '' ''
+    else
+        pkg_num=$(yumdb search from_repo "${repo_id}"|egrep -v '(from_repo|^$)' | tail -n +3 | wc -l)
+        printf '%+6s\t%s\n' "${pkg_num}" "${repo_id}"
+    fi
+done
+
+#===============================================================================
+#=== POST ======================================================================
+#===============================================================================
+
+[ "${script_debug}" = true ] && {
+    set +o xtrace
+    script_debug=false
+    printf '%s\n' '------ end ------'
+}
+
+exit 0
