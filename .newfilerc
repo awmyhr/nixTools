@@ -5,6 +5,6 @@
   full_name: 'awmyhr',
   project_home: 'https://github.com/awmyhr/nixTools',
   project_name: 'nixTools',
-  software_copyright: '(c) 2016 awmyhr'
+  software_copyright: '(c) 2016 awmyhr',
   software_license: 'Apache-2.0'
 }
