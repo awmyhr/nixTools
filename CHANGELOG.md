@@ -14,6 +14,7 @@ however the project itself uses date versioning.
 
 ## [Unreleased]
 ### Added
+- Old, archived scripts (for posterity)
 
 ### Changed
 
