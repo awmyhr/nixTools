@@ -1,188 +1,363 @@
-#!/bin/sh
+#!/usr/bin/python -tt
+#-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.
 #===============================================================================
-#
-#         FILE: repo_pkg_count
-#
-#        USAGE: repo_pkg_count [all|enabled|disabled]
-#
-#  DESCRIPTION: Lists number of packages installed from each repo
-#
-#     EXTERNAL: ---
-# REQUIREMENTS: rpm   (via 'rpm')
-#               yum   (via 'yum')
-#               yumdb (via 'yum-utils')
-#    OPTIONALS: ---
+#-- NOTE: default Python versions:
+#--       RHEL4    2.3.4
+#--       RHEL5    2.4.3
+#--       RHEL6.0  2.6.5
+#--       RHEL6.1+ 2.6.6
+#--       REHL7    2.7.5
+#-- Recent Fedora versions (24/25) stay current on 2.7 (2.7.12 as of 20161212)
 #===============================================================================
-#-- Variables which are meta for the script should be prepended with script_
-script_version='1.2.0'
-script_revised='2016-11-17'
-#-- If needed, set min/max arguments, else remove (and the check below)
-script_args_max=1
-script_args_min=0
+"""
+    :program:`repo_pkg_count`
+    ============================================================
+
+    In addition to the options listed in help output, :program:`repo_pkg_count` includes
+    the following 'hidden' optoins:
+
+    .. option:: --help-rest
+
+        Output usage information in Sphinx/reST-style markup.
+
+    .. option:: --debug
+
+        Output debug-level information.
+
+    .. option:: --debug-file <FILE>
+
+        Save debug-level information to specified file.
+
+        .. note:: This output is more detailed, but less readable, than simple --debug
+
+    :synopsis: TODO: CHANGEME
+
+    :copyright: (c) 2016 awmyhr
+    :license: Apache-2.0
+
+    .. codeauthor:: awmyhr <awmyhr@gmail.com>
+"""
+#===============================================================================
+#-- Standard Imports
+#-- NOTE: We use optparse for compatibility with python < 2.7 as (the superior)
+#--       argparse wasn't standard until 2.7 (2.7 deprecates optparse)
+#--       As of 20161212 the template is coded for optparse only
+import logging      #: Python's standard logging facilities
+import optparse     #: Argument parsing
+import os           #: Misc. OS interfaces
+import sys          #: System-specific parameters & functions
+# import traceback    #: Print/retrieve a stack traceback
+#===============================================================================
+#-- Third Party Imports
+import yum          #: Work w/yum API.
+#===============================================================================
+#-- Application Library Imports
+#===============================================================================
+#-- Variables which are meta for the script should be dunders (__varname__)
+#-- TODO: Update meta vars
+__version__ = '1.3.0' #: current version
+__revised__ = '2017-01-03' #: date of most recent revision
+__contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
+
 #-- The following few variables should be relatively static over life of script
-script_author='awmyhr <awmyhr@gmail.com>'   # primary author of initial version
-script_created='2016-11-16'                 # date script originlly created
-script_cononical_name='repo_pkg_count'      # static name, *NOT* ${0}
-script_project_name='nixTools'         # name of overall project, if needed
-script_project_home='https://github.com/awmyhr/nixTools'                   # where to find source/documentation
-script_template_version='0.2.0'             # version of template file used
-#-- The following are string formats (prepended with strfmt_)
-#   (you can ignore ShellCheck [SC2059] errors in lines where these are used)
-strfmt_error="${script_cononical_name}: %s\n"
+__author__ = ['awmyhr <awmyhr@gmail.com>'] #: coder(s) of script
+__created__ = '2016-11-16'               #: date script originlly created
+__copyright__ = '(c) 2016 awmyhr' #: Copyright short name
+__license__ = 'Apache-2.0'
+__cononical_name__ = 'repo_pkg_count' #: static name, *NOT* os.path.basename(sys.argv[0])
+__project_name__ = 'nixTools'  #: name of overall project, if needed
+__project_home__ = 'https://github.com/awmyhr/nixTools'  #: where to find source/documentation
+__template_version__ = '1.6.1'              #: version of template file used
+__docformat__ = 'reStructuredText en'       #: attempted style for documentation
+__basename__ = os.path.basename(sys.argv[0]) #: name script run as
+__synopsis__ = 'Lists number of packages installed from each repo.'
+__description__ = """TODO: CHANGEME
+"""
 
-#-- Some default settings
-script_debug=false
-repos='enabled'
+EXIT_STATUS = None
 
-#===============================================================================
-#----------------------------------------------------------------------
-#-- Notes/known bugs/other issues
-#   '--debug' is of limited use due to my brain-dead argument handling
-#----------------------------------------------------------------------
-
-#-- Exit on error. Even with this you should try to catch & process anticipated
-#   erros. Alternatively, append '||true' when script run if error expected.
-set -o errexit
-#-- Exit if attempt to use an empty variable
-set -o nounset
-
-#=== FUNCTION ==================================================================
-# NAME: usage
-# DESCRIPTION: Provide usage information
-#===============================================================================
-usage() {
-    printf '%s [all|enabled|disabled]\n\n' "${0}"
-    printf '\t-e|--enabled     Enabled repos (default)\n'
-    printf '\t-d|--disabled    Disabled repos\n'
-    printf '\t-a|--all         All repos\n'
-    printf '\t-h|--help        Dislay this help\n'
-    printf '\t--version        Display version\n\n'
-    printf 'Displays a report of number of packages installed from each repo.\n\n'
-    printf 'Created: %s By: %s\n'       "${script_created}" "${script_author}" 
-    printf 'Revised: %s Version: %s\n'  "${script_revised}" "${script_version}"
-    printf '%s, part of %s. Project home: %s\n' "${script_cononical_name}" "${script_project_name}" "${script_project_home}"
-    printf '\nNOTE: script may need to be executed as root\n'
-}
-
-#=== FUNCTION ==================================================================
-# NAME: version
-# DESCRIPTION: Provide version information
-#===============================================================================
-version() {
-    printf '%s (%s) %s\n' "${script_cononical_name}" "${script_project_name}" "${script_version}"
-}
-
-#=== FUNCTION ==================================================================
-# NAME: debug_info
-# DESCRIPTION: Provide meta info for debug-level output
-#===============================================================================
-debug_info() {
-    #-- We set this here to avoid calling cd/dirname/pwd when not really needed
-    # shellcheck disable=SC1007
-    script_path="$(CDPATH= cd -- "$(dirname -- "${0}")" && pwd )"
-
-    version
-
-    printf '\nExecuteable: %s\n\n'        "${script_path}/${0}"
-    printf 'Min args: %s\tMax args: %s\n' "${script_args_min}" "${script_args_max}"
-    printf 'Created: %s By: %s\n'         "${script_created}"  "${script_author}" 
-    printf 'Revised: %s Version: %s\n'    "${script_revised}"  "${script_version}"
-    printf '%s, part of %s. Project home: %s\n' "${script_cononical_name}" "${script_project_name}" "${script_project_home}"
-    printf 'Based on template.sh version: %s\n' "${script_template_version}"
-    printf '\n%s\n' '----- start -----'
-}
-
-#=== FUNCTION ==================================================================
-# NAME: exit_error
-# DESCRIPTION: Report error and exit
-# ARGUMENTS: error_number error_string
-#===============================================================================
-exit_error() {
-    # shellcheck disable=SC2059
-    printf "${strfmt_error}" "${2}" 1>&2
-    exit "${1}"
-}
-
-#=== FUNCTION ==================================================================
-# NAME: init
-# DESCRIPTION: Check for requirements, other set-up stuff
-#===============================================================================
-init() {
-    command -v rpm   >/dev/null 2>&1 || exit_error 69 'rpm not found'
-
-    command -v yum   >/dev/null 2>&1 || exit_error 69 'yum not found'
-
-    command -v yumdb >/dev/null 2>&1 || exit_error 69 'yumdb not found'
-}
-
-#=== FUNCTION ==================================================================
-# NAME: debug_info
-# DESCRIPTION: Provide meta info for debug-level output
-#===============================================================================
-debug_info() {
-    #-- We set this here to avoid calling cd/dirname/pwd when not really needed
-    # shellcheck disable=SC1007
-    script_path="$(CDPATH= cd -- "$(dirname -- "${0}")" && pwd )"
-
-    version
-
-    printf '\nExecuteable: %s\n\n'        "${script_path}/${0}"
-    printf 'Min args: %s\tMax args: %s\n' "${script_args_min}" "${script_args_max}"
-    printf 'Created: %s By: %s\n'         "${script_created}"  "${script_author}" 
-    printf 'Revised: %s Version: %s\n'    "${script_revised}"  "${script_version}"
-    printf '%s, part of %s. Project home: %s\n' "${script_cononical_name}" "${script_project_name}" "${script_project_home}"
-    printf 'Based on template.sh version: %s\n' "${script_template_version}"
-    printf '\n%s\n' '----- start -----'
-}
 
 #===============================================================================
-#=== PREP ======================================================================
-#===============================================================================
+class _ModOptionParser(optparse.OptionParser):
+    """By default format_epilog() strips newlines, we don't want that, os override."""
 
-if [ "$#" -gt ${script_args_max} ] || [ "$#" -lt ${script_args_min} ]; then
-    exit_error 64 'invalid number of arguments'
-fi
+    def format_epilog(self, formatter):
+        """We'll preformat the epilog in the decleration, just pass it through"""
+        return self.epilog
 
-[ "$#" -gt 0 ] && case "${1}" in
-    -e|--enabled)  repos='enabled';;
-    -d|--disabled) repos='disabled';;
-    -a|--all)      repos='all';;
-    --debug)       debug_info
-                   script_debug=true
-                   set -o xtrace
-                   ;;
-    -h|--help)     usage   && exit 0 ;;
-    --version)     version && exit 0 ;;
-    *)             exit_error 64 "invalid option: ${1}" ;;
-esac
-
-init
 
 #===============================================================================
-#=== MAIN ======================================================================
+class _ReSTHelpFormatter(optparse.HelpFormatter):
+    """Format help for Sphinx/ReST output.
+
+    All over-ridden methods started life as copy'n'paste from original's source
+    code.
+    """
+
+    def __init__(self, indent_increment=0, max_help_position=4, width=80, short_first=0):
+        optparse.HelpFormatter.__init__(self, indent_increment,
+                                        max_help_position, width, short_first
+                                       )
+
+    def format_usage(self, usage):
+        retval = ["%s\n" % ("=-"[self.level] * len(__cononical_name__))]
+        retval.append("%s\n" % (__cononical_name__))
+        retval.append("%s\n\n" % ("=-"[self.level] * len(__cononical_name__)))
+        retval.append("%s" % self.format_heading('Synopsis'))
+        retval.append("**%s** %s\n\n" % (__cononical_name__, usage))
+        return ''.join(retval)
+
+    def format_heading(self, heading):
+        return "%s\n%s\n\n" % (heading, "--"[self.level] * len(heading))
+
+    def format_description(self, description):
+        if description:
+            retval = ["%s" % self.format_heading('Description')]
+            retval.append("%s\n" % self._format_text(description))
+            return ''.join(retval)
+        else:
+            return ""
+
+    def format_option(self, option):
+        opts = self.option_strings[option]
+        retval = ['.. option:: %s\n\n' % opts]
+        if option.help:
+            # help_text = self.expand_default(option)
+            # help_lines = textwrap.wrap(help_text, self.help_width)
+            retval.append("%4s%s\n\n" % ("", self.expand_default(option)))
+            # retval.extend(["%4s%s\n" % ("", line)
+            #                for line in help_lines[1:]])
+        elif opts[-1] != "\n":
+            retval.append("\n")
+        return "".join(retval)
+
+    def format_option_strings(self, option):
+        """Return a comma-separated list of option strings & metavariables."""
+        if option.takes_value():
+            metavar = option.metavar or option.dest.upper()
+            short_opts = ["%s <%s>" % (sopt, metavar)
+                          for sopt in option._short_opts] #: pylint: disable=protected-access
+                                                          #: We're over-riding the default
+                                                          #:    method, keeping most the code.
+                                                          #:    Not sure how else we'd do this.
+            long_opts = ["%s=<%s>" % (lopt, metavar)
+                         for lopt in option._long_opts]   #: pylint: disable=protected-access
+        else:
+            short_opts = option._short_opts               #: pylint: disable=protected-access
+            long_opts = option._long_opts                 #: pylint: disable=protected-access
+
+        if self.short_first:
+            opts = short_opts + long_opts
+        else:
+            opts = long_opts + short_opts
+
+        return ", ".join(opts)
+
+
 #===============================================================================
+def _debug_info():
+    """ Provides meta info for debug-level output """
+    import platform #: Easily get platforms identifying info
+    logger.debug('Cononical: %s', __cononical_name__)
+    logger.debug('Abs Path:  %s', os.path.abspath(sys.argv[0]))
+    logger.debug('Full Args: %s', ' '.join(sys.argv[:]))
+    logger.debug('Python:    %s (%s)', sys.executable, platform.python_version())
+    logger.debug('Version:   %s', __version__)
+    logger.debug('Created:   %s', __created__)
+    logger.debug('Revised:   %s', __revised__)
+    logger.debug('Coder(s):  %s', __author__)
+    logger.debug('Contact:   %s', __contact__)
+    logger.debug('Project:   %s', __project_name__)
+    logger.debug('Project Home: %s', __project_home__)
+    logger.debug('Template Version: %s', __template_version__)
+    logger.debug('System:    %s',
+                 platform.system_alias(platform.system(),
+                                       platform.release(),
+                                       platform.version()
+                                      )
+                )
+    if platform.system() in 'Linux':
+        logger.debug('Distro:    %s', platform.linux_distribution())
+    logger.debug('Hostname:  %s', platform.node())
+    logger.debug('[res]uid:  %s', os.getresuid())
+    logger.debug('PID/PPID:  %s/%s', os.getpid(), os.getppid())
 
-printf '%+6s\tTotal Packages Installed\n' "$(rpm -qa | wc -l)"
-printf '%+6s\t%s\n' "$(yumdb unset from_repo | tail -n +3 | wc -l)" 'No Repo Set'
-
-for repo_id in $(yum repolist ${repos} | cut -f1 -d" "); do
-    if [ "${repo_id}" = 'repo'   -o "${repo_id}" = 'repolist:' \
-      -o "${repo_id}" = 'Loaded' -o "${repo_id}" = 'This' ]; then
-        printf '' ''
-    else
-        pkg_num=$(yumdb search from_repo "${repo_id}"|egrep -v '(from_repo|^$)' | tail -n +3 | wc -l)
-        printf '%+6s\t%s\n' "${pkg_num}" "${repo_id}"
-    fi
-done
 
 #===============================================================================
-#=== POST ======================================================================
+def num_rpm_installed():
+    """Quick'n'Dirty 'rpm -qa | wc -l'"""
+    import rpm
+    tran_set = rpm.TransactionSet()
+
+    numrpms = 0
+    matches = tran_set.dbMatch()
+    for match in matches:
+        numrpms += 1
+
+    return numrpms
+
 #===============================================================================
+def main():
+    """ This is where the action takes place """
+    logger.debug('Starting main()')
 
-[ "${script_debug}" = true ] && {
-    set +o xtrace
-    script_debug=false
-    printf '%s\n' '------ end ------'
-}
+    yb = yum.YumBase()
+    #-- Do not try to update cache if euid not root
+    yb.conf.cache = os.geteuid() != 0
+    #-- Suppress spurious messages
+    yb.doLoggingSetup(0, 0)
 
-exit 0
+    pkgs = yb.rpmdb.returnPackages()
+    numrpms = num_rpm_installed()
+
+    print '%+6s\tTotal Packages Installed\n' % numrpms
+    print '%+6s\tTotal Packages YUM Found\n' % len(pkgs)
+
+    #: doPackageList will refresh cache
+    # pl = yb.doPackageLists()
+    # print len(pl.installed)
+    #for repo in yb.repos.listEnabled():
+    #    print repo.id
+
+    #print yb.repos.findRepos('*')
+    for repo in yb.repos.findRepos('*'):
+        print '%s  %s %s' % (repo.id, repo.isEnabled(), #-- unfortunately, repoid is ignored
+                             len(yb.rpmdb.returnPackages(repoid=repo)))
+
+#===============================================================================
+if __name__ == '__main__':
+    #-- Parse Options (rely on OptionsParser's exception handling)
+    PARSER = _ModOptionParser(
+        version='%s (%s) %s' % (__cononical_name__, __project_name__, __version__),
+        usage='%s [options]' % (__basename__),
+        description=__synopsis__,
+        epilog=('\n%s\n\n'
+                'Created: %s  Contact: %s\n'
+                'Revised: %s  Version: %s\n'
+                '%s, part of %s. Project home: %s\n'
+               ) % (__description__,
+                    __created__, __contact__,
+                    __revised__, __version__,
+                    __cononical_name__, __project_name__, __project_home__
+                   )
+    )
+    PARSER.add_option('-e', '--enabled', dest='enabled', action='store_true',
+                      help='Enabled repos only (default).', default=False
+                     )
+    PARSER.add_option('-d', '--disabled', dest='disabled', action='store_true',
+                      help='Disabled repos only.', default=False
+                     )
+    PARSER.add_option('-a', '--all', dest='all', action='store_true',
+                      help='All repos.', default=False
+                     )
+    #-- 'Hidden' options
+    PARSER.add_option('--help-rest', dest='helprest', action='store_true',
+                      help=optparse.SUPPRESS_HELP, default=False
+                     )
+    PARSER.add_option('--debug', dest='debug', action='store_true',
+                      help=optparse.SUPPRESS_HELP, default=False
+                     )
+    PARSER.add_option('--debug-file', dest='debugfile', type='string',
+                      help=optparse.SUPPRESS_HELP
+                     )
+    (OPTIONS, ARGS) = PARSER.parse_args()
+    if OPTIONS.helprest:
+        PARSER.formatter = _ReSTHelpFormatter()
+        PARSER.usage = '[*options*]'
+        PARSER.description = __description__
+        PARSER.epilog = ('\nAuthor\n------\n\n'
+                         '%s\n'
+                        ) % ('; '.join(__author__))
+        PARSER.print_help()
+        sys.exit(os.EX_OK)
+
+    #-- Setup output(s)
+    if OPTIONS.debug:
+        LEVEL = logging.DEBUG
+        FORMATTER = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s',
+                                      '%Y%m%d-%H%M'
+                                     )
+    else:
+        LEVEL = logging.INFO
+        FORMATTER = logging.Formatter('%(message)s')
+    logger = logging.getLogger(__name__) #: pylint: disable=invalid-name
+                                         #: lower-case is better here
+    logger.setLevel(LEVEL)
+
+    #-- Console output
+    CONSOLE = logging.StreamHandler()
+    CONSOLE.setLevel(LEVEL)
+    CONSOLE.setFormatter(FORMATTER)
+    logger.addHandler(CONSOLE)
+
+    #-- File output
+    if OPTIONS.debug and OPTIONS.debugfile:
+        #: NOTE: In Python >= 2.6 normally I give FileHandler 'delay="true"'
+        LOGFILE = logging.FileHandler(OPTIONS.debugfile)
+        LOGFILE.setLevel(LEVEL)
+        FORMATTER = logging.Formatter(
+            '%(asctime)s.%(msecs)d:%(levelno)s:%(name)s.%(funcName)s:%(lineno)d:%(message)s',
+            '%Y%m%d-%H%M'
+            )
+        LOGFILE.setFormatter(FORMATTER)
+        logger.addHandler(LOGFILE)
+
+    if OPTIONS.debug:
+        _debug_info()
+        print '\n----- start -----\n'
+
+    #-- Do The Stuff
+    try:
+        main()
+    except KeyboardInterrupt: # Catches Ctrl-C
+        logger.debug('Caught Ctrl-C')
+        EXIT_STATUS = 130
+    except SystemExit: # Catches sys.exit()
+        logger.debug('Caught SystemExit')
+        raise
+    #-- NOTE: "except Exception as variable:" syntax was added in 2.6
+    except IOError as error:
+        logger.debug('Caught IOError')
+        if error.errno == 2:                #: No such file/directory
+            logger.critical('%s: [IOError] %s: %s', __basename__,
+                            error.strerror, error.filename
+                           )
+            EXIT_STATUS = os.EX_UNAVAILABLE
+        elif error.errno == 13:                #: Permission Denied
+            logger.critical('%s: [IOError] %s: %s', __basename__,
+                            error.strerror, error.filename
+                           )
+            EXIT_STATUS = os.EX_NOPERM
+        else:
+            logger.critical('%s: [IOError] %s', __basename__, error.strerror)
+            EXIT_STATUS = error.errno
+    except OSError as error:
+        logger.debug('Caught OSError')
+        if error.errno == 2:                #: No such file/directory
+            logger.critical('%s: [OSError] %s: %s', __basename__,
+                            error.strerror, error.filename
+                           )
+            EXIT_STATUS = os.EX_UNAVAILABLE
+        else:
+            logger.critical('%s: [OSError] %s', __basename__, error.strerror)
+            EXIT_STATUS = error.errno
+    # except:       #: This is _not_ working, see hack below
+    #     EXIT_STATUS = 1
+    #     # print "Unexpected error:", sys.exc_info()[0]
+    #     raise
+    else:
+        logger.debug('main() exited cleanly.')
+        EXIT_STATUS = os.EX_OK
+    #-- NOTE: "try..except..finally" does not work pre 2.5
+    finally:
+        logger.debug('Mandatory clean-up.')
+        if EXIT_STATUS is None:
+            logger.debug('EXIT_STATUS is still None.')
+            EXIT_STATUS = 1
+            raise #: pylint: disable=misplaced-bare-raise
+                  #: Ignoring this here until I find a Better Way(TM)
+        if OPTIONS.debug:
+            print '\n------ end ------\n'
+        sys.exit(EXIT_STATUS)
+    #-- NOTE: more exit codes here:
+    #--   https://docs.python.org/2/library/os.html#process-management
