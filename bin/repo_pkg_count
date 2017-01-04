@@ -55,7 +55,7 @@ import yum          #: Work w/yum API.
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.3.0' #: current version
+__version__ = '1.4.0' #: current version
 __revised__ = '2017-01-04' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
@@ -191,7 +191,7 @@ def num_rpm_installed():
     tran_set = rpm.TransactionSet()
     matches = tran_set.dbMatch()
     numrpms = 0
-    for match in matches:
+    for match in matches: #: pylint: disable=unused-variable
         numrpms += 1
     return numrpms
 
@@ -214,6 +214,9 @@ def num_pkg_per_repo(pkgs):
 def main():
     """ This is where the action takes place """
     logger.debug('Starting main()')
+    logger.debug('Enabled: %s; Disabled: %s; All: %s',
+                 OPTIONS.enabled, OPTIONS.disabled, OPTIONS.all
+                )
 
     yumb = yum.YumBase()
     #-- Suppress spurious messages
@@ -221,7 +224,7 @@ def main():
     yumb.preconf.errorlevel = 0
     #-- Do not try to update cache if euid not root
     yumb.conf.cache = os.geteuid() != 0
-    
+
     pkgs = yumb.rpmdb.returnPackages()
 
     logger.info('%+6s\tTotal Packages in RPM database', num_rpm_installed())
@@ -236,9 +239,9 @@ def main():
             repo_enabled = False
         if repoid is None:
             logger.info('%+6s\tPackages have no repo info', count)
-        elif repo_enabled and (OPTIONS.enabled or OPTIONS.all):
+        elif repo_enabled and (OPTIONS.all or OPTIONS.enabled):
             logger.info('%+6s\t%s [enabled]', count, repoid)
-        elif not repo_enabled and (not OPTIONS.enabled or OPTIONS.all):
+        elif not repo_enabled and (OPTIONS.all or OPTIONS.disabled):
             logger.info('%+6s\t%s [disabled]', count, repoid)
 
     return os.EX_OK
@@ -262,15 +265,15 @@ if __name__ == '__main__':
                    )
     )
     PARSER.add_option('-e', '--enabled', dest='enabled', action='store_true',
-                      help='Enabled repos only (default).', default=True
+                      help='Enabled repos only.', default=False
                      )
-    PARSER.add_option('-d', '--disabled', dest='enabled', action='store_false',
-                      help='Disabled repos only.'
-                     )
-    PARSER.add_option('-a', '--all', dest='all', action='store_true',
-                      help='All repos.', default=False
+    PARSER.add_option('-d', '--disabled', dest='disabled', action='store_true',
+                      help='Disabled repos only.', default=False
                      )
     #-- 'Hidden' options
+    PARSER.add_option('-a', '--all', dest='all', action='store_true',
+                      help=optparse.SUPPRESS_HELP, default=True
+                     )
     PARSER.add_option('--help-rest', dest='helprest', action='store_true',
                       help=optparse.SUPPRESS_HELP, default=False
                      )
@@ -283,13 +286,19 @@ if __name__ == '__main__':
     (OPTIONS, ARGS) = PARSER.parse_args()
     if OPTIONS.helprest:
         PARSER.formatter = _ReSTHelpFormatter()
-        PARSER.usage = '[*options*]'
-        PARSER.description = __description__
+        PARSER.usage = '[*options*]'            #: pylint: disable=attribute-defined-outside-init
+                                                #: Not yet sure of a better way to do this...
+        PARSER.description = __description__    #: pylint: disable=attribute-defined-outside-init
         PARSER.epilog = ('\nAuthor\n------\n\n'
                          '%s\n'
                         ) % ('; '.join(__author__))
         PARSER.print_help()
         sys.exit(os.EX_OK)
+
+    if OPTIONS.enabled and OPTIONS.disabled:
+        PARSER.error('Options -e and -d are mutually exclusive.')
+    elif OPTIONS.enabled or OPTIONS.disabled:
+        OPTIONS.all = False
 
     #-- Setup output(s)
     if OPTIONS.debug:
