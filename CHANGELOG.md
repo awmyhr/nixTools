@@ -14,6 +14,7 @@ however the project itself uses date versioning.
 
 ## [Unreleased]
 ### Added
+- new script 'repo\_pkg\_count'
 
 ### Changed
 
@@ -22,6 +23,7 @@ however the project itself uses date versioning.
 ### Removed
 
 ### Fixed
+- disabled some pylint warnings in python-script
 
 ### Security
 
