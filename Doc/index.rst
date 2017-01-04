@@ -17,6 +17,7 @@ Contents:
    :titlesonly:
 
    newfile
+   repo_pkg_count
    python-script
    shell-script
    codedetails/index
