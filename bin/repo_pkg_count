@@ -56,7 +56,7 @@ import yum          #: Work w/yum API.
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '1.3.0' #: current version
-__revised__ = '2017-01-03' #: date of most recent revision
+__revised__ = '2017-01-04' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -196,34 +196,59 @@ def num_rpm_installed():
 
     return numrpms
 
+
+#===============================================================================
+def num_pkg_per_repo(pkgs):
+    """  """
+    repos = dict()
+    for pkg in pkgs:
+        repoid = pkg.yumdb_info.get('from_repo')
+        if repoid in repos:
+            repos[repoid] += 1
+        else:
+            repos[repoid] = 1
+
+    return repos
+
+
 #===============================================================================
 def main():
     """ This is where the action takes place """
     logger.debug('Starting main()')
 
-    yb = yum.YumBase()
-    #-- Do not try to update cache if euid not root
-    yb.conf.cache = os.geteuid() != 0
+    yumb = yum.YumBase()
     #-- Suppress spurious messages
-    yb.doLoggingSetup(0, 0)
+    yumb.preconf.debuglevel = 0
+    yumb.preconf.errorlevel = 0
+    #-- Do not try to update cache if euid not root
+    yumb.conf.cache = os.geteuid() != 0
+    pkgs = yumb.rpmdb.returnPackages()
 
-    pkgs = yb.rpmdb.returnPackages()
-    numrpms = num_rpm_installed()
+    logger.info('%+6s\tTotal Packages in RPM database', num_rpm_installed())
+    logger.info('%+6s\tTotal Packages in YUM database', len(pkgs))
 
-    print '%+6s\tTotal Packages Installed\n' % numrpms
-    print '%+6s\tTotal Packages YUM Found\n' % len(pkgs)
+    repos = num_pkg_per_repo(pkgs)
 
-    #: doPackageList will refresh cache
+    #-- doPackageList will refresh cache
     # pl = yb.doPackageLists()
     # print len(pl.installed)
-    #for repo in yb.repos.listEnabled():
-    #    print repo.id
+    # for repo in yb.repos.listEnabled():
+    #     print repo.id
 
-    #print yb.repos.findRepos('*')
-    for repo in yb.repos.findRepos('*'):
-        print '%s  %s %s' % (repo.id, repo.isEnabled(), #-- unfortunately, repoid is ignored
-                             len(yb.rpmdb.returnPackages(repoid=repo)))
-
+    # print yb.repos.findRepos('*')
+    # for repo in yumb.repos.findRepos('*'): #-- unfortunately returnPackages ignores repoid
+    #     logger.info('%+6s\t%s\t%s', len(yumb.rpmdb.returnPackages(repoid=repo)),
+    #                 repo.isEnabled(), repo.id
+    #                )
+    for repoid, count in sorted(repos.iteritems()):
+        try:
+            repo_enabled = yumb.repos.getRepo(repoid).isEnabled()
+        except yum.Errors.RepoError:
+            repo_enabled = False
+        if repoid is None:
+            logger.info('%+6s\tPackages have no repo info', count)
+        else:
+            logger.info('%+6s\t%s\t%s', count, repoid, repo_enabled)
 #===============================================================================
 if __name__ == '__main__':
     #-- Parse Options (rely on OptionsParser's exception handling)
