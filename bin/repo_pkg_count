@@ -186,20 +186,20 @@ def _debug_info():
 #===============================================================================
 def num_rpm_installed():
     """Quick'n'Dirty 'rpm -qa | wc -l'"""
+    logger.debug('Entering num_rpm_installed()')
     import rpm
     tran_set = rpm.TransactionSet()
-
-    numrpms = 0
     matches = tran_set.dbMatch()
+    numrpms = 0
     for match in matches:
         numrpms += 1
-
     return numrpms
 
 
 #===============================================================================
 def num_pkg_per_repo(pkgs):
-    """  """
+    """Builds dictionary of repoid's with number of packages per repo"""
+    logger.debug('Entering num_pkg_per_repo()')
     repos = dict()
     for pkg in pkgs:
         repoid = pkg.yumdb_info.get('from_repo')
@@ -207,7 +207,6 @@ def num_pkg_per_repo(pkgs):
             repos[repoid] += 1
         else:
             repos[repoid] = 1
-
     return repos
 
 
@@ -222,6 +221,7 @@ def main():
     yumb.preconf.errorlevel = 0
     #-- Do not try to update cache if euid not root
     yumb.conf.cache = os.geteuid() != 0
+    
     pkgs = yumb.rpmdb.returnPackages()
 
     logger.info('%+6s\tTotal Packages in RPM database', num_rpm_installed())
@@ -229,17 +229,6 @@ def main():
 
     repos = num_pkg_per_repo(pkgs)
 
-    #-- doPackageList will refresh cache
-    # pl = yb.doPackageLists()
-    # print len(pl.installed)
-    # for repo in yb.repos.listEnabled():
-    #     print repo.id
-
-    # print yb.repos.findRepos('*')
-    # for repo in yumb.repos.findRepos('*'): #-- unfortunately returnPackages ignores repoid
-    #     logger.info('%+6s\t%s\t%s', len(yumb.rpmdb.returnPackages(repoid=repo)),
-    #                 repo.isEnabled(), repo.id
-    #                )
     for repoid, count in sorted(repos.iteritems()):
         try:
             repo_enabled = yumb.repos.getRepo(repoid).isEnabled()
@@ -247,8 +236,14 @@ def main():
             repo_enabled = False
         if repoid is None:
             logger.info('%+6s\tPackages have no repo info', count)
-        else:
-            logger.info('%+6s\t%s\t%s', count, repoid, repo_enabled)
+        elif repo_enabled and (OPTIONS.enabled or OPTIONS.all):
+            logger.info('%+6s\t%s [enabled]', count, repoid)
+        elif not repo_enabled and (not OPTIONS.enabled or OPTIONS.all):
+            logger.info('%+6s\t%s [disabled]', count, repoid)
+
+    return os.EX_OK
+
+
 #===============================================================================
 if __name__ == '__main__':
     #-- Parse Options (rely on OptionsParser's exception handling)
@@ -267,10 +262,10 @@ if __name__ == '__main__':
                    )
     )
     PARSER.add_option('-e', '--enabled', dest='enabled', action='store_true',
-                      help='Enabled repos only (default).', default=False
+                      help='Enabled repos only (default).', default=True
                      )
-    PARSER.add_option('-d', '--disabled', dest='disabled', action='store_true',
-                      help='Disabled repos only.', default=False
+    PARSER.add_option('-d', '--disabled', dest='enabled', action='store_false',
+                      help='Disabled repos only.'
                      )
     PARSER.add_option('-a', '--all', dest='all', action='store_true',
                       help='All repos.', default=False
