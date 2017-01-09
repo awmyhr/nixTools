@@ -24,6 +24,8 @@ however the project itself uses date versioning.
 
 ### Fixed
 - disabled some pylint warnings in python-script
+- newfile now catches if Jinja2 Environment() does not accept 'followlinks'
+- check for non-existance of Templates directory
 
 ### Security
 
