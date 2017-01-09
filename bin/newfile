@@ -48,8 +48,8 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.2.0'
-__revised__ = '2017-01-02'
+__version__ = '1.2.1'
+__revised__ = '2017-01-09'
 __contact__ = 'awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -336,6 +336,11 @@ def main():
         OSError: Indicated config file not found: %s.
     """
     logger.debug('Template directory: %s', OPTIONS.tempdir)
+    if not os.path.isdir(OPTIONS.tempdir):
+        raise OSError(
+            os.EX_NOINPUT,
+            'Templates directory not found: %s' % OPTIONS.tempdir
+            )
     if OPTIONS.list is True:
         print_list(OPTIONS.tempdir)
         return
@@ -361,7 +366,10 @@ def main():
 
     templatefile = '%s-%s' % (OPTIONS.lang, OPTIONS.type)
     logger.debug('Loading template: %s/%s', OPTIONS.tempdir, templatefile)
-    environment = Environment(loader=FileSystemLoader(OPTIONS.tempdir, followlinks=True))
+    try:                #: 'followlinks' was added in Jinja 2.8
+        environment = Environment(loader=FileSystemLoader(OPTIONS.tempdir, followlinks=True))
+    except TypeError:
+        environment = Environment(loader=FileSystemLoader(OPTIONS.tempdir))
     template = environment.get_template(templatefile, globals=context)
     with open(OPTIONS.filename, 'w') as outfile:
         outfile.write(template.render())
