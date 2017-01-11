@@ -4,7 +4,10 @@
   email: 'awmyhr@gmail.com',
   full_name: 'awmyhr',
   project_home: 'https://github.com/awmyhr/nixTools',
-  project_name: 'nixTools',
+  project_name: 'nixTools from *NIXLand',
+  project_slug: 'nixTools',
+  project_abbr: 'nixTools',
+  project_version: '2017.01.02',
   software_copyright: '(c) 2016 awmyhr',
   software_license: 'Apache-2.0'
 }
