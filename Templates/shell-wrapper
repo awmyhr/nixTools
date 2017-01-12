@@ -1,0 +1,55 @@
+#!/bin/sh
+#-- NOTE: Default to POSIX shell/mode. A wrapper script should *not* need more...
+#===============================================================================
+#:"""
+#: .. program:: {{ script_name|default("TODO: CHANGEME", true) }}
+#:    :synopsis: {{ script_synopsis|default("TODO: CHANGEME", true) }}
+#:
+#:    :copyright: {{ software_copyright|default("TODO: CHANGEME", true) }}
+#:    :license: {{ software_license|default("TODO: CHANGEME", true) }}
+#:
+#: .. codeauthor:: {{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>
+#:
+#: {{ script_description|default("TODO: CHANGEME", true) }}
+#:"""
+#===============================================================================
+#-- Variables which are meta for the script should be dunders (__varname__)
+#-- TODO: UPDATE meta vars
+__version__='{{ version|default("TODO: CHANGEME", true) }}' #: current version
+__revised__='{{ date|default("TODO: CHANGEME", true) }}' #: date of most recent revision
+__contact__='{{ contact_name|default("TODO: CHANGEME", true) }} <{{ contact_email|default("TODO: CHANGEME", true) }}>' #: primary contact for support/?'s
+
+#-- The following few variables should be relatively static over life of script
+__author__='{{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>' #: coder(s) of script
+__created__='{{ date|default("TODO: CHANGEME", true) }}'               #: date script originlly created
+__copyright__='{{ software_copyright|default("TODO: CHANGEME", true) }}' #: Copyright short name
+__license__='{{ software_license|default("TODO: CHANGEME", true) }}'
+__cononical_name__='{{ script_name|default("TODO: CHANGEME", true) }}' #: static name, *NOT* os.path.basename(sys.argv[0])
+__project_name__='{{ project_name|default("TODO: CHANGEME", true) }}'  #: name of overall project, if needed
+__project_home__='{{ project_home|default("TODO: CHANGEME", true) }}'  #: where to find source/documentation
+__template_version__='1.0.0'             #: version of template file used
+__docformat__='reStructuredText en'      #: attempted style for documentation
+__basename__="${0}" #: name script run as
+__synopsis__='{{ script_synopsis|default("TODO: CHANGEME", true) }}'
+read -r -d '' __description__ <<EOF
+{{ script_description|default("TODO: CHANGEME", true) }}
+EOF
+
+command_wrapped=''
+
+#===============================================================================
+if [ "${*#*--WRAP}" != "${*}" ]; then
+    printf 'About this wrapper (%s)\n' "${__basename__}"
+    printf '%s\n' "${__synopsis__}"
+    printf '%s\n\n' "${__description__}"
+    printf 'Created: %s  Contact: %s\n' "${__created__}" "${__contact__}"
+    printf 'Revised: %s  Version: %s\n' "${__revised__}" "${__version__}"
+    printf '%s, part of %s.\n' "${__cononical_name__}" "${__project_name__}" 
+    printf 'Project home: %s\n' "${__project_home__}"
+    printf '(c) Copyright %s (License: %s)\n' "${__copyright__}" "${__license__}"
+    printf 'By %s; based on template version %s.\n' "${__author__}" "${__template_version__}"
+    exit 0
+else
+    #-- TODO: Do something more interesting here...
+    exec "${command_wrapped}" "$@"
+fi
