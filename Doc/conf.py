@@ -11,8 +11,8 @@ sys.path.insert(0, os.path.abspath('.pylink'))
 
 #===============================================================================
 #-- Project Information
-document_title = u'leTools Documentation'
-document_description = u'Miscellaneous tools and files.'
+document_title = u'nixTools Documentation'
+document_description = u'All the UNIXy things without a home.'
 project_info = {}
 for key, value in yaml.load(open('../.newfilerc', 'r')).iteritems():
     project_info[key] = value
@@ -60,10 +60,11 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 
 #===============================================================================
 #-- Options for HTML output
-import solar_theme
-html_theme = 'solar_theme'          #: Theme to use for HTML and HTML Help pages.
+# import solar_theme
+# html_theme = 'solar_theme'          #: Theme to use for HTML and HTML Help pages.
+# html_theme_path = [solar_theme.theme_path] #: Any paths needed for custom themes.
 # html_theme_options = {}        #: Theme-specific cusotmizations (see theme doc).
-html_theme_path = [solar_theme.theme_path] #: Any paths needed for custom themes.
+html_theme = 'classic'
 html_title = '%s v%s' % (project_info['project_name'], project_info['project_version'])
                                 #: Name for this set of Sphinx documents.
 html_short_title = '%s' % (project_info['project_name'])
@@ -112,8 +113,9 @@ latex_elements = {
 latex_documents = [             #: Grouping doc tree into LaTeX files. List of tuples
                                 #: (source start file, target name, title,
                                 #:  author, docclass [howto|manual|own class]).
-    (master_doc, '%s.tex' % (project_info['project_abbr']), document_title,
-     author, 'manual'),
+    (master_doc, '%s.tex' % (project_info['project_abbr'].replace('_', '\\_')),
+     document_title.replace('_', '\\_'),
+     author.replace('_', '\\_'), 'manual'),
 ]
 # latex_logo = None              #: Image file placed at top of title page.
 # latex_use_parts = False        #: (True && docclass='manual') =
