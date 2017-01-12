@@ -8,6 +8,6 @@
   project_slug: 'nixTools',
   project_abbr: 'nixTools',
   project_version: '2017.01.02',
-  software_copyright: '(c) 2016 awmyhr',
+  software_copyright: '2016 awmyhr',
   software_license: 'Apache-2.0'
 }
