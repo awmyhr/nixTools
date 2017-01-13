@@ -99,7 +99,8 @@ _usage_rest() {
     #: Provides usage information in Sphinx/ReST format.
     #:
     #:"""
-    char="%${#__cononical_name__}s"
+    # {% raw %}
+    char="%${#__cononical_name__}s" # {% endraw %}
     printf "${char}\n" | tr " " "="
     printf '%s\n' "${__cononical_name__}"
     printf "${char}\n" | tr " " "="
@@ -259,8 +260,9 @@ trap '_exit_trap ${LINENO} TERM' TERM
 trap '_exit_trap ${LINENO} HUP'  HUP
 
 #-- Process options (ignore --debug, as we already checked)
+# {% raw %}
 # [ "${#}" -gt 0 ] && while :; do
-while [ "${#}" -gt 0 ]; do
+while [ "${#}" -gt 0 ]; do  # {% endraw %}
     case "${1}" in
         --debug)     ;;
         -h|--help)   _usage   && exit 0 ;;
