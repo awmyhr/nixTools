@@ -15,6 +15,7 @@ however the project itself uses date versioning.
 ## [Unreleased]
 ### Added
 - new script 'repo\_pkg\_count'
+- Old, archived scripts (for posterity)
 
 ### Changed
 
