@@ -1,0 +1,67 @@
+# {{ project_name|default('TODO: CHANGEME', true) }} _({{ project_slug|default('TODO: CHANGEME', true) }})_
+
+![banner]()
+
+![badge]()
+![badge]()
+
+> {{ script_synopsis|default("TODO: CHANGEME", true) }}
+
+{{ script_description|default("TODO: CHANGEME", true) }}
+
+## Table of Contents
+
+- [Security](#security)
+- [Background](#background)
+- [Install](#install)
+- [Usage](#usage)
+- [API](#api)
+- [Maintainers](#maintainers)
+- [Contribute](#contribute)
+- [License](#license)
+
+## Security
+
+### Any optional sections
+
+## Background
+
+### Any optional sections
+
+## Install
+
+```
+```
+
+### Any optional sections
+
+## Usage
+
+```
+```
+
+### Any optional sections
+
+## API
+
+### Any optional sections
+
+## More optional sections
+
+## Maintaniers
+
+- {{ contact_name|default("TODO: CHANGEME", true) }} <{{ contact_email|default("TODO: CHANGEME", true) }}>
+
+## Contribute
+
+See [the contribute file](contribute.md)!
+
+PRs accepted.
+
+Small note: If editing the Readme, please conform to the [standard-readme](https://github.com/RichardLitt/standard-readme) specification.
+
+### Any optional sections
+
+## License
+
+[{{ software_license|default("TODO: CHANGEME", true) }} (c) {{ software_copyright|default("TODO: CHANGEME", true) }}](../LICENSE)

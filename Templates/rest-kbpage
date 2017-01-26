@@ -1,0 +1,44 @@
+:info: git repo {{ project_home|default("TODO: CHANGEME", true) }}
+:author: {{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>
+:date: {{ date|default("TODO: CHANGEME", true) }}
+:revision: 1
+:description:
+    {{ script_synopsis|default("TODO: Single-line summary", true) }}
+
+.. index::
+.. highlight:: bash
+
+*************************************************
+{{ script_name|default("TODO: CHANGEME", true) }}
+*************************************************
+
+.. topic:: Summary
+
+    {{ script_description|default("TODO: Paragraph-long summary", true) }}
+
+Instructions
+============
+
+Assumptions
+-----------
+
+- TODO: list
+- of
+- assumptions
+
+Steps
+-----
+
+TODO: Proceedure in paragraph or list + paragraph form, with commands::
+
+    echo like this
+
+Verification
+============
+
+TODO: How to verify the above procedure worked.
+
+Contact
+=======
+
+`{{ contact_name|default("TODO: CHANGEME", true) }} <{{ contact_email|default("TODO: CHANGEME", true) }}>`_

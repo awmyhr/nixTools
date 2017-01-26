@@ -1,0 +1,33 @@
+# {{ project_name|default('TODO: CHANGEME', true) }} _({{ project_slug|default('TODO: CHANGEME', true) }})_
+
+> {{ script_synopsis|default("TODO: CHANGEME", true) }}
+
+## Table of Contents
+
+- [Install](#install)
+- [Usage](#usage)
+- [Maintainers](#maintainers)
+- [Contribute](#contribute)
+- [License](#license)
+
+## Install
+
+```
+```
+
+## Usage
+
+```
+```
+
+## Maintaniers
+
+- {{ contact_name|default("TODO: CHANGEME", true) }} <{{ contact_email|default("TODO: CHANGEME", true) }}>
+
+## Contribute
+
+PRs accepted.
+
+## License
+
+{{ software_license|default("TODO: CHANGEME", true) }} (c) {{ software_copyright|default("TODO: CHANGEME", true) }}
