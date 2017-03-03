@@ -7,14 +7,21 @@
 FROM alpine:latest
 
 ENV container=docker \
+    LANG=C.UTF-8 \
     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
+# NOTE: ca-certificates - for SSL verification
+#       dumb-init - init system for containers
 RUN apk update \
-    && apk upgrade
+    && apk upgrade \
+    && apk add \
+        ca-certificates \
+        dumb-init
 
 RUN apk --update add openjdk8-jre \
     && rm -r /var/cache
 
+ENTRYPOINT ["/usr/bin/dumb-init"]
 # For now, just get java version
 CMD ["/usr/bin/java","-version"]
 
