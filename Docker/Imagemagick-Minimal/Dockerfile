@@ -28,13 +28,13 @@ COPY scripts/* /usr/local/bin
 # give a default usage message
 CMD [ "echo", "Provides the Image Magick commands animate, compare, composite, conjure, convert, display, identify, import, mogrify, montage, and stream "]
 
-LABEL org.label-schema.name="nixTools from *NIXLand" \
+LABEL org.label-schema.name="Imagemagick-Minimal" \
       org.label-schema.vendor="awmyhr <awmyhr@gmail.com" \
       org.label-schema.version="1.0.0" \
       org.label-schema.release="2017-03-03" \
       org.label-schema.url="https://github.com/awmyhr/nixTools" \
       org.label-schema.vcs-type="git" \
       org.label-schema.vcs-url="https://github.com/awmyhr/nixTools" \
-      org.label-schema.summary="TODO: CHANGEME <100 char" \
-      org.label-schema.description="TODO: CHANGEME <300 char" \
+      org.label-schema.summary="Alpine-based Imagemagick" \
+      org.label-schema.description="Imagemagick with bash/bc for running scripts" \
       org.label-schema.schema-version='1.0.0-rc.1'
