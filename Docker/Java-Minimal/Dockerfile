@@ -18,7 +18,7 @@ RUN apk update \
         ca-certificates \
         dumb-init
 
-RUN apk --update add openjdk8-jre \
+RUN apk --update add openjdk8-jre-base \
     && rm -r /var/cache
 
 ENTRYPOINT ["/usr/bin/dumb-init"]
