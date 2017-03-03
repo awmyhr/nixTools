@@ -7,10 +7,16 @@
 FROM alpine:latest
 
 ENV container=docker \
+    LANG=C.UTF-8 \
     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
+# NOTE: ca-certificates - for SSL verification
+#       dumb-init - init system for containers
 RUN apk update \
-    && apk upgrade
+    && apk upgrade \
+    && apk add \
+        ca-certificates \
+        dumb-init
 
 # add bash to run imagemagick scripts
 # add bc cuz some of Fred Weinhaus' scripts require it
@@ -25,6 +31,7 @@ RUN apk add \
 # add imagemagick scripts
 COPY scripts/* /usr/local/bin
 
+ENTRYPOINT ["/usr/bin/dumb-init"]
 # give a default usage message
 CMD [ "echo", "Provides the Image Magick commands animate, compare, composite, conjure, convert, display, identify, import, mogrify, montage, and stream "]
 
