@@ -7,17 +7,25 @@
 FROM alpine:latest
 
 ENV container=docker \
+    LANG=C.UTF-8 \
     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
+# NOTE: ca-certificates - for SSL verification
+#       dumb-init - init system for containers
 RUN apk update \
-    && apk upgrade
+    && apk upgrade \
+    && apk add \
+        ca-certificates \
+        dumb-init
 
 # NOTE: Normally with an Alpine-based image we want absolute minimalizm,
 #       so we wouldn't even have bash. Thus, this is put here as a place-
 #       holder for whatever this template is ultimately used for...
+# NOTE: Once /var/cache is removed, you will no longer be able to apk add
 RUN apk add bash \
     && rm -r /var/cache
 
+ENTRYPOINT ["/usr/bin/dumb-init"]
 CMD ["/bin/bash"]
 
 LABEL org.label-schema.name="{{ project_name|default('TODO: CHANGEME', true) }}" \
