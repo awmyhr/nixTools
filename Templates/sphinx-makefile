@@ -13,10 +13,10 @@
 #-- These variables can be set from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
-SPHINXPROJ    = {{ project_slug|default('UNKNOWN', true) }}
+SPHINXPROJ    = {{ project_name|default('UNKNOWN', true) }}
 SOURCEDIR     = .
 BUILDDIR      = _build
-HTMLDIR       = $(HOME)/public/{{ project_slug|default('UNKNOWN', true) }}
+HTMLDIR       = $(HOME)/public/{{ project_abbr|default('UNKNOWN', true) }}
 
 #===============================================================================
 #-- Default target
