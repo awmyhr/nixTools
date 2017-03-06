@@ -11,11 +11,10 @@
 
 {{ script_description|default("TODO: Paragraph-long summary", true) }}
 
-Contents:
-
 .. toctree::
    :maxdepth: 1
    :titlesonly:
+   :caption: Contents:
 
 
 Indices and tables
