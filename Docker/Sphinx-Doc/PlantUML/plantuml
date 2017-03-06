@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+# plantuml script
+# JPackage Project <http://www.jpackage.org/>
+
+# Source functions library
+_prefer_jre="true"
+. /usr/share/java-utils/java-functions
+
+# Source system prefs
+if [ -f /etc/java/plantuml.conf ] ; then
+  . /etc/java/plantuml.conf
+fi
+
+# Source user prefs
+if [ -f $HOME/.plantumlrc ] ; then
+  . $HOME/.plantumlrc
+fi
+
+# Configuration
+MAIN_CLASS=net.sourceforge.plantuml.Run
+BASE_FLAGS=""
+BASE_OPTIONS=""
+BASE_JARS="plantuml"
+
+# Set parameters
+set_jvm
+set_classpath $BASE_JARS
+set_flags $BASE_FLAGS
+set_options $BASE_OPTIONS
+
+# Let's start
+run "$@"
