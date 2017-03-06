@@ -34,8 +34,12 @@ clean:
 #===============================================================================
 .PHONY: pre-build
 pre-build:
-	@echo "Pre-build."
-	@echo
+	@echo "Pre-build start..."
+	../bin/newfile --help-rest >_inc/newfile.inc
+	../bin/repo_pkg_count --help-rest >_inc/repo_pkg_count.inc
+	../Templates/python-script --help-rest >_inc/python-script.inc
+	../Templates/shell-script --help-rest >_inc/shell-script.inc
+	@echo "...pre-build done."
 
 #===============================================================================
 #-- For HTML we want to copy the end-result into a public directory
