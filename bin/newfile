@@ -48,8 +48,8 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.2.1'
-__revised__ = '2017-01-09'
+__version__ = '1.3.0'
+__revised__ = '2017-02-06'
 __contact__ = 'awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -91,7 +91,7 @@ different places:
         * software_license   (License short-name)
 
 If not given a specific config file, the program will look for a file named
-'.newfilerc' in the current directory and all parents. If not found, the fields
+'.projectrc' in the current directory and all parents. If not found, the fields
 will be set to 'TODO' strings. If a specific config file is given but not
 found, the program will error out.
 
@@ -268,7 +268,7 @@ def get_git(setting):
 
 #===============================================================================
 def find_config_file():
-    """Look for .newfilerc in current + all parents
+    """Look for .projectrc in current + all parents
 
     Returns:
         Full path to file if found, or 'None'.
@@ -276,8 +276,8 @@ def find_config_file():
     Note:
         Based on code found here: http://stackoverflow.com/a/37560251
     """
-    logger.debug('Looking for .newfilerc')
-    file_name = '.newfilerc'
+    logger.debug('Looking for .projectrc')
+    file_name = '.projectrc'
     cur_dir = os.getcwd()
 
     while True:
@@ -408,7 +408,7 @@ if __name__ == '__main__':
                       metavar='DIR', default=os.path.expanduser('~/Templates')
                      )
     PARSER.add_option('-c', '--config', dest='configfile', type='string', metavar='FILE',
-                      help='config file to use [default: will search for .newfilerc]'
+                      help='config file to use [default: will search for .projectrc]'
                      )
     #-- 'Hidden' optoins
     PARSER.add_option('--help-rest', help=optparse.SUPPRESS_HELP,

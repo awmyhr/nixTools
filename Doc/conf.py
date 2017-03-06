@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.abspath('.pylink'))
 document_title = u'nixTools Documentation'
 document_description = u'All the UNIXy things without a home.'
 project_info = {}
-for key, value in yaml.load(open('../.newfilerc', 'r')).iteritems():
+for key, value in yaml.load(open('../.projectrc', 'r')).iteritems():
     project_info[key] = value
 project = '%s' % (project_info['project_name'])
 copyright = '%s' % (project_info['software_copyright']) #: pylint: disable=redefined-builtin
