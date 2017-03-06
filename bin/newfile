@@ -49,7 +49,7 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '1.3.0'
-__revised__ = '2017-02-06'
+__revised__ = '2017-03-06'
 __contact__ = 'awmyhr <awmyhr@gmail.com>'  #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
