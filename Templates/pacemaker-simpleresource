@@ -1,0 +1,321 @@
+#!/bin/sh
+#===============================================================================
+#: .. note::
+#:     This script is based on the Pacemaker Dummy agent which can be found here:
+#:         'https://github.com/ClusterLabs/resource-agents/blob/master/heartbeat/Dummy'_
+#:     Modifications were made by Andy MyHR, Red Hat RHC
+#:
+#: .. warning::
+#:      This script is NOT SUPPORTED by Red Hat Global Support Services.
+#:      Please contact Red Hat PM/SA for more information.
+#===============================================================================
+#: From the original script:
+#: .. copyright:: GPL-2.0
+#:      Copyright (c) 2004 SUSE LINUX AG, Lars Marowsky-Brée
+#:                    All Rights Reserved.
+#:
+#:      This program is free software; you can redistribute it and/or modify
+#:      it under the terms of version 2 of the GNU General Public License as
+#:      published by the Free Software Foundation.
+#:
+#:      This program is distributed in the hope that it would be useful, but
+#:      WITHOUT ANY WARRANTY; without even the implied warranty of
+#:      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#:
+#:      Further, this software is distributed without any warranty that it is
+#:      free of the rightful claim of any third person regarding infringement
+#:      or the like.  Any license provided herein, whether implied or
+#:      otherwise, applies only to this software file.  Patent licenses, if
+#:      any, provided herein do not apply to combinations of this program with
+#:      other software, or any other product whatsoever.
+#:
+#:      You should have received a copy of the GNU General Public License
+#:      along with this program; if not, write the Free Software Foundation,
+#:      Inc., 59 Temple Place - Suite 330, Boston MA 02111-1307, USA.
+#:
+#===============================================================================
+#:"""
+#: .. topic:: {{ script_name|default("TODO: CHANGEME", true) }}
+#:    :synopsis: This is designed to start/stop an unmonitored service
+#:
+#: .. codeauthor:: Lars Marowsky-Brée
+#:                 MyHR, Andy <andy.myhr@metlife.com>
+#:                 {{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>
+#:
+#: .. note::
+#:     For guidance, please refer to:
+#:         - 'Linux-HA.org: Resource Agents <http://www.linux-ha.org/wiki/Resource_agents>'_
+#:
+#: {{ script_long_description|default("TODO: CHANGEME", true) }}
+#:"""
+#===============================================================================
+#-- Variables which are meta for the script should be dunders (__varname__)
+#-- TODO: UPDATE meta vars
+__version__='{{ version|default("TODO: CHANGEME", true) }}' #: current version
+__revised__='{{ date|default("TODO: CHANGEME", true) }}' #: date of most recent revision
+__contact__='{{ contact_name|default("TODO: CHANGEME", true) }} <{{ contact_email|default("TODO: CHANGEME", true) }}>' #: primary contact for support/?'s
+#-- The following few variables should be relatively static over life of script
+__author__='{{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>' #: coder(s) of script
+__created__='{{ date|default("TODO: CHANGEME", true) }}'               #: date script originlly created
+__copyright__='GPL-2.0' #: Copyright short name
+__cononical_name__='{{ script_name|default("TODO: CHANGEME", true) }}' #: static name, *NOT* os.path.basename(sys.argv[0])
+__project_name__='{{ project_name|default("TODO: CHANGEME", true) }}'  #: name of overall project, if needed
+__project_home__='{{ project_home|default("TODO: CHANGEME", true) }}'  #: where to find source/documentation
+__template_version__='1.0.0'             #: version of template file used
+__docformat__='reStructuredText en'      #: attempted style for documentation
+
+#===============================================================================
+_usage() {
+    #"""
+    #: .. function:: _usage()
+    #:
+    #: Provides usage information
+    #:
+    #:"""
+    #-- TODO: UPDATE usage text.
+    printf 'usage: %s {start|stop|monitor|migrate_to|migrate_from|validate-all|meta-data}\n\n' "${0}"
+    printf 'This is designed to start/stop an unmonitored service\n\n'
+    printf 'Options:\n'
+    printf '  -h|--help      Dislay this help\n'
+    printf '  --version      Display version\n\n'
+    printf '{{ script_long_description|default("TODO: CHANGEME", true) }}\n\n'
+    printf 'Created: %s  Contact: %s\n' "${__created__}" "${__contact__}"
+    printf 'Revised: %s  Version: %s\n' "${__revised__}" "${__version__}"
+    printf '%s, part of %s.\nProject home: %s\n' "${__cononical_name__}" \
+                                                "${__project_name__}" \
+                                                "${__project_home__}"
+}
+
+#===============================================================================
+_version() {
+    #:"""
+    #: .. function:: _version()
+    #:
+    #: Provides version information
+    #:
+    #:"""
+    printf '%s (%s) %s\n' "${__cononical_name__}" "${__project_name__}" "${__version__}"
+}
+
+#===============================================================================
+_debug_info() {
+    #:"""
+    #: .. function:: _debug_info()
+    #:
+    #: Provides meta info for debug-level output
+    #:
+    #: .. note::
+    #:     We set script_path here to avoid calling cd/dirname/pwd when not really needed
+    #:"""
+    # shellcheck disable=SC1007
+    script_path="$(CDPATH= cd -- "$(dirname -- "${0}")" && pwd )"
+
+    _version
+
+    printf '\nExecuteable: %s\n\n'        "${script_path}/${0}"
+    printf 'Created: %s  Coder(s): %s\n'  "${__created__}"  "${__author__}"
+    printf 'Revised: %s  Version:  %s\n'  "${__revised__}"  "${__version__}"
+    printf '%s, part of %s. Project home: %s\n' "${__cononical_name__}" "${__project_name__}" "${__project_home__}"
+    printf 'Based on template.sh version: %s\n' "${__template_version__}"
+    printf '\n%s\n' '----- start -----'
+}
+
+#===============================================================================
+exit_clean() {
+    #:"""
+    #: .. function:: exit_clean()
+    #:
+    #: Clean up everything and exit gracefully
+    #:"""
+    [ "${script_debug}" = true ] && {
+        set +o xtrace
+        script_debug=false
+        printf '%s\n' '------ end ------'
+    }
+
+    ocf_log debug "${OCF_RESOURCE_INSTANCE} ${__OCF_ACTION} : ${0}"
+
+    exit "${0}"
+}
+
+#===============================================================================
+_init() {
+    #:"""
+    #: .. function:: init()
+    #:
+    #: Check for requirements, other set-up stuff
+    #:"""
+    #-- TODO: 'Initilize', check for requirements, etc...
+    : ${OCF_FUNCTIONS_DIR=${OCF_ROOT}/lib/heartbeat}
+    . ${OCF_FUNCTIONS_DIR}/ocf-shellfuncs
+    : ${OCF_RESKEY_state=${HA_RSCTMP}/${__cononical_name__}-${OCF_RESOURCE_INSTANCE}.state}
+    : "${OCF_RESKEY_fake="${__cononical_name__}"}"
+}
+
+#===============================================================================
+meta_data() {
+    #:"""
+    #: .. function:: meta_data()
+    #:
+    #: Print agent meta data.
+    #: .. warning::
+    #:      The format of this is very specific
+    #:"""
+    cat <<END
+<?xml version="1.0"?>
+<!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">
+<resource-agent name="${__cononical_name__}" version="${__version__}">
+<version>1.0</version>
+
+<longdesc lang="en">
+This is a custom, minimal Resource Agent.
+It simply calls the start/stop scripts of a service.
+This is NOT intended for a service which should
+be monitored by the cluster software.
+</longdesc>
+
+<shortdesc lang="en">Start/Stop a service -- does not monitor</shortdesc>
+
+<parameters>
+    <parameter name="state" unique="1">
+        <longdesc lang="en">Location to store the resource state in.</longdesc>
+        <shortdesc lang="en">State file</shortdesc>
+        <content type="string" default="${HA_RSCTMP}/${__cononical_name__}-${OCF_RESOURCE_INSTANCE}.state" />
+    </parameter>
+</parameters>
+
+<actions>
+    <action name="start"        timeout="20" />
+    <action name="stop"         timeout="20" />
+    <action name="monitor"      timeout="20" interval="10" depth="0" />
+    <action name="reload"       timeout="20" />
+    <action name="migrate_to"   timeout="20" />
+    <action name="migrate_from" timeout="20" />
+    <action name="meta-data"    timeout="5"  />
+    <action name="validate-all" timeout="20" />
+</actions>
+</resource-agent>
+END
+}
+
+#===============================================================================
+resource_start() {
+    #:"""
+    #: .. function:: resource_start()
+    #:
+    #: Do what needs to be done to strat the resource.
+    #:"""
+    resource_monitor
+    {{ start_process|default("#-- TODO: CHANGEME", true) }}
+
+    if [ "${?}" =  "${OCF_SUCCESS}" ]; then
+        return "${OCF_SUCCESS}"
+    fi
+    touch "${OCF_RESKEY_state}"
+}
+
+#===============================================================================
+resource_stop() {
+    #:"""
+    #: .. function:: resource_stop()
+    #:
+    #: Do what needs to be done to stop the resource.
+    #:"""
+    resource_monitor
+    {{ stop_process|default("#-- TODO: CHANGEME", true) }}
+
+    if [ "${?}" =  "${OCF_SUCCESS}" ]; then
+        rm "${OCF_RESKEY_state}"
+    fi
+
+    return "${OCF_SUCCESS}"
+}
+
+#===============================================================================
+resource_monitor() {
+    #:"""
+    #: .. function:: resource_monitor()
+    #:
+    #: Normally, do what needs to be done to monitor the resource.
+    #: However, that doesn't really happen for this simple agent.
+    #:"""
+    #: NOTE: Monitor _MUST!_ differentiate correctly between running
+    #:       (SUCCESS), failed (ERROR) or _cleanly_ stopped (NOT RUNNING).
+    #:       That is THREE states, not just yes/no.
+
+    if [ -f "${OCF_RESKEY_state}" ]; then
+        return "${OCF_SUCCESS}"
+    fi
+    if false ; then
+        return "${OCF_ERR_GENERIC}"
+    fi
+
+    return "${OCF_NOT_RUNNING}"
+}
+
+#===============================================================================
+resource_validate() {
+    #:"""
+    #: .. function:: resource_validate()
+    #:
+    #: Normally, do what needs to be done to validate the resource.
+    #: However, that doesn't really happen for this simple agent.
+    #:"""
+    #-- Is the state directory writable?
+    state_dir=$(dirname "$OCF_RESKEY_state")
+    touch "$state_dir/$$"
+
+    if [ "${?}" != 0 ]; then
+        return "${OCF_ERR_ARGS}"
+    fi
+    rm "$state_dir/$$"
+
+    return "${OCF_SUCCESS}"
+}
+
+#===============================================================================
+#-- Check for debug flag & process
+if [ "${*#*--debug}" != "${*}" ]; then
+    _debug_info
+    script_debug=true
+    set -o xtrace
+else
+    script_debug=false
+fi
+
+#-- Some default settings
+set -o errexit  # Exit if any statement returns non-true value
+set -o nounset  # Exit if attempt to use an uninitialised variable
+
+_init
+
+#-- Process options (ignore --debug, as we already checked)
+case "${__OCF_ACTION}" in
+    meta-data)      meta_data
+                    exit "${OCF_SUCCESS}"
+    ;;
+    usage|help)     _usage
+                    exit "${OCF_SUCCESS}"
+    ;;
+    version)        _version
+                    exit "${OCF_SUCCESS}"
+    ;;
+    start)          resource_start;;
+    stop)           resource_stop;;
+    monitor)        resource_monitor;;
+    migrate_to)     ocf_log info "Migrating ${OCF_RESOURCE_INSTANCE} to ${OCF_RESKEY_CRM_meta_migrate_target}."
+                    resource_stop
+    ;;
+    migrate_from)   ocf_log info "Migrating ${OCF_RESOURCE_INSTANCE} from ${OCF_RESKEY_CRM_meta_migrate_source}."
+                    resource_start
+    ;;
+    reload)         ocf_log info "Reloading ${OCF_RESOURCE_INSTANCE} ..."
+    ;;
+    validate-all)   resource_validate;;
+    *)              _usage
+                    exit "${OCF_ERR_UNIMPLEMENTED}"
+    ;;
+esac
+
+rc="${?}"
+exit_clean "${rc}"
