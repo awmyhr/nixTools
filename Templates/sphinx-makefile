@@ -34,8 +34,8 @@ clean:
 #===============================================================================
 .PHONY: pre-build
 pre-build:
-	@echo "Pre-build."
-	@echo
+	@echo "Pre-build start..."
+	@echo "...pre-build done."
 
 #===============================================================================
 #-- For HTML we want to copy the end-result into a public directory
