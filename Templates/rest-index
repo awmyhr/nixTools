@@ -1,0 +1,26 @@
+:info: git repo {{ project_home|default("TODO: CHANGEME", true) }}
+:author: {{ full_name|default("TODO: CHANGEME", true) }} <{{ email|default("TODO: CHANGEME", true) }}>
+:date: {{ date|default("TODO: CHANGEME", true) }}
+:revision: 1
+:description:
+    {{ script_synopsis|default("TODO: Single-line summary", true) }}
+
+*************************************************
+{{ script_name|default("TODO: CHANGEME", true) }}
+*************************************************
+
+{{ script_description|default("TODO: Paragraph-long summary", true) }}
+
+Contents:
+
+.. toctree::
+   :maxdepth: 1
+   :titlesonly:
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
