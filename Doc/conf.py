@@ -2,16 +2,27 @@
 # pylint: disable=invalid-name
 """
 nixTools documentation build configuration file
+#===============================================================================
+#-- Version     1.0.0
+#-- Revised     2017-03-07
+#-- Contact     awmyhr <awmyhr@gmail.com>
+#===============================================================================
+#-- Project Name        nixTools from *NIXLand
+#-- Project Home        https://github.com/awmyhr/nixTools
+#-- Date Created        2017-03-07
+#-- Author(s)           awmyhr <awmyhr@gmail.com>
+#-- Template Version    1.0.1 [2017-03-07]
+#===============================================================================
 """
-
+#-- If you need to add a path for Python, uncomment these
 import os
 import sys
-import yaml
 sys.path.insert(0, os.path.abspath('.pylink'))
-
+#-- This is used to load values from .projectrc
+import yaml
 #===============================================================================
 #-- Project Information
-document_title = u'nixTools Documentation'
+document_title = u'nixTools from *NIXLand'
 document_description = u'All the UNIXy things without a home.'
 project_info = {}
 for key, value in yaml.load(open('../.projectrc', 'r')).iteritems():
@@ -25,17 +36,43 @@ version = '%s' % (project_info['project_version'].split('-'))
 release = '%s' % (project_info['project_version'])
 
 #===============================================================================
+#-- Common configuration
+html_theme = 'classic'          #: Theme to use for HTML and HTML Help pages.
+# html_theme_options = {}        #: Theme-specific cusotmizations (see theme doc).
+# html_theme_path = []           #: Any paths needed for custom themes.
+
+#===============================================================================
 #-- General configuration
-# needs_sphinx = '1.0'           #: If you need a minimal Sphinx version
-extensions = [
+# needs_sphinx = '1.4'           #: If you need a minimal Sphinx version
+extensions = [                   #: This may (or may not) be a difinitive list
     'sphinx.ext.autodoc',
+    # 'sphinx.ext.autosectionlabel',
+    # 'sphinx.ext.autosummary',
+    # 'sphinx.ext.coverage',
     'sphinx.ext.doctest',
+    # 'sphinx.ext.extlinks',
+    # 'sphinx.ext.githubpages',
+    # 'sphinx.ext.graphviz',
+    # 'sphinx.ext.ifconfig',
+    # 'sphinx.ext.imgmath',
+    # 'sphinx.ext.inheritance_diagram',
     'sphinx.ext.intersphinx',
+    # 'sphinx.ext.jsmath',
+    # 'sphinx.ext.linkcode',
+    # 'sphinx.ext.mathbase',
+    # 'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',
+    # 'sphinx.ext.pngmath',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon',
+    # 'sphinxcontrib.fulltoc',
+    # 'sphinxcontrib.issuetracker',
+    # 'sphinxcontrib.plantuml',
     'sphinxcontrib.programoutput',
 ]
+plantuml = '/usr/bin/plantuml'
+plantuml_output_format = 'png'
+plantuml_latex_output_format = 'pdf'
 templates_path = ['_templates'] #: Relative to current directory.
 source_suffix = ['.rst']        #: The suffix(es) of source filenames.
 master_doc = 'index'            #: The master toctree document.
@@ -60,11 +97,6 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 
 #===============================================================================
 #-- Options for HTML output
-# import solar_theme
-# html_theme = 'solar_theme'          #: Theme to use for HTML and HTML Help pages.
-# html_theme_path = [solar_theme.theme_path] #: Any paths needed for custom themes.
-# html_theme_options = {}        #: Theme-specific cusotmizations (see theme doc).
-html_theme = 'classic'
 html_title = '%s v%s' % (project_info['project_name'], project_info['project_version'])
                                 #: Name for this set of Sphinx documents.
 html_short_title = '%s' % (project_info['project_name'])
@@ -78,15 +110,15 @@ html_static_path = ['_static']  #: Custom static files here (will overwrite buil
                                 #: Empty string = '%b %d, %Y'
 # html_use_smartypants = True    #: Convert quotes and dashes to typographically correct entities.
 # html_sidebars = {               #: Sidebar templates (docNames => templateNames).
-#    '**': [
-#        'localtoc.html',
-#        'relations.html',
-#        'more.html',
-#        'searchbox.html'
-#    ]
+#     '**': [
+#         'localtoc.html',
+#         'relations.html',
+#         'more.html',
+#         'searchbox.html'
+#     ]
 # }
 # html_additional_pages = {}     #: Extra templates rendered to pages (pageNames => templateNames).
-# html_domain_indices = True     #: False = no module index is generated.
+html_domain_indices = True      #: False = no module index is generated.
 # html_use_index = True          #: False = no index is generated.
 # html_split_index = False       #: True  = index split into individual pages for each letter.
 # html_show_sourcelink = True    #: True  = links to reST sources are added to pages.
@@ -123,7 +155,7 @@ latex_documents = [             #: Grouping doc tree into LaTeX files. List of t
 # latex_show_pagerefs = False    #: True  = show page references after internal links.
 # latex_show_urls = False        #: True  = show URL addresses after external links.
 # latex_appendices = []          #: Documents to append as an appendix to all manuals.
-# latex_domain_indices = True    #: False = no module index is generated.
+latex_domain_indices = True     #: False = no module index is generated.
 
 #===============================================================================
 #-- Options for manual page output
@@ -144,6 +176,6 @@ texinfo_documents = [           #: Grouping doc tree into Texinfo files. List of
      project_info['project_abbr'], document_description, 'Miscellaneous'),
 ]
 # texinfo_appendices = []        #: Documents to append as an appendix to all manuals.
-# texinfo_domain_indices = True  #: False = no module index is generated.
+texinfo_domain_indices = False  #: False = no module index is generated.
 # texinfo_show_urls = 'footnote' #: Display URL address as: [footnote|no|inline].
 # texinfo_no_detailmenu = False  #: True  = do not generate @detailmenu in "Top" node's menu.
