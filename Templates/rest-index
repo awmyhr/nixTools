@@ -5,9 +5,9 @@
 :description:
     {{ script_synopsis|default("TODO: Single-line summary", true) }}
 
-*************************************************
+#################################################
 {{ script_name|default("TODO: CHANGEME", true) }}
-*************************************************
+#################################################
 
 {{ script_description|default("TODO: Paragraph-long summary", true) }}
 
