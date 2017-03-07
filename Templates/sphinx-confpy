@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=invalid-name
 """
-{{ project_abbr|default('UNKNOWN', true) }} documentation build configuration file
+{{ project_abbr|default("TODO: CHANGEME", true) }} documentation build configuration file
 #===============================================================================
 #-- Version     {{ version|default("0.1.0-alpha", true) }}
 #-- Revised     {{ date|default("TODO: CHANGEME", true) }}
