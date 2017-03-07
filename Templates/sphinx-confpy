@@ -45,29 +45,29 @@ html_theme = 'classic'          #: Theme to use for HTML and HTML Help pages.
 #-- General configuration
 # needs_sphinx = '1.4'           #: If you need a minimal Sphinx version
 extensions = [                   #: This may (or may not) be a difinitive list
-    #'sphinx.ext.autodoc',
-    #'sphinx.ext.autosectionlabel',
-    #'sphinx.ext.autosummary',
-    #'sphinx.ext.coverage',
-    #'sphinx.ext.doctest',
-    #'sphinx.ext.extlinks',
-    #'sphinx.ext.githubpages',
-    #'sphinx.ext.graphviz',
-    #'sphinx.ext.ifconfig',
-    #'sphinx.ext.imgmath',
-    #'sphinx.ext.inheritance_diagram',
-    #'sphinx.ext.intersphinx',
-    #'sphinx.ext.jsmath',
-    #'sphinx.ext.linkcode',
-    #'sphinx.ext.mathbase',
-    #'sphinx.ext.mathjax',
+    # 'sphinx.ext.autodoc',
+    # 'sphinx.ext.autosectionlabel',
+    # 'sphinx.ext.autosummary',
+    # 'sphinx.ext.coverage',
+    # 'sphinx.ext.doctest',
+    # 'sphinx.ext.extlinks',
+    # 'sphinx.ext.githubpages',
+    # 'sphinx.ext.graphviz',
+    # 'sphinx.ext.ifconfig',
+    # 'sphinx.ext.imgmath',
+    # 'sphinx.ext.inheritance_diagram',
+    # 'sphinx.ext.intersphinx',
+    # 'sphinx.ext.jsmath',
+    # 'sphinx.ext.linkcode',
+    # 'sphinx.ext.mathbase',
+    # 'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
-    #'sphinx.ext.pngmath',
+    # 'sphinx.ext.pngmath',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
-    #'sphinxcontrib.fulltoc',
-    #'sphinxcontrib.issuetracker',
-    #'sphinxcontrib.plantuml',
+    # 'sphinxcontrib.fulltoc',
+    # 'sphinxcontrib.issuetracker',
+    # 'sphinxcontrib.plantuml',
     'sphinxcontrib.programoutput',
 ]
 plantuml = '/usr/bin/plantuml'
@@ -109,14 +109,14 @@ html_static_path = ['_static']  #: Custom static files here (will overwrite buil
                                 #: in every footer, using strftime format.
                                 #: Empty string = '%b %d, %Y'
 # html_use_smartypants = True    #: Convert quotes and dashes to typographically correct entities.
-html_sidebars = {               #: Sidebar templates (docNames => templateNames).
-    '**': [
-        'localtoc.html',
-        'relations.html',
-        'more.html',
-        'searchbox.html'
-    ]
-}
+# html_sidebars = {               #: Sidebar templates (docNames => templateNames).
+#     '**': [
+#         'localtoc.html',
+#         'relations.html',
+#         'more.html',
+#         'searchbox.html'
+#     ]
+# }
 # html_additional_pages = {}     #: Extra templates rendered to pages (pageNames => templateNames).
 html_domain_indices = False     #: False = no module index is generated.
 # html_use_index = True          #: False = no index is generated.
