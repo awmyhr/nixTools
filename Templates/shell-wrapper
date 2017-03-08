@@ -27,7 +27,7 @@ __license__='{{ software_license|default("TODO: CHANGEME", true) }}'
 __cononical_name__='{{ script_name|default("TODO: CHANGEME", true) }}' #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__='{{ project_name|default("TODO: CHANGEME", true) }}'  #: name of overall project, if needed
 __project_home__='{{ project_home|default("TODO: CHANGEME", true) }}'  #: where to find source/documentation
-__template_version__='1.0.0'             #: version of template file used
+__template_version__='1.2.0'             #: version of template file used
 __docformat__='reStructuredText en'      #: attempted style for documentation
 __basename__="${0}" #: name script run as
 __synopsis__='{{ script_synopsis|default("TODO: CHANGEME", true) }}'
@@ -36,9 +36,10 @@ read -r -d '' __description__ <<EOF
 EOF
 
 command_wrapped=''
+command=$(/usr/bin/basename "${__basename__}")
 
 #===============================================================================
-if [ "${*#*--WRAP}" != "${*}" ]; then
+if [ "${command}" = "${__cononical_name__}" ]; then
     printf 'About this wrapper (%s)\n' "${__basename__}"
     printf '%s\n' "${__synopsis__}"
     printf '%s\n\n' "${__description__}"
@@ -49,7 +50,11 @@ if [ "${*#*--WRAP}" != "${*}" ]; then
     printf '(c) Copyright %s (License: %s)\n' "${__copyright__}" "${__license__}"
     printf 'By %s; based on template version %s.\n' "${__author__}" "${__template_version__}"
     exit 0
-else
-    #-- TODO: Do something more interesting here...
-    exec "${command_wrapped}" "$@"
+elif [ "${1}" = '--version' ]; then
+    printf '%s (%s) %s\n' "${__cononical_name__}" "${__project_name__}" "${__version__}"
+elif [ "${1}" = '--help' ]; then
+    printf '%s wrapped by %s\n' "${command}" "${__cononical_name__}"
 fi
+
+#-- TODO: Do something more interesting here...
+exec "${command_wrapped}" "$@"
