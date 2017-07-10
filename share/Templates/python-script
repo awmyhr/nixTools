@@ -5,14 +5,6 @@
 # pylint: disable=line-too-long,invalid-name
 #-- line-too-long is inevitable with the Jinga2 strings #}
 #===============================================================================
-#-- NOTE: default Python versions:
-#--       RHEL4    2.3.4
-#--       RHEL5    2.4.3
-#--       RHEL6.0  2.6.5
-#--       RHEL6.1+ 2.6.6
-#--       REHL7    2.7.5
-#-- Recent Fedora versions (24/25) stay current on 2.7 (2.7.12 as of 20161212)
-#===============================================================================
 """{#
     .. py:module:: python_script
     #}
@@ -56,6 +48,18 @@ import sys          #: System-specific parameters & functions
 #===============================================================================
 #-- Third Party Imports
 #===============================================================================
+#-- Require a minimum Python version
+if sys.version_info <= (2, 6):
+    sys.exit("Minimum Python version: 2.6")
+#-- NOTE: default Python versions:
+#--       RHEL4    2.3.4
+#--       RHEL5    2.4.3
+#--       RHEL6.0  2.6.5
+#--       RHEL6.1+ 2.6.6
+#--       REHL7    2.7.5
+#-- Recent Fedora versions (24/25) stay current on 2.7 (2.7.12 as of 20161212)
+#===============================================================================
+#===============================================================================
 #-- Application Library Imports
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
@@ -72,7 +76,7 @@ __license__ = '{{ software_license|default("TODO: CHANGEME", true) }}'
 __cononical_name__ = '{{ script_name|default("TODO: CHANGEME", true) }}' #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__ = '{{ project_name|default("TODO: CHANGEME", true) }}'  #: name of overall project, if needed
 __project_home__ = '{{ project_home|default("TODO: CHANGEME", true) }}'  #: where to find source/documentation
-__template_version__ = '1.7.0'              #: version of template file used
+__template_version__ = '1.8.0'              #: version of template file used
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
 __basename__ = os.path.basename(sys.argv[0]) #: name script run as
 __synopsis__ = '{{ script_synopsis|default("TODO: CHANGEME", true) }}'
