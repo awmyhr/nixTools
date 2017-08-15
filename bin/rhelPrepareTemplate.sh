@@ -1,6 +1,4 @@
 #!/bin/sh
-#-- NOTE: Default to POSIX shell/mode. Be mindful of your reasons before
-#--       switching to bash
 #==============================================================================
 #:"""
 #: .. program:: rhelPrepareTemplate.sh
@@ -10,24 +8,9 @@
 #:    :license: Apache-2.0
 #:
 #: .. codeauthor:: awmyhr <awmyhr@gmail.com>
-#:
-#: .. note:
-#:     For guidance, please refer to:
-#:
-#:         - 'POSIX.1-2008 Base Specification, Issue 7 <http://pubs.opengroup.org/onlinepubs/9699919799/nframe.html>'_
-#:         - 'GNU Coding Standard <http://www.gnu.org/prep/standards/>'_
-#:
-#: .. note:
-#:     ShellCheck should be used, accepted issues should be marked w/disable comment
-#:
-#: .. warning:
-#:     Option parsing is currently less-than-ideal
-#:
-#: TODO: CHANGEME
 #:"""
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-#-- TODO: UPDATE meta vars
 __version__='2.0.0-alpha' #: current version
 __revised__='2017-08-11' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
@@ -35,11 +18,11 @@ __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 #-- The following few variables should be relatively static over life of script
 __author__='awmyhr <awmyhr@gmail.com>' #: coder(s) of script
 __created__='2015-xx-xx'               #: date script originlly created
-__copyright__='2016 awmyhr' #: Copyright short name
+__copyright__='2017 awmyhr' #: Copyright short name
 __license__='Apache-2.0'
-__cononical_name__='rhelPrepareTemplate.sh' #: static name, *NOT* os.path.basename(sys.argv[0])
-__project_name__='nixTools from *NIXLand'  #: name of overall project, if needed
-__project_home__='https://github.com/awmyhr/nixTools'  #: where to find source/documentation
+__cononical_name__='rhelPrepareTemplate.sh' #: static name
+__project_name__='nixTools from *NIXLand'  #: name of overall project
+__project_home__='https://github.com/awmyhr/nixTools'  #: where to find src/doc
 __template_version__='1.3.1'             #: version of template file used
 __docformat__='reStructuredText en'      #: attempted style for documentation
 __basename__="${0}" #: name script run as
@@ -49,7 +32,7 @@ TODO: CHANGEME
 EOF
 
 #-- The following are string formats (prepended with strfmt_)
-#-- NOTE: (you can ignore ShellCheck [SC2059] errors in lines where these are used)
+#-- NOTE: (ignore ShellCheck [SC2059] errors in lines where these are used)
 strfmt_error="${__cononical_name__}: %s\n"
 
 #==============================================================================
@@ -107,7 +90,7 @@ _usage_rest() {
     printf '\n'
     printf 'Synopsis\n'
     printf '%s\n\n' '--------'
-    printf '**%s** [*options*]\n\n' "${__cononical_name__}" #: TODO: UPDATE usage
+    printf '**%s** [*options*]\n\n' "${__cononical_name__}"
     printf 'Description\n'
     printf '%s\n\n' '-----------'
     printf '%s\n\n' "${__description__}"
@@ -148,7 +131,8 @@ _debug_info() {
     #: Provides meta info for debug-level output
     #:
     #: .. note::
-    #:     We set script_path here to avoid calling cd/dirname/pwd when not really needed
+    #:     We set script_path here to avoid calling cd/dirname/pwd when
+    #:     not really needed
     #:"""
     # shellcheck disable=SC1007
     script_path="$(CDPATH= cd -- "$(dirname -- "${0}")" && pwd )"
@@ -279,43 +263,86 @@ done
 _init
 
 #==============================================================================
-#-- TODO: Do something more interesting here...
-# Steps to clean a VM template before deploying
-# Based on the document "Preparing Linux Template VMs"
-#  by Bob Plankers on 20130326
+#-- Detect if this is a systemd (i.e. RHEL 7) system.
+if command -v systemctl >/dev/null 2&1 ; then
+    SYSTEMD=1
+else
+    SYSTEMD=0
+fi
+#==============================================================================
+#-- Steps to clean a VM template before deploying
+#   NOTE: Based in part on the document "Preparing Linux Template VMs"
+#         by Bob Plankers on 20130326.
+#         Also, direction was taken from Red Hat documentation related to
+#         sealing a VM.
+#==============================================================================
+#-- Run firstboot after deploying
+touch /.unconfigured
 
-# Remove template yum files
-/usr/bin/yum clean all
+#-- Remove yum files
+yum clean all
 
-# Remove template logs
-/usr/sbin/logrotate -f /etc/logrotate.conf
-/bin/rm -f /var/log/*-???????? /var/log/*.gz
+#-- Remove temp files from install
+rm -rf /tmp/*
+rm -rf /var/tmp/*
 
-# Clear template audit files
-/usr/sbin/service auditd stop
-/bin/cat /dev/null > /var/log/audit/audit.log
-/bin/cat /dev/null > /var/log/wtmp
+#-- Remove ssh keys
+rm -f /etc/ssh/ssh_host_*
 
-# Remove template udev files
-/bin/rm -f /etc/udev/rules.d/70*
-
-# Remove template MAC/UUID
-/bin/sed -i '/^\(HWADDR\|UUID\)=/d' /etc/sysconfig/network-scripts/ifcfg-eth0
-
-# Remove temp files from template install
-/bin/rm -rf /tmp/*
-/bin/rm -rf /var/tmp/*
-
-# Remove template ssh keys
-/bin/rm -f /etc/ssh/*key*
-
-# Remove template history
-/bin/rm -f ~root/.bash_history
+#-- Remove history from install & don't create more in current session
+rm -f ~root/.bash_history
 unset HISTFILE
 
-#This section will provide additional cleanup after using the postinstall script on a template
+#-- Rotate and remove logs & don't create more in current session
+if "${SYSTEMD}" ; then
+    systemctl stop rsyslog
+else
+    service rsyslog stop
+fi
+logrotate -f /etc/logrotate.conf
+find /var/log -name "*-????????" -exec rm -f {} ";"
+find /var/log -name "*.gz" -exec rm -f {} ";"
 
-/bin/sed -i '/-template/d' /etc/hosts
-chkconfig network off
+#-- Clear audit files & don't create more in current session
+if "${SYSTEMD}" ; then
+    systemctl stop auditd
+else
+    service auditd stop
+fi
+cat /dev/null > /var/log/audit/audit.log
+cat /dev/null > /var/log/wtmp
+
+#-- Remove udev persistent rules
+#   NOTE: I've seen both of these patterns from different RH sources
+rm -f /etc/udev/rules.d/70-*
+rm -f /etc/udev/rules.d/*-persistent-*.rules
+
+#-- Remove MAC/UUID from eth files
+#   TODO: Does this need to be done for ens devices?
+for eth in /etc/sysconfig/network-scripts/ifcfg-eth* ; do
+    sed -i '/^\(HWADDR\|UUID\)=/d' "${eth}"
+done
+
+#-- Rename template
+if "${SYSTEMD}" ; then
+    hostnamectl set-hostname localhost.localdomain
+else
+    #-- Need sed command to replace HOSTNAME
+    # NOTE: THIS IS NOT CORRECT
+    # sed "/HOSTNAME=*/HOSTNAME=localhost.localdomain/s" /etc/sysocnfig/network
+    :
+fi
+
+#-- Reset /etc/hosts
+# TODO: insert code here
+
+#-- Disable networking
+#   NOTE: This is not necessary in all environments
+if "${SYSTEMD}" ; then
+    systemctl disable network
+else
+    chkconfig network off
+fi
+
 #==============================================================================
 exit_clean
