@@ -11,7 +11,7 @@
 #:"""
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__='2.3.1' #: current version
+__version__='2.3.2' #: current version
 __revised__='2017-08-16' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
@@ -279,7 +279,7 @@ fi
 #         Also, direction was taken from Red Hat documentation related to
 #         sealing a VM.
 #==============================================================================
-printf '==>> %s\n' 'Running firstboot after deploying...'
+printf '==>> %s\n' 'Set firstboot to run after deploy...'
 if [ "${SYSTEMD}" ] ; then
     printf '==>> \t%s\n' 'Using systemctl.'
     systemctl enable systemd-firstboot.service
@@ -288,21 +288,21 @@ else
     touch /.unconfigured
 fi
 
-printf '==>> %s\n' 'Removing yum files...'
+printf '==>> %s\n' 'Removing yum cache files...'
 yum clean all
 
-printf '==>> %s\n' 'Removing temp files from install...'
+printf '==>> %s\n' 'Removing temporary files...'
 rm -rfv /tmp/*
 rm -rfv /var/tmp/*
 
 printf '==>> %s\n' 'Removing ssh keys...'
 rm -fv /etc/ssh/ssh_host_*
 
-printf '==>> %s\n' 'Removing root history & do not create more in current session...'
+printf '==>> %s\n' 'Removing root history & prevent creating more in current session...'
 rm -fv ~root/.bash_history
 unset HISTFILE
 
-printf '==>> %s\n' 'Rotating/removing logs & do not create more in current session...'
+printf '==>> %s\n' 'Rotating/removing logs & prevent creating more in current session...'
 if [ "${SYSTEMD}" ] ; then
     printf '==>> \t%s\n' 'Stopping rsyslog using systemctl.'
     systemctl stop rsyslog
@@ -316,7 +316,7 @@ printf '==>> \t%s\n' 'Finding and removing files.'
 find /var/log -name "*-????????" -exec rm -fv {} ";"
 find /var/log -name "*.gz" -exec rm -fv {} ";"
 
-printf '==>> %s\n' 'Clearing audit files & do not create more in current session...'
+printf '==>> %s\n' 'Clearing audit files & prevent creating more in current session...'
 if [ "${SYSTEMD}" ] ; then
     printf '==>> \t%s\n' 'Stopping auditd using systemctl.'
     printf '==>> \t%s\n' 'WARNING: systemctl does not currently allow stopping auditd.'
