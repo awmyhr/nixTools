@@ -11,7 +11,7 @@
 #:"""
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__='2.2.0' #: current version
+__version__='2.3.0' #: current version
 __revised__='2017-08-16' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
@@ -280,20 +280,26 @@ fi
 #         sealing a VM.
 #==============================================================================
 printf '==>> %s\n' 'Running firstboot after deploying...'
-touch /.unconfigured
+if [ "${SYSTEMD}" ] ; then
+    printf '==>> \t%s\n' 'Using systemctl.'
+    systemctl enable firstboot
+else
+    printf '==>> \t%s\n' 'Touching /.unconfigured.'
+    touch /.unconfigured
+fi
 
 printf '==>> %s\n' 'Removing yum files...'
 yum clean all
 
 printf '==>> %s\n' 'Removing temp files from install...'
-rm -rf /tmp/*
-rm -rf /var/tmp/*
+rm -rfv /tmp/*
+rm -rfv /var/tmp/*
 
 printf '==>> %s\n' 'Removing ssh keys...'
-rm -f /etc/ssh/ssh_host_*
+rm -fv /etc/ssh/ssh_host_*
 
 printf '==>> %s\n' 'Removing root history & do not create more in current session...'
-rm -f ~root/.bash_history
+rm -fv ~root/.bash_history
 unset HISTFILE
 
 printf '==>> %s\n' 'Rotating/removing logs & do not create more in current session...'
@@ -305,8 +311,8 @@ else
     service rsyslog stop
 fi
 logrotate -f /etc/logrotate.conf
-find /var/log -name "*-????????" -exec rm -f {} ";"
-find /var/log -name "*.gz" -exec rm -f {} ";"
+find /var/log -name "*-????????" -exec rm -fv {} ";"
+find /var/log -name "*.gz" -exec rm -fv {} ";"
 
 printf '==>> %s\n' 'Clearing audit files & do not create more in current session...'
 if [ "${SYSTEMD}" ] ; then
@@ -322,19 +328,30 @@ cat /dev/null > /var/log/wtmp
 
 printf '==>> %s\n' 'Removing udev persistent rules...'
 #   NOTE: I've seen both of these patterns from different RH sources
-rm -f /etc/udev/rules.d/70-*
-rm -f /etc/udev/rules.d/*-persistent-*.rules
+rm -fv /etc/udev/rules.d/70-*
+rm -fv /etc/udev/rules.d/*-persistent-*.rules
 
 printf '==>> %s\n' 'Removing MAC/UUID from network-scripts files...'
+printf '==>> \t%s\n' 'NOTE: This script assumes DHCP was used to build template.'
 #   TODO: Does this need to be done for ens devices?
-for eth in /etc/sysconfig/network-scripts/ifcfg-e* ; do
-    sed -i '/^\(HWADDR\|UUID\)=/d' "${eth}"
+for interface in /etc/sysconfig/network-scripts/ifcfg-e* ; do
+    printf '==>> \t%s %s\n' 'Updating with sed hackery:' "${interface}"
+    sed -i '/^\(HWADDR\|UUID\)=/d' "${interface}"
+    # NOTE: We could go down the rabbit hole of removing specific lines, but
+    #       instead we'll just through the notice above and be done with it...
+    # sed -i '/^NETWORK=/d' "${interface}"
+    # sed -i '/^NETMASK=/d' "${interface}"
+    # sed -i '/^IPADDR=/d' "${interface}"
+    # sed -i '/^GATEWAY=/d' "${interface}"
 done
+#   TODO: I've seen reference to ifcfg-eth[x] files also located in:
+#         /etc/sysconfig/networking/[devices|profiles/default]
+#         however I do not have examples of these to test.
 
 printf '==>> %s\n' 'Unregistering system...'
 if [ -f '/etc/sysconfig/rhn/systemid' ] ; then
     printf '==>> \t%s\n' 'Looks like we are registered to RHN, removing systemid.'
-    rm /etc/sysconfig/rhn/systemid >/dev/null 2>&1
+    rm -fv /etc/sysconfig/rhn/systemid
 fi
 
 if command -v subscription-manager >/dev/null 2>&1 ; then
@@ -362,11 +379,8 @@ if [ "${SYSTEMD}" ] ; then
     printf '==>> \t%s\n' 'Using hostnamectl.'
     hostnamectl set-hostname localhost.localdomain
 else
-    printf '==>> \t%s\n' 'WARNING: host rename not currenly implemented.'
-    #-- Need sed command to replace HOSTNAME
-    # NOTE: THIS IS NOT CORRECT
-    # sed "/HOSTNAME=*/HOSTNAME=localhost.localdomain/s" /etc/sysocnfig/network
-    :
+    printf '==>> \t%s\n' 'Using sed hackery.'
+    sed -ie 's/HOSTNAME=.*/HOSTNAME=localhost.localdomain/' /etc/sysconfig/network
 fi
 
 # printf '==>> %s\n' 'Cleaning /etc/hosts...'
