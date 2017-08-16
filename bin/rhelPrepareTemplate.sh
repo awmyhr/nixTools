@@ -11,7 +11,7 @@
 #:"""
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__='2.3.0' #: current version
+__version__='2.3.1' #: current version
 __revised__='2017-08-16' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
@@ -282,7 +282,7 @@ fi
 printf '==>> %s\n' 'Running firstboot after deploying...'
 if [ "${SYSTEMD}" ] ; then
     printf '==>> \t%s\n' 'Using systemctl.'
-    systemctl enable firstboot
+    systemctl enable systemd-firstboot.service
 else
     printf '==>> \t%s\n' 'Touching /.unconfigured.'
     touch /.unconfigured
@@ -304,25 +304,28 @@ unset HISTFILE
 
 printf '==>> %s\n' 'Rotating/removing logs & do not create more in current session...'
 if [ "${SYSTEMD}" ] ; then
-    printf '==>> \t%s\n' 'Using systemctl.'
+    printf '==>> \t%s\n' 'Stopping rsyslog using systemctl.'
     systemctl stop rsyslog
 else
-    printf '==>> \t%s\n' 'Using service.'
+    printf '==>> \t%s\n' 'Stopping rsyslog using service.'
     service rsyslog stop
 fi
+printf '==>> \t%s\n' 'Rotating logs.'
 logrotate -f /etc/logrotate.conf
+printf '==>> \t%s\n' 'Finding and removing files.'
 find /var/log -name "*-????????" -exec rm -fv {} ";"
 find /var/log -name "*.gz" -exec rm -fv {} ";"
 
 printf '==>> %s\n' 'Clearing audit files & do not create more in current session...'
 if [ "${SYSTEMD}" ] ; then
-    printf '==>> \t%s\n' 'Using systemctl.'
+    printf '==>> \t%s\n' 'Stopping auditd using systemctl.'
     printf '==>> \t%s\n' 'WARNING: systemctl does not currently allow stopping auditd.'
     # systemctl stop auditd
 else
-    printf '==>> \t%s\n' 'Using service.'
+    printf '==>> \t%s\n' 'Stopping auditd using service.'
     service auditd stop
 fi
+printf '==>> \t%s\n' 'Nulling files.'
 cat /dev/null > /var/log/audit/audit.log
 cat /dev/null > /var/log/wtmp
 
@@ -336,13 +339,13 @@ printf '==>> \t%s\n' 'NOTE: This script assumes DHCP was used to build template.
 #   TODO: Does this need to be done for ens devices?
 for interface in /etc/sysconfig/network-scripts/ifcfg-e* ; do
     printf '==>> \t%s %s\n' 'Updating with sed hackery:' "${interface}"
-    sed -i '/^\(HWADDR\|UUID\)=/d' "${interface}"
+    sed -ie '/^\(HWADDR\|UUID\)=/d' "${interface}"
     # NOTE: We could go down the rabbit hole of removing specific lines, but
     #       instead we'll just through the notice above and be done with it...
-    # sed -i '/^NETWORK=/d' "${interface}"
-    # sed -i '/^NETMASK=/d' "${interface}"
-    # sed -i '/^IPADDR=/d' "${interface}"
-    # sed -i '/^GATEWAY=/d' "${interface}"
+    # sed -ie '/^NETWORK=/d' "${interface}"
+    # sed -ie '/^NETMASK=/d' "${interface}"
+    # sed -ie '/^IPADDR=/d' "${interface}"
+    # sed -ie '/^GATEWAY=/d' "${interface}"
 done
 #   TODO: I've seen reference to ifcfg-eth[x] files also located in:
 #         /etc/sysconfig/networking/[devices|profiles/default]
@@ -375,7 +378,7 @@ else
 fi
 
 printf '==>> %s\n' 'Resetting template hostname...'
-if [ "${SYSTEMD}" ] ; then
+if command -v hostnamectl >/dev/null 2>&1 ; then
     printf '==>> \t%s\n' 'Using hostnamectl.'
     hostnamectl set-hostname localhost.localdomain
 else
