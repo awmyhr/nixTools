@@ -11,7 +11,7 @@
 #:"""
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__='2.4.1' #: current version
+__version__='2.4.2' #: current version
 __revised__='2017-08-16' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
@@ -365,6 +365,8 @@ if command -v subscription-manager >/dev/null 2>&1 ; then
 fi
 
 printf '==>> %s\n' 'Disable subscription services...'
+printf '==>> \t%s\n' 'NOTE: We are going to disable all known RHN/RHSM service.'
+printf '==>> \t%s\n' '      This may result in file not found errors which can be ignored.'
 if [ "${SYSTEMD}" ] ; then
     printf '==>> \t%s\n' 'Using systemctl.'
     systemctl --quiet is-enabled goferd && systemctl disable goferd
