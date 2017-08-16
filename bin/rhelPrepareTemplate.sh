@@ -11,8 +11,8 @@
 #:"""
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__='2.0.0-alpha' #: current version
-__revised__='2017-08-11' #: date of most recent revision
+__version__='2.1.0' #: current version
+__revised__='2017-08-16' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -264,9 +264,11 @@ _init
 
 #==============================================================================
 #-- Detect if this is a systemd (i.e. RHEL 7) system.
-if command -v systemctl >/dev/null 2&1 ; then
+if command -v systemctl >/dev/null 2>&1 ; then
+    printf '%s\n' 'Detected systemd.'
     SYSTEMD=1
 else
+    printf '%s\n' 'Did not detect systemd.'
     SYSTEMD=0
 fi
 #==============================================================================
@@ -276,71 +278,79 @@ fi
 #         Also, direction was taken from Red Hat documentation related to
 #         sealing a VM.
 #==============================================================================
-#-- Run firstboot after deploying
+printf '%s\n' 'Running firstboot after deploying...'
 touch /.unconfigured
 
-#-- Remove yum files
+printf '%s\n' 'Removing yum files...'
 yum clean all
 
-#-- Remove temp files from install
+printf '%s\n' 'Removing temp files from install...'
 rm -rf /tmp/*
 rm -rf /var/tmp/*
 
-#-- Remove ssh keys
+printf '%s\n' 'Removing ssh keys...'
 rm -f /etc/ssh/ssh_host_*
 
-#-- Remove history from install & don't create more in current session
+printf '%s\n' 'Removing root history & do not create more in current session.'
 rm -f ~root/.bash_history
 unset HISTFILE
 
-#-- Rotate and remove logs & don't create more in current session
-if "${SYSTEMD}" ; then
+printf '%s\n' 'Rotating/removing logs & do not create more in current session...'
+if [ "${SYSTEMD}" ] ; then
+    printf '\t%s\n' 'Using systemctl.'
     systemctl stop rsyslog
 else
+    printf '\t%s\n' 'Using service.'
     service rsyslog stop
 fi
 logrotate -f /etc/logrotate.conf
 find /var/log -name "*-????????" -exec rm -f {} ";"
 find /var/log -name "*.gz" -exec rm -f {} ";"
 
-#-- Clear audit files & don't create more in current session
-if "${SYSTEMD}" ; then
+printf '%s\n' 'Clearing audit files & do not create more in current session...'
+if [ "${SYSTEMD}" ] ; then
+    printf '\t%s\n' 'Using systemctl.'
     systemctl stop auditd
 else
+    printf '\t%s\n' 'Using service.'
     service auditd stop
 fi
 cat /dev/null > /var/log/audit/audit.log
 cat /dev/null > /var/log/wtmp
 
-#-- Remove udev persistent rules
+printf '%s\n' 'Removing udev persistent rules...'
 #   NOTE: I've seen both of these patterns from different RH sources
 rm -f /etc/udev/rules.d/70-*
 rm -f /etc/udev/rules.d/*-persistent-*.rules
 
-#-- Remove MAC/UUID from eth files
+printf '%s\n' 'Removing MAC/UUID from network-scripts files...'
 #   TODO: Does this need to be done for ens devices?
-for eth in /etc/sysconfig/network-scripts/ifcfg-eth* ; do
+for eth in /etc/sysconfig/network-scripts/ifcfg-e* ; do
     sed -i '/^\(HWADDR\|UUID\)=/d' "${eth}"
 done
 
-#-- Rename template
-if "${SYSTEMD}" ; then
+printf '%s\n' 'Renaming template...'
+if [ "${SYSTEMD}" ] ; then
+    printf '\t%s\n' 'Using systemctl.'
     hostnamectl set-hostname localhost.localdomain
 else
+    printf '\t%s\n' 'ACTION NOT YET IMPLEMENTED.'
     #-- Need sed command to replace HOSTNAME
     # NOTE: THIS IS NOT CORRECT
     # sed "/HOSTNAME=*/HOSTNAME=localhost.localdomain/s" /etc/sysocnfig/network
     :
 fi
 
-#-- Reset /etc/hosts
+# printf '%s\n' 'Reseting /etc/hosts...'
 # TODO: insert code here
 
-#-- Disable networking
+printf '%s\n' 'Disable networking...'
 #   NOTE: This is not necessary in all environments
-if "${SYSTEMD}" ; then
+if [ "${SYSTEMD}" ] ; then
+    printf '\t%s\n' 'Using systemctl.'
     systemctl disable network
 else
+    printf '\t%s\n' 'Using chkconfig.'
     chkconfig network off
 fi
 
