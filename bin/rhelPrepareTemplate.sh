@@ -11,7 +11,7 @@
 #:"""
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__='2.4.2' #: current version
+__version__='2.4.3' #: current version
 __revised__='2017-08-16' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
@@ -354,6 +354,7 @@ done
 printf '==>> %s\n' 'Unregistering system...'
 if [ -f '/etc/sysconfig/rhn/systemid' ] ; then
     printf '==>> \t%s\n' 'Looks like we are registered to RHN, removing systemid.'
+    printf '==>> \t%s\n' 'NOTE: Remember to remove template name from Satellite server if needed.'
     rm -fv /etc/sysconfig/rhn/systemid
 fi
 
