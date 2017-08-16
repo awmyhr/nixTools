@@ -11,7 +11,7 @@
 #:"""
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__='2.1.0' #: current version
+__version__='2.2.0' #: current version
 __revised__='2017-08-16' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
@@ -266,10 +266,10 @@ _init
 #==============================================================================
 #-- Detect if this is a systemd (i.e. RHEL 7) system.
 if command -v systemctl >/dev/null 2>&1 ; then
-    printf '%s\n' 'Detected systemd.'
+    printf '==>> %s\n' 'Detected systemd.'
     SYSTEMD=1
 else
-    printf '%s\n' 'Did not detect systemd.'
+    printf '==>> %s\n' 'Did not detect systemd.'
     SYSTEMD=0
 fi
 #==============================================================================
@@ -279,107 +279,107 @@ fi
 #         Also, direction was taken from Red Hat documentation related to
 #         sealing a VM.
 #==============================================================================
-printf '%s\n' 'Running firstboot after deploying...'
+printf '==>> %s\n' 'Running firstboot after deploying...'
 touch /.unconfigured
 
-printf '%s\n' 'Removing yum files...'
+printf '==>> %s\n' 'Removing yum files...'
 yum clean all
 
-printf '%s\n' 'Removing temp files from install...'
+printf '==>> %s\n' 'Removing temp files from install...'
 rm -rf /tmp/*
 rm -rf /var/tmp/*
 
-printf '%s\n' 'Removing ssh keys...'
+printf '==>> %s\n' 'Removing ssh keys...'
 rm -f /etc/ssh/ssh_host_*
 
-printf '%s\n' 'Removing root history & do not create more in current session.'
+printf '==>> %s\n' 'Removing root history & do not create more in current session...'
 rm -f ~root/.bash_history
 unset HISTFILE
 
-printf '%s\n' 'Rotating/removing logs & do not create more in current session...'
+printf '==>> %s\n' 'Rotating/removing logs & do not create more in current session...'
 if [ "${SYSTEMD}" ] ; then
-    printf '\t%s\n' 'Using systemctl.'
+    printf '==>> \t%s\n' 'Using systemctl.'
     systemctl stop rsyslog
 else
-    printf '\t%s\n' 'Using service.'
+    printf '==>> \t%s\n' 'Using service.'
     service rsyslog stop
 fi
 logrotate -f /etc/logrotate.conf
 find /var/log -name "*-????????" -exec rm -f {} ";"
 find /var/log -name "*.gz" -exec rm -f {} ";"
 
-printf '%s\n' 'Clearing audit files & do not create more in current session...'
+printf '==>> %s\n' 'Clearing audit files & do not create more in current session...'
 if [ "${SYSTEMD}" ] ; then
-    printf '\t%s\n' 'Using systemctl.'
-    printf '\t%s\n' 'WARNING: systemctl does not currently allow stopping auditd.'
+    printf '==>> \t%s\n' 'Using systemctl.'
+    printf '==>> \t%s\n' 'WARNING: systemctl does not currently allow stopping auditd.'
     # systemctl stop auditd
 else
-    printf '\t%s\n' 'Using service.'
+    printf '==>> \t%s\n' 'Using service.'
     service auditd stop
 fi
 cat /dev/null > /var/log/audit/audit.log
 cat /dev/null > /var/log/wtmp
 
-printf '%s\n' 'Removing udev persistent rules...'
+printf '==>> %s\n' 'Removing udev persistent rules...'
 #   NOTE: I've seen both of these patterns from different RH sources
 rm -f /etc/udev/rules.d/70-*
 rm -f /etc/udev/rules.d/*-persistent-*.rules
 
-printf '%s\n' 'Removing MAC/UUID from network-scripts files...'
+printf '==>> %s\n' 'Removing MAC/UUID from network-scripts files...'
 #   TODO: Does this need to be done for ens devices?
 for eth in /etc/sysconfig/network-scripts/ifcfg-e* ; do
     sed -i '/^\(HWADDR\|UUID\)=/d' "${eth}"
 done
 
-printf '%s\n' 'Unregistering system...'
+printf '==>> %s\n' 'Unregistering system...'
 if [ -f '/etc/sysconfig/rhn/systemid' ] ; then
-    printf '\t%s\n' 'Looks like we are registered to RHN, removing systemid.'
+    printf '==>> \t%s\n' 'Looks like we are registered to RHN, removing systemid.'
     rm /etc/sysconfig/rhn/systemid >/dev/null 2>&1
 fi
 
 if command -v subscription-manager >/dev/null 2>&1 ; then
-    printf '\t%s\n' 'RHSM found, attempting to unregister.'
+    printf '==>> \t%s\n' 'RHSM found, attempting to unregister.'
     subscription-manager unsubscribe --all
     subscription-manager unregister
     subscription-manager clean
 fi
 
-printf '%s\n' 'Disable subscription services...'
+printf '==>> %s\n' 'Disable subscription services...'
 if [ "${SYSTEMD}" ] ; then
-    printf '\t%s\n' 'Using systemctl.'
+    printf '==>> \t%s\n' 'Using systemctl.'
     systemctl disable goferd
     systemctl disable rhsmcertd
     systemctl disable rhnsd
 else
-    printf '\t%s\n' 'Using chkconfig.'
+    printf '==>> \t%s\n' 'Using chkconfig.'
     chkconfig goferd off
     chkconfig rhsmcertd off
     chkconfig rhnsd off
 fi
 
-printf '%s\n' 'Renaming template...'
+printf '==>> %s\n' 'Resetting template hostname...'
 if [ "${SYSTEMD}" ] ; then
-    printf '\t%s\n' 'Using systemctl.'
+    printf '==>> \t%s\n' 'Using hostnamectl.'
     hostnamectl set-hostname localhost.localdomain
 else
-    printf '\t%s\n' 'WARNING: host rename not currenly implemented.'
+    printf '==>> \t%s\n' 'WARNING: host rename not currenly implemented.'
     #-- Need sed command to replace HOSTNAME
     # NOTE: THIS IS NOT CORRECT
     # sed "/HOSTNAME=*/HOSTNAME=localhost.localdomain/s" /etc/sysocnfig/network
     :
 fi
 
-# printf '%s\n' 'Cleaning /etc/hosts...'
-#     printf '\t%s\n' 'WARNING: cleaning /etc/hosts not currenly implemented.'
+# printf '==>> %s\n' 'Cleaning /etc/hosts...'
+#     printf '==>> \t%s\n' 'WARNING: cleaning /etc/hosts not currenly implemented.'
 # TODO: insert code here
 
-# printf '%s\n' 'Disable networking...'
+# printf '==>> %s\n' 'Disable networking...'
 # #   NOTE: This is not necessary in all environments
 # if [ "${SYSTEMD}" ] ; then
-#     printf '\t%s\n' 'Using systemctl.'
+#     printf '==>> \t%s\n' 'Using systemctl.'
 #     systemctl disable network
 # else
-#     printf '\t%s\n' 'Using chkconfig.'
+#     printf '==>> \t%s\n' 'Using chkconfig.'
 #     chkconfig network off
 # fi
 
