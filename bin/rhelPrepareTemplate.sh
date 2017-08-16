@@ -11,7 +11,7 @@
 #:"""
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__='2.3.2' #: current version
+__version__='2.4.0' #: current version
 __revised__='2017-08-16' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
@@ -282,7 +282,7 @@ fi
 printf '==>> %s\n' 'Set firstboot to run after deploy...'
 if [ "${SYSTEMD}" ] ; then
     printf '==>> \t%s\n' 'Using systemctl.'
-    systemctl enable systemd-firstboot.service
+    systemctl --quiet is-enabled systemd-firstboot || systemctl enable systemd-firstboot
 else
     printf '==>> \t%s\n' 'Touching /.unconfigured.'
     touch /.unconfigured
@@ -305,7 +305,7 @@ unset HISTFILE
 printf '==>> %s\n' 'Rotating/removing logs & prevent creating more in current session...'
 if [ "${SYSTEMD}" ] ; then
     printf '==>> \t%s\n' 'Stopping rsyslog using systemctl.'
-    systemctl stop rsyslog
+    systemctl --quiet is-acitve rsyslog && systemctl stop rsyslog
 else
     printf '==>> \t%s\n' 'Stopping rsyslog using service.'
     service rsyslog stop
@@ -320,7 +320,7 @@ printf '==>> %s\n' 'Clearing audit files & prevent creating more in current sess
 if [ "${SYSTEMD}" ] ; then
     printf '==>> \t%s\n' 'Stopping auditd using systemctl.'
     printf '==>> \t%s\n' 'WARNING: systemctl does not currently allow stopping auditd.'
-    # systemctl stop auditd
+    # systemctl --quiet is-acitve auditd && systemctl stop auditd
 else
     printf '==>> \t%s\n' 'Stopping auditd using service.'
     service auditd stop
@@ -367,9 +367,9 @@ fi
 printf '==>> %s\n' 'Disable subscription services...'
 if [ "${SYSTEMD}" ] ; then
     printf '==>> \t%s\n' 'Using systemctl.'
-    systemctl disable goferd
-    systemctl disable rhsmcertd
-    systemctl disable rhnsd
+    systemctl --quiet is-enabled goferd && systemctl disable goferd
+    systemctl --quiet is-enabled rhsmcertd && systemctl disable rhsmcertd
+    systemctl --quiet is-enabled rhnsd && systemctl disable rhnsd
 else
     printf '==>> \t%s\n' 'Using chkconfig.'
     chkconfig goferd off
