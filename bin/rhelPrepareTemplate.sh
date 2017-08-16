@@ -11,7 +11,7 @@
 #:"""
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__='2.4.0' #: current version
+__version__='2.4.1' #: current version
 __revised__='2017-08-16' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
@@ -305,7 +305,7 @@ unset HISTFILE
 printf '==>> %s\n' 'Rotating/removing logs & prevent creating more in current session...'
 if [ "${SYSTEMD}" ] ; then
     printf '==>> \t%s\n' 'Stopping rsyslog using systemctl.'
-    systemctl --quiet is-acitve rsyslog && systemctl stop rsyslog
+    systemctl --quiet is-active rsyslog && systemctl stop rsyslog
 else
     printf '==>> \t%s\n' 'Stopping rsyslog using service.'
     service rsyslog stop
@@ -320,7 +320,7 @@ printf '==>> %s\n' 'Clearing audit files & prevent creating more in current sess
 if [ "${SYSTEMD}" ] ; then
     printf '==>> \t%s\n' 'Stopping auditd using systemctl.'
     printf '==>> \t%s\n' 'WARNING: systemctl does not currently allow stopping auditd.'
-    # systemctl --quiet is-acitve auditd && systemctl stop auditd
+    # systemctl --quiet is-active auditd && systemctl stop auditd
 else
     printf '==>> \t%s\n' 'Stopping auditd using service.'
     service auditd stop
