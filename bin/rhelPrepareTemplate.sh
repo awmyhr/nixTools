@@ -226,7 +226,8 @@ else
 fi
 
 #-- Some default settings
-set -o errexit  # Exit if any statement returns non-true value
+#   NOTE: we specifically do NOT want errexit in this script (rhelPrepareTemplate)
+# set -o errexit  # Exit if any statement returns non-true value
 set -o nounset  # Exit if attempt to use an uninitialised variable
 
 #:"""
@@ -310,7 +311,8 @@ find /var/log -name "*.gz" -exec rm -f {} ";"
 printf '%s\n' 'Clearing audit files & do not create more in current session...'
 if [ "${SYSTEMD}" ] ; then
     printf '\t%s\n' 'Using systemctl.'
-    systemctl stop auditd
+    printf '\t%s\n' 'WARNING: systemctl does not currently allow stopping auditd.'
+    # systemctl stop auditd
 else
     printf '\t%s\n' 'Using service.'
     service auditd stop
@@ -329,30 +331,57 @@ for eth in /etc/sysconfig/network-scripts/ifcfg-e* ; do
     sed -i '/^\(HWADDR\|UUID\)=/d' "${eth}"
 done
 
+printf '%s\n' 'Unregistering system...'
+if [ -f '/etc/sysconfig/rhn/systemid' ] ; then
+    printf '\t%s\n' 'Looks like we are registered to RHN, removing systemid.'
+    rm /etc/sysconfig/rhn/systemid >/dev/null 2>&1
+fi
+
+if command -v subscription-manager >/dev/null 2>&1 ; then
+    printf '\t%s\n' 'RHSM found, attempting to unregister.'
+    subscription-manager unsubscribe --all
+    subscription-manager unregister
+    subscription-manager clean
+fi
+
+printf '%s\n' 'Disable subscription services...'
+if [ "${SYSTEMD}" ] ; then
+    printf '\t%s\n' 'Using systemctl.'
+    systemctl disable goferd
+    systemctl disable rhsmcertd
+    systemctl disable rhnsd
+else
+    printf '\t%s\n' 'Using chkconfig.'
+    chkconfig goferd off
+    chkconfig rhsmcertd off
+    chkconfig rhnsd off
+fi
+
 printf '%s\n' 'Renaming template...'
 if [ "${SYSTEMD}" ] ; then
     printf '\t%s\n' 'Using systemctl.'
     hostnamectl set-hostname localhost.localdomain
 else
-    printf '\t%s\n' 'ACTION NOT YET IMPLEMENTED.'
+    printf '\t%s\n' 'WARNING: host rename not currenly implemented.'
     #-- Need sed command to replace HOSTNAME
     # NOTE: THIS IS NOT CORRECT
     # sed "/HOSTNAME=*/HOSTNAME=localhost.localdomain/s" /etc/sysocnfig/network
     :
 fi
 
-# printf '%s\n' 'Reseting /etc/hosts...'
+# printf '%s\n' 'Cleaning /etc/hosts...'
+#     printf '\t%s\n' 'WARNING: cleaning /etc/hosts not currenly implemented.'
 # TODO: insert code here
 
-printf '%s\n' 'Disable networking...'
-#   NOTE: This is not necessary in all environments
-if [ "${SYSTEMD}" ] ; then
-    printf '\t%s\n' 'Using systemctl.'
-    systemctl disable network
-else
-    printf '\t%s\n' 'Using chkconfig.'
-    chkconfig network off
-fi
+# printf '%s\n' 'Disable networking...'
+# #   NOTE: This is not necessary in all environments
+# if [ "${SYSTEMD}" ] ; then
+#     printf '\t%s\n' 'Using systemctl.'
+#     systemctl disable network
+# else
+#     printf '\t%s\n' 'Using chkconfig.'
+#     chkconfig network off
+# fi
 
 #==============================================================================
 exit_clean
