@@ -40,7 +40,7 @@ __license__='{{ software_license|default("TODO: CHANGEME", true) }}'
 __cononical_name__='{{ script_name|default("TODO: CHANGEME", true) }}' #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__='{{ project_name|default("TODO: CHANGEME", true) }}'  #: name of overall project, if needed
 __project_home__='{{ project_home|default("TODO: CHANGEME", true) }}'  #: where to find source/documentation
-__template_version__='1.3.3'             #: version of template file used
+__template_version__='1.3.4'             #: version of template file used
 #-- We are not using this variable for now.
 # shellcheck disable=2034
 __docformat__='reStructuredText en'      #: attempted style for documentation
@@ -180,7 +180,7 @@ _debug_info() {
     printf 'DEBUG    Template Version: %s\n' "${__template_version__}"
     printf 'DEBUG    System:    %s\n' "$(uname -orv)"
     printf 'DEBUG    Hostname:  %s\n' "$(hostname)"
-    printf 'DEBUG    [re]uid:   %s/%s\n' "${UID}", "${EUID}"
+    printf 'DEBUG    [re]uid:   %s/%s\n' "$(id -ur)", "$(id -u)"
     printf 'DEBUG    PID/PPID:  %s/%s\n' "", "${PPID}"
     printf '\n%s\n' '----- start -----'
 }
