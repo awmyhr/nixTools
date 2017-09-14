@@ -11,8 +11,8 @@
 #:"""
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__='2.4.3' #: current version
-__revised__='2017-08-16' #: date of most recent revision
+__version__='2.4.4' #: current version
+__revised__='2017-09-08' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -360,6 +360,7 @@ fi
 
 if command -v subscription-manager >/dev/null 2>&1 ; then
     printf '==>> \t%s\n' 'RHSM found, attempting to unregister.'
+    printf '==>> \t%s\n' 'NOTE: Remember to remove template name from Satellite server if needed.'
     subscription-manager unsubscribe --all
     subscription-manager unregister
     subscription-manager clean
