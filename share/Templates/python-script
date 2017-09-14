@@ -45,9 +45,9 @@ import optparse     #: Argument parsing
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
 # import traceback    #: Print/retrieve a stack traceback
-#===============================================================================
+#==============================================================================
 #-- Third Party Imports
-#===============================================================================
+#==============================================================================
 #-- Require a minimum Python version
 if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
@@ -58,10 +58,10 @@ if sys.version_info <= (2, 6):
 #--       RHEL6.1+ 2.6.6
 #--       REHL7    2.7.5
 #-- Recent Fedora versions (24/25) stay current on 2.7 (2.7.12 as of 20161212)
-#===============================================================================
-#===============================================================================
+#==============================================================================
+#==============================================================================
 #-- Application Library Imports
-#===============================================================================
+#==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '{{ version|default("TODO: CHANGEME", true) }}' #: current version
@@ -76,7 +76,7 @@ __license__ = '{{ software_license|default("TODO: CHANGEME", true) }}'
 __cononical_name__ = '{{ script_name|default("TODO: CHANGEME", true) }}' #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__ = '{{ project_name|default("TODO: CHANGEME", true) }}'  #: name of overall project, if needed
 __project_home__ = '{{ project_home|default("TODO: CHANGEME", true) }}'  #: where to find source/documentation
-__template_version__ = '1.8.0'              #: version of template file used
+__template_version__ = '1.8.1'              #: version of template file used
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
 __basename__ = os.path.basename(sys.argv[0]) #: name script run as
 __synopsis__ = '{{ script_synopsis|default("TODO: CHANGEME", true) }}'
@@ -86,7 +86,7 @@ __description__ = """{{ script_description|default("TODO: CHANGEME", true) }}
 EXIT_STATUS = None
 
 
-#===============================================================================
+#==============================================================================
 class _ModOptionParser(optparse.OptionParser):
     """By default format_epilog() strips newlines, we don't want that, os override."""
 
@@ -95,7 +95,7 @@ class _ModOptionParser(optparse.OptionParser):
         return self.epilog
 
 
-#===============================================================================
+#==============================================================================
 class _ReSTHelpFormatter(optparse.HelpFormatter):
     """Format help for Sphinx/ReST output.
 
@@ -163,7 +163,7 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
         return ", ".join(opts)
 
 
-#==============================================================================={#
+#=============================================================================={#
 def test_func():
     """ test function -- will not exist in deployed template """
     logger.debug('this is a test')
@@ -197,7 +197,7 @@ def _version():
     #         )
 
 
-#===============================================================================
+#==============================================================================
 def _debug_info():
     """ Provides meta info for debug-level output """
     import platform #: Easily get platforms identifying info
@@ -226,7 +226,7 @@ def _debug_info():
     logger.debug('PID/PPID:  %s/%s', os.getpid(), os.getppid())
 
 
-#===============================================================================
+#==============================================================================
 def which(program):
     """Test if a program exists in $PATH.
 
@@ -263,7 +263,7 @@ def which(program):
     return None
 
 
-#===============================================================================
+#==============================================================================
 def main():
     """ This is where the action takes place """
     logger.debug('Starting main()')
@@ -278,7 +278,7 @@ def main():
     #}
 
 
-#===============================================================================
+#==============================================================================
 if __name__ == '__main__':
     #-- Parse Options (rely on OptionsParser's exception handling)
     PARSER = _ModOptionParser(
