@@ -59,12 +59,16 @@ fi
 #-- originally from http://stackoverflow.com/questions/1668649/how-to-keep-quotes-in-args
 for x in "${@}" ; do
   if [ "${x}" != "${x%[[:space:]]*}" ]; then
+    #-- Not gonna to stress this as it would need more testing then I have time for
+    # shellcheck disable=2089
     x="\"${x}\""
   fi
   params=${params}" "${x}
 done
 #===============================================================================
 #-- TODO: Do something more interesting here...
+#-- We want to pass params exactly as they are defined
+# shellcheck disable=2090,2086
 command_wrapped ${params}
 COMMAND_RETURN="${?}"
 #===============================================================================
