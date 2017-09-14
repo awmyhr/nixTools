@@ -1,7 +1,7 @@
 #!/bin/sh
 #-- NOTE: Default to POSIX shell/mode. Be mindful of your reasons before
-#--       switching to bash
-#===============================================================================
+#--       switching to Bash, and consider using Python instead...
+#==============================================================================
 #:"""
 #: .. program:: {{ script_name|default("TODO: CHANGEME", true) }}
 #:    :synopsis: {{ script_synopsis|default("TODO: CHANGEME", true) }}
@@ -25,7 +25,7 @@
 #:
 #: {{ script_description|default("TODO: CHANGEME", true) }}
 #:"""
-#===============================================================================
+#==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: UPDATE meta vars
 __version__='{{ version|default("TODO: CHANGEME", true) }}' #: current version
@@ -40,7 +40,7 @@ __license__='{{ software_license|default("TODO: CHANGEME", true) }}'
 __cononical_name__='{{ script_name|default("TODO: CHANGEME", true) }}' #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__='{{ project_name|default("TODO: CHANGEME", true) }}'  #: name of overall project, if needed
 __project_home__='{{ project_home|default("TODO: CHANGEME", true) }}'  #: where to find source/documentation
-__template_version__='1.3.4'             #: version of template file used
+__template_version__='1.3.5'             #: version of template file used
 #-- We are not using this variable for now.
 # shellcheck disable=2034
 __docformat__='reStructuredText en'      #: attempted style for documentation
@@ -54,7 +54,7 @@ __description__="
 #         where these are used)
 strfmt_error="${__cononical_name__}: %s\\n"
 
-#===============================================================================
+#==============================================================================
 _usage_options() {
     #:"""
     #: .. function:: _usage_options()
@@ -73,7 +73,7 @@ _usage_options() {
     printf "${strfmt_option}" '--version ' 'Display version'
 }
 
-#===============================================================================
+#==============================================================================
 _usage() {
     #:"""
     #: .. function:: _usage()
@@ -98,7 +98,7 @@ _usage() {
                                                 "${__project_home__}"
 }
 
-#===============================================================================
+#==============================================================================
 _usage_rest() {
     #:"""
     #: .. function:: _usage_rest()
@@ -133,7 +133,7 @@ _usage_rest() {
     printf '(c) Copyright %s (License: %s)\n\n' "${__copyright__}" "${__license__}"
 }
 
-#===============================================================================
+#==============================================================================
 _version() {
     #:"""
     #: .. function:: _version()
@@ -154,7 +154,7 @@ _version() {
     # printf '%s\n' "${__license__}"
 }
 
-#===============================================================================
+#==============================================================================
 _debug_info() {
     #:"""
     #: .. function:: _debug_info()
@@ -185,7 +185,7 @@ _debug_info() {
     printf '\n%s\n' '----- start -----'
 }
 
-#===============================================================================
+#==============================================================================
 exit_error() {
     #:"""
     #: .. function:: exit_error()
@@ -204,7 +204,7 @@ exit_error() {
     exit "${1}"
 }
 
-#===============================================================================
+#==============================================================================
 _exit_trap() {
     #:"""
     #: .. function:: exit_trap()
@@ -217,7 +217,7 @@ _exit_trap() {
     exit_error "${?}" "caught trap ${2} at line ${1}; exiting"
 }
 
-#===============================================================================
+#==============================================================================
 exit_clean() {
     #:"""
     #: .. function:: exit_clean()
@@ -234,7 +234,7 @@ exit_clean() {
     exit 0
 }
 
-#===============================================================================
+#==============================================================================
 _init() {
     #:"""
     #: .. function:: init()
@@ -245,7 +245,7 @@ _init() {
     :
 }
 
-#===============================================================================
+#==============================================================================
 #-- Check for debug flag & process
 if [ "${*#*--debug}" != "${*}" ]; then
     _debug_info "$@"
@@ -292,10 +292,10 @@ done
 
 _init
 
-#===============================================================================
+#==============================================================================
 #-- TODO: Do something more interesting here...{#
 printf '%s\n' 'Hello world!'
 #}
 
-#===============================================================================
+#==============================================================================
 exit_clean
