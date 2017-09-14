@@ -128,6 +128,9 @@ _usage_rest() {
     printf 'Author\n'
     printf '%s\n\n' '------'
     printf '%s\n\n' "${__author__}"
+    printf 'Copyright\n'
+    printf '%s\n\n' '------'
+    printf '(c) Copyright %s (License: %s)\n\n' "${__copyright__}" "${__license__}"
 }
 
 #===============================================================================
