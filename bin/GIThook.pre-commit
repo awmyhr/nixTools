@@ -1,0 +1,46 @@
+#!/usr/bin/bash
+#==============================================================================
+# Name:       pre-commit (git pre-commit hook)
+# Author(s):  awmyhr (awmyhr@gmail.com)
+# Revised:    20171128-135029
+# Created:    2017-11-08
+#==============================================================================
+#-- Run some odd jobs against cached files before commiting
+#------------------------------------------------------------------------------
+#-- This seems to be SOP in git hooks
+#------------------------------------------------------------------------------
+if git rev-parse --verify HEAD >/dev/null 2>&1 ; then
+    against=HEAD
+else
+    #-- Initial commit: diff against an empty tree object
+    against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+fi
+#-- Redirect output to stderr.
+exec 1>&2
+
+#------------------------------------------------------------------------------
+#-- For each [Added|Copied|Modified] FILE, update date revision string
+#------------------------------------------------------------------------------
+#-- If you want to disable this, set hooks.updaterevise to false
+DATE=$(date +%Y%m%d-%H%M%S)
+updaterevise="$(git config --bool hooks.updaterevise)"
+if [ "${updaterevise}" != "false" ] ; then
+    for FILE in $(git diff --cached --name-only --diff-filter=ACM -z "${against}") ; do
+        #-- Skip non-text files
+        if [[ $(file --mime-type "${FILE}" | cut -d' ' -f2) != text/* ]]; then
+           continue
+        fi
+        #-- Replaces shell and Python dunders
+        sed -i -E "s/(^__revised__.+').+('.*)/\\1${DATE}\\2/" "${FILE}"
+        #-- Replaces comment strings
+        sed -i -E "s/(^#-* +[rR]evised:* +)[0-9\\-]+(.*)/\\1${DATE}\\2/" "${FILE}"
+        #-- Replaces reST/Sphinx strings
+        sed -i -E "s/(^:revision: +)[0-9\\-]*(.*)/\\1${DATE}\\2/" "${FILE}"
+        #-- Now re-add the file. If there are no changes this does nothing.
+        git add "${FILE}"
+    done
+fi
+
+#------------------------------------------------------------------------------
+#-- 
+#------------------------------------------------------------------------------
