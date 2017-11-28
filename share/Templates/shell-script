@@ -29,7 +29,7 @@
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: UPDATE meta vars
 __version__='{{ version|default("TODO: CHANGEME", true) }}' #: current version
-__revised__='{{ date|default("TODO: CHANGEME", true) }}' #: date of most recent revision
+__revised__='20171128-135052' #: date of most recent revision
 __contact__='{{ contact_name|default("TODO: CHANGEME", true) }} <{{ contact_email|default("TODO: CHANGEME", true) }}>' #: primary contact for support/?'s
 __synopsis__='{{ script_synopsis|default("TODO: CHANGEME", true) }}'
 __description__="
@@ -45,7 +45,7 @@ __license__='{{ software_license|default("TODO: CHANGEME", true) }}'
 __cononical_name__='{{ script_name|default("TODO: CHANGEME", true) }}' #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__='{{ project_name|default("TODO: CHANGEME", true) }}'  #: name of overall project, if needed
 __project_home__='{{ project_home|default("TODO: CHANGEME", true) }}'  #: where to find source/documentation
-__template_version__='1.4.0'             #: version of template file used
+__template_version__='1.4.1'             #: version of template file used
 #-- We are not using this variable for now.
 # shellcheck disable=2034
 __docformat__='reStructuredText en'      #: attempted style for documentation
@@ -247,7 +247,7 @@ _init() {
     #-- Check if effectively root
     #--------------------------------------------------------------------------
     if [ "${__require_root__}" -eq 1 ] && [ "$(id -u)" -ne 0 ] ; then
-      exit_error 1 'Must be run as root.'
+      exit_error 77 'Must be run as root.'
     fi
     #--------------------------------------------------------------------------
 }
