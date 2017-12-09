@@ -22,6 +22,7 @@ however the project itself uses date versioning.
 ### Deprecated
 
 ### Removed
+- newfile has been pulled out into its own project
 
 ### Fixed
 - disabled some pylint warnings in python-script
