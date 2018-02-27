@@ -2,7 +2,7 @@
 #==============================================================================
 # Name:       pre-commit (git pre-commit hook)
 # Author(s):  awmyhr (awmyhr@gmail.com)
-# Revised:    20171128-135029
+# Revised:    20180227-112332
 # Created:    2017-11-08
 #==============================================================================
 #-- Run some odd jobs against cached files before commiting
@@ -25,7 +25,8 @@ exec 1>&2
 DATE=$(date +%Y%m%d-%H%M%S)
 updaterevise="$(git config --bool hooks.updaterevise)"
 if [ "${updaterevise}" != "false" ] ; then
-    for FILE in $(git diff --cached --name-only --diff-filter=ACM -z "${against}") ; do
+    for FILE in $(git diff --cached --name-only --diff-filter=ACM -z "${against}" \
+                  | tr -d \\0) ; do
         #-- Skip non-text files
         if [[ $(file --mime-type "${FILE}" | cut -d' ' -f2) != text/* ]]; then
            continue
