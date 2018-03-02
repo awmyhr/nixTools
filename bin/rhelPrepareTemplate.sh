@@ -11,8 +11,8 @@
 #:"""
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__='2.5.0' #: current version
-__revised__='2017-09-25' #: date of most recent revision
+__version__='2.5.1' #: current version
+__revised__='20180302-101641' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -339,13 +339,13 @@ printf '==>> \t%s\n' 'NOTE: This script assumes DHCP was used to build template.
 #   TODO: Does this need to be done for ens devices?
 for interface in /etc/sysconfig/network-scripts/ifcfg-e* ; do
     printf '==>> \t%s %s\n' 'Updating with sed hackery:' "${interface}"
-    sed -ie '/^\(HWADDR\|UUID\)=/d' "${interface}"
+    sed -i '/^\(HWADDR\|UUID\)=/d' "${interface}"
     # NOTE: We could go down the rabbit hole of removing specific lines, but
     #       instead we'll just through the notice above and be done with it...
-    # sed -ie '/^NETWORK=/d' "${interface}"
-    # sed -ie '/^NETMASK=/d' "${interface}"
-    # sed -ie '/^IPADDR=/d' "${interface}"
-    # sed -ie '/^GATEWAY=/d' "${interface}"
+    # sed -i '/^NETWORK=/d' "${interface}"
+    # sed -i '/^NETMASK=/d' "${interface}"
+    # sed -i '/^IPADDR=/d' "${interface}"
+    # sed -i '/^GATEWAY=/d' "${interface}"
 done
 #   TODO: I've seen reference to ifcfg-eth[x] files also located in:
 #         /etc/sysconfig/networking/[devices|profiles/default]
