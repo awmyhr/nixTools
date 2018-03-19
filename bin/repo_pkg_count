@@ -47,16 +47,16 @@ import optparse     #: Argument parsing
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
 # import traceback    #: Print/retrieve a stack traceback
+from collections import defaultdict #: easily build an empty dictionary
 #===============================================================================
 #-- Third Party Imports
-import yum          #: Work w/yum API.
 #===============================================================================
 #-- Application Library Imports
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.5.0' #: current version
-__revised__ = '20180319-125359' #: date of most recent revision
+__version__ = '1.6.0' #: current version
+__revised__ = '20180319-155527' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -209,7 +209,7 @@ def num_yum_installed():
     logger.debug('Entering num_yum_installed()')
     
     try:
-        import rpm
+        import yum
         yumb = yum.YumBase()
         #-- Suppress spurious messages
         yumb.preconf.debuglevel = 0
@@ -222,16 +222,41 @@ def num_yum_installed():
         return -1
 
 #===============================================================================
-def num_pkg_per_repo(pkgs):
-    """Builds dictionary of repoid's with number of packages per repo"""
-    logger.debug('Entering num_pkg_per_repo()')
-    repos = dict()
-    for pkg in pkgs:
-        repoid = pkg.yumdb_info.get('from_repo')
-        if repoid in repos:
-            repos[repoid] += 1
-        else:
-            repos[repoid] = 1
+def build_repolist():
+    """ Builds dictionary of repos with counts & enabled status """
+    logger.debug('Entering build_repolist()')
+    from collections import defaultdict #: easily build an empty dictionary
+    tree = lambda: defaultdict(tree)
+    repos = tree()
+
+    try:
+        import yum
+
+        yumb = yum.YumBase()
+        #-- Suppress spurious messages
+        yumb.preconf.debuglevel = 0
+        yumb.preconf.errorlevel = 0
+        #-- Do not try to update cache if euid not root
+        yumb.conf.cache = os.geteuid() != 0
+
+        for pkg in yumb.rpmdb.returnPackages():
+            repoid = pkg.yumdb_info.get('from_repo')
+            try:
+                if repoid.startswith('/'):
+                    continue
+            except:
+                pass
+            if repoid in repos:
+                repos[repoid]['count'] += 1
+            else:
+                repos[repoid]['count'] = 1
+                try:
+                    repos[repoid]['isenabled'] = yumb.repos.getRepo(repoid).isEnabled()
+                except:
+                    repos[repoid]['isenabled'] = False
+    except:
+        pass
+
     return repos
 
 
@@ -242,32 +267,57 @@ def main():
     logger.debug('Enabled: %s; Disabled: %s; All: %s',
                  OPTIONS.enabled, OPTIONS.disabled, OPTIONS.all
                 )
+    if OPTIONS.ansiblecalled:
+        from ansible.module_utils.basic import AnsibleModule
+        module = AnsibleModule(
+            argument_spec=dict(
+                enabled=dict(default=True, type='bool')
+            )
+        )
+    tree = lambda: defaultdict(tree)
+    facts = tree()
 
-    logger.info('%+6s\tTotal Packages in RPM database', num_rpm_installed())
-    logger.info('%+6s\tTotal Packages in YUM database', num_yum_installed())
+    facts[OPTIONS.key]['rpm_total'] = num_rpm_installed()
+    facts[OPTIONS.key]['yum_total'] = num_yum_installed()
+    facts[OPTIONS.key]['repolist'] = build_repolist()
 
-    yumb = yum.YumBase()
-    #-- Suppress spurious messages
-    yumb.preconf.debuglevel = 0
-    yumb.preconf.errorlevel = 0
-    #-- Do not try to update cache if euid not root
-    yumb.conf.cache = os.geteuid() != 0
-
-    pkgs = yumb.rpmdb.returnPackages()
-
-    repos = num_pkg_per_repo(pkgs)
-
-    for repoid, count in sorted(repos.iteritems()):
-        try:
-            repo_enabled = yumb.repos.getRepo(repoid).isEnabled()
-        except yum.Errors.RepoError:
-            repo_enabled = False
-        if repoid is None:
-            logger.info('%+6s\tPackages have no repo info', count)
-        elif repo_enabled and (OPTIONS.all or OPTIONS.enabled):
-            logger.info('%+6s\t%s [enabled]', count, repoid)
-        elif not repo_enabled and (OPTIONS.all or OPTIONS.disabled):
-            logger.info('%+6s\t%s [disabled]', count, repoid)
+    if OPTIONS.ansiblecalled:
+        module.exit_json(changed=False, ansible_facts=facts)
+    elif OPTIONS.shell:
+        print "RPM_TOTAL=%s" % facts[OPTIONS.key]['rpm_total']
+        print "YUM_TOTAL=%s" % facts[OPTIONS.key]['yum_total']
+        count = 0
+        for repoid, repoinfo in sorted(facts[OPTIONS.key]['repolist'].iteritems()):
+            if repoid is None:
+                print "REPO_NONE_COUNT=%s" % repoinfo['count']
+            elif repoinfo['isenabled'] and (OPTIONS.all or OPTIONS.enabled):
+                print "REPO_%s_NAME=%s" % (count, repoid)
+                print "REPO_%s_COUNT=%s" % (count, repoinfo['count'])
+                print "REPO_%s_ENABLED=%s" % (count, repoinfo['isenabled'])
+                count += 1
+            elif not repoinfo['isenabled'] and (OPTIONS.all or OPTIONS.disabled):
+                print "REPO_%s_NAME=%s" % (count, repoid)
+                print "REPO_%s_COUNT=%s" % (count, repoinfo['count'])
+                print "REPO_%s_ENABLED=%s" % (count, repoinfo['isenabled'])
+                count += 1
+    elif OPTIONS.json:
+        import json
+        print json.dumps(facts, sort_keys=True, indent=4)
+    elif OPTIONS.yaml:
+        import yaml
+        from yaml.representer import Representer
+        yaml.add_representer(defaultdict, Representer.represent_dict)
+        print yaml.dump(facts, default_flow_style=False)
+    else:
+        logger.info('%+6s\tTotal Packages in RPM database', facts[OPTIONS.key]['rpm_total'])
+        logger.info('%+6s\tTotal Packages in YUM database', facts[OPTIONS.key]['yum_total'])
+        for repoid, repoinfo in sorted(facts[OPTIONS.key]['repolist'].iteritems()):
+            if repoid is None:
+                logger.info('%+6s\tPackages have no repo info', repoinfo['count'])
+            elif repoinfo['isenabled'] and (OPTIONS.all or OPTIONS.enabled):
+                logger.info('%+6s\t%s [enabled]', repoinfo['count'], repoid)
+            elif not repoinfo['isenabled'] and (OPTIONS.all or OPTIONS.disabled):
+                logger.info('%+6s\t%s [disabled]', repoinfo['count'], repoid)
 
     return os.EX_OK
 
@@ -295,6 +345,18 @@ if __name__ == '__main__':
     PARSER.add_option('-d', '--disabled', dest='disabled', action='store_true',
                       help='Disabled repos only.', default=False
                      )
+    PARSER.add_option('-k', '--key', dest='key', type='string', default='custom',
+                      help='key for fact tree'
+                     )
+    PARSER.add_option('--shell', dest='shell', action='store_true',
+                      help='output shell variables', default=False
+                     )
+    PARSER.add_option('--json', dest='json', action='store_true',
+                      help='output json snippet', default=False
+                     )
+    PARSER.add_option('--yaml', dest='yaml', action='store_true',
+                      help='output yaml snippet', default=False
+                     )
     #-- 'Hidden' options
     PARSER.add_option('-a', '--all', dest='all', action='store_true',
                       help=optparse.SUPPRESS_HELP, default=True
@@ -319,6 +381,15 @@ if __name__ == '__main__':
                         ) % ('; '.join(__author__))
         PARSER.print_help()
         sys.exit(os.EX_OK)
+
+    if OPTIONS.shell and OPTIONS.json:
+        PARSER.error('--shell, --json and --yaml are mutually exclusive')
+    if OPTIONS.shell and OPTIONS.yaml:
+        PARSER.error('--shell, --json and --yaml are mutually exclusive')
+    if OPTIONS.yaml and OPTIONS.json:
+        PARSER.error('--shell, --json and --yaml are mutually exclusive')
+
+    OPTIONS.ansiblecalled = bool(__basename__.startswith('ansible_module'))
 
     if OPTIONS.enabled and OPTIONS.disabled:
         PARSER.error('Options -e and -d are mutually exclusive.')
