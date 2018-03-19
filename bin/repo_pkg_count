@@ -55,8 +55,8 @@ import yum          #: Work w/yum API.
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.4.0' #: current version
-__revised__ = '2017-01-04' #: date of most recent revision
+__version__ = '1.5.0' #: current version
+__revised__ = '20180319-124356' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -187,14 +187,16 @@ def _debug_info():
 def num_rpm_installed():
     """Quick'n'Dirty 'rpm -qa | wc -l'"""
     logger.debug('Entering num_rpm_installed()')
-    import rpm
-    tran_set = rpm.TransactionSet()
-    matches = tran_set.dbMatch()
     numrpms = 0
-    for match in matches: #: pylint: disable=unused-variable
-        numrpms += 1
-    return numrpms
+    
+    try:
+        import rpm
+        for _ in rpm.TransactionSet().dbMatch():
+            numrpms += 1
+    except:
+        numrpms = -1
 
+    return numrpms
 
 #===============================================================================
 def num_pkg_per_repo(pkgs):
