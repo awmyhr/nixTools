@@ -56,7 +56,7 @@ import yum          #: Work w/yum API.
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '1.5.0' #: current version
-__revised__ = '20180319-124356' #: date of most recent revision
+__revised__ = '20180319-125359' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -185,18 +185,41 @@ def _debug_info():
 
 #===============================================================================
 def num_rpm_installed():
-    """Quick'n'Dirty 'rpm -qa | wc -l'"""
+    """ Quick'n'Dirty 'rpm -qa | wc -l' """
     logger.debug('Entering num_rpm_installed()')
-    numrpms = 0
+    count = 0
     
     try:
         import rpm
         for _ in rpm.TransactionSet().dbMatch():
-            numrpms += 1
+            count += 1
     except:
-        numrpms = -1
+        count = -1
 
-    return numrpms
+    return count
+
+#===============================================================================
+def num_yum_installed():
+    """ Quick'n'Dirty 'yum list installed \
+                        | grep -v "^Loaded plugins" \
+                        | grep -v "^Installed Packages" \
+                        | grep -v "^ " \
+                        | wc -l'
+    """
+    logger.debug('Entering num_yum_installed()')
+    
+    try:
+        import rpm
+        yumb = yum.YumBase()
+        #-- Suppress spurious messages
+        yumb.preconf.debuglevel = 0
+        yumb.preconf.errorlevel = 0
+        #-- Do not try to update cache if euid not root
+        yumb.conf.cache = os.geteuid() != 0
+
+        return len(yumb.rpmdb.returnPackages())
+    except:
+        return -1
 
 #===============================================================================
 def num_pkg_per_repo(pkgs):
@@ -220,6 +243,9 @@ def main():
                  OPTIONS.enabled, OPTIONS.disabled, OPTIONS.all
                 )
 
+    logger.info('%+6s\tTotal Packages in RPM database', num_rpm_installed())
+    logger.info('%+6s\tTotal Packages in YUM database', num_yum_installed())
+
     yumb = yum.YumBase()
     #-- Suppress spurious messages
     yumb.preconf.debuglevel = 0
@@ -228,9 +254,6 @@ def main():
     yumb.conf.cache = os.geteuid() != 0
 
     pkgs = yumb.rpmdb.returnPackages()
-
-    logger.info('%+6s\tTotal Packages in RPM database', num_rpm_installed())
-    logger.info('%+6s\tTotal Packages in YUM database', len(pkgs))
 
     repos = num_pkg_per_repo(pkgs)
 
