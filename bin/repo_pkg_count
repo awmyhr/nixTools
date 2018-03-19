@@ -56,7 +56,7 @@ from collections import defaultdict #: easily build an empty dictionary
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '1.6.0' #: current version
-__revised__ = '20180319-155527' #: date of most recent revision
+__revised__ = '20180319-155808' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -389,12 +389,12 @@ if __name__ == '__main__':
     if OPTIONS.yaml and OPTIONS.json:
         PARSER.error('--shell, --json and --yaml are mutually exclusive')
 
-    OPTIONS.ansiblecalled = bool(__basename__.startswith('ansible_module'))
-
     if OPTIONS.enabled and OPTIONS.disabled:
         PARSER.error('Options -e and -d are mutually exclusive.')
     elif OPTIONS.enabled or OPTIONS.disabled:
         OPTIONS.all = False
+
+    OPTIONS.ansiblecalled = bool(__basename__.startswith('ansible_module'))
 
     #-- Setup output(s)
     if OPTIONS.debug:
