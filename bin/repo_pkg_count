@@ -55,8 +55,8 @@ from collections import defaultdict #: easily build an empty dictionary
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.7.0' #: current version
-__revised__ = '20180320-100106' #: date of most recent revision
+__version__ = '1.7.1' #: current version
+__revised__ = '20180320-101428' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -240,7 +240,10 @@ def build_repolist():
         yumb.conf.cache = os.geteuid() != 0
 
         repos['_localinstall']['count'] = 0
+        repos['_localinstall']['name'] = 'yum localinstall'
+        repos['_localinstall']['baseurl'] = '<none>'
         repos['_localinstall']['isenabled'] = False
+        repos['_localinstall']['exists'] = False
 
         for pkg in yumb.rpmdb.returnPackages():
             repoid = pkg.yumdb_info.get('from_repo')
@@ -256,16 +259,14 @@ def build_repolist():
                 repos[repoid]['count'] = 1
                 try:
                     repos[repoid]['baseurl'] =  yumb.repos.getRepo(repoid).baseurl
+                    repos[repoid]['name'] =  yumb.repos.getRepo(repoid).name
+                    repos[repoid]['isenabled'] = yumb.repos.getRepo(repoid).isEnabled()
+                    repos[repoid]['exists'] = True
                 except:
                     repos[repoid]['baseurl'] =  '<unknown>'
-                try:
-                    repos[repoid]['name'] =  yumb.repos.getRepo(repoid).name
-                except:
                     repos[repoid]['name'] =  '<unknown>'
-                try:
-                    repos[repoid]['isenabled'] = yumb.repos.getRepo(repoid).isEnabled()
-                except:
                     repos[repoid]['isenabled'] = False
+                    repos[repoid]['exists'] = False
     except:
         pass
 
