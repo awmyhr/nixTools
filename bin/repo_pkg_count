@@ -55,8 +55,8 @@ from collections import defaultdict #: easily build an empty dictionary
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.6.0' #: current version
-__revised__ = '20180319-155808' #: date of most recent revision
+__version__ = '1.6.1' #: current version
+__revised__ = '20180320-092441' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -239,10 +239,14 @@ def build_repolist():
         #-- Do not try to update cache if euid not root
         yumb.conf.cache = os.geteuid() != 0
 
+        repos['_localinstall']['count'] = 0
+        repos['_localinstall']['isenabled'] = False
+
         for pkg in yumb.rpmdb.returnPackages():
             repoid = pkg.yumdb_info.get('from_repo')
             try:
                 if repoid.startswith('/'):
+                    repos['_localinstall']['count'] += 1
                     continue
             except:
                 pass
@@ -288,6 +292,8 @@ def main():
         print "YUM_TOTAL=%s" % facts[OPTIONS.key]['yum_total']
         count = 0
         for repoid, repoinfo in sorted(facts[OPTIONS.key]['repolist'].iteritems()):
+            if repoinfo['count'] == 0:
+                continue
             if repoid is None:
                 print "REPO_NONE_COUNT=%s" % repoinfo['count']
             elif repoinfo['isenabled'] and (OPTIONS.all or OPTIONS.enabled):
@@ -312,6 +318,8 @@ def main():
         logger.info('%+6s\tTotal Packages in RPM database', facts[OPTIONS.key]['rpm_total'])
         logger.info('%+6s\tTotal Packages in YUM database', facts[OPTIONS.key]['yum_total'])
         for repoid, repoinfo in sorted(facts[OPTIONS.key]['repolist'].iteritems()):
+            if repoinfo['count'] == 0:
+                continue
             if repoid is None:
                 logger.info('%+6s\tPackages have no repo info', repoinfo['count'])
             elif repoinfo['isenabled'] and (OPTIONS.all or OPTIONS.enabled):
