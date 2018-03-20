@@ -55,8 +55,8 @@ from collections import defaultdict #: easily build an empty dictionary
 #===============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.6.1' #: current version
-__revised__ = '20180320-092441' #: date of most recent revision
+__version__ = '1.7.0' #: current version
+__revised__ = '20180320-100106' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 
 #-- The following few variables should be relatively static over life of script
@@ -255,6 +255,14 @@ def build_repolist():
             else:
                 repos[repoid]['count'] = 1
                 try:
+                    repos[repoid]['baseurl'] =  yumb.repos.getRepo(repoid).baseurl
+                except:
+                    repos[repoid]['baseurl'] =  '<unknown>'
+                try:
+                    repos[repoid]['name'] =  yumb.repos.getRepo(repoid).name
+                except:
+                    repos[repoid]['name'] =  '<unknown>'
+                try:
                     repos[repoid]['isenabled'] = yumb.repos.getRepo(repoid).isEnabled()
                 except:
                     repos[repoid]['isenabled'] = False
@@ -275,7 +283,8 @@ def main():
         from ansible.module_utils.basic import AnsibleModule
         module = AnsibleModule(
             argument_spec=dict(
-                enabled=dict(default=True, type='bool')
+                enabled=dict(default=True, type='bool'),
+                key=dict(required=False)
             )
         )
     tree = lambda: defaultdict(tree)
