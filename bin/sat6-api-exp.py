@@ -1,4 +1,4 @@
-#!/usr/bin/python -tt
+#!/usr/bin/python2 -tt
 # -*- coding: utf-8 -*-
 # ^^-- use utf-8 strings by default
 #-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.
@@ -54,7 +54,7 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '0.1.0-alpha' #: current version
+__version__ = '0.1.1-alpha' #: current version
 __revised__ = '20180405-163321' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
@@ -84,7 +84,7 @@ __default_dsf__ = os.getenv('DEFAULT_TIMESTAMP') if 'DEFAULT_TIMESTAMP' in os.en
 __logger_dsf__ = os.getenv('LOGGER_DSF') if 'LOGGER_DSF' in os.environ else __default_dsf__
 __backup_dsf__ = os.getenv('BACKUP_DSF') if 'BACKUP_DSF' in os.environ else __default_dsf__
 __logger_file__ = os.getenv('LOGGER_FILE') if 'LOGGER_FILE' in os.environ else None
-__logger_lvl__= os.getenv('LOGGER_LVL') if 'LOGGER_LVL' in os.environ else 'info'
+__logger_lvl__ = os.getenv('LOGGER_LVL') if 'LOGGER_LVL' in os.environ else 'info'
 
 EXIT_STATUS = None
 #==============================================================================
@@ -125,8 +125,7 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
             retval = ["%s" % self.format_heading('Description')]
             retval.append("%s\n" % self._format_text(description))
             return ''.join(retval)
-        else:
-            return ""
+        return ''
 
     def format_option(self, option):
         opts = self.option_strings[option]
@@ -181,14 +180,12 @@ def _debug_info():
     logger.debug('Project:   %s', __project_name__)
     logger.debug('Project Home: %s', __project_home__)
     logger.debug('Template Version: %s', __template_version__)
-    logger.debug('System:    %s',
-                 platform.system_alias(platform.system(),
-                                       platform.release(),
-                                       platform.version()
-                                      )
+    logger.debug('System:    %s', platform.system_alias(platform.system(),
+                                                        platform.release(),
+                                                        platform.version()
+                                                       )
                 )
-    if platform.system() in 'Linux':
-        logger.debug('Distro:    %s', platform.linux_distribution())
+    logger.debug('Platform:  %s', platform.platform())
     logger.debug('Hostname:  %s', platform.node())
     logger.debug('[res]uid:  %s', os.getresuid())
     logger.debug('PID/PPID:  %s/%s', os.getpid(), os.getppid())
@@ -196,6 +193,7 @@ def _debug_info():
 
 #==============================================================================
 def timestamp(time_format=None):
+    """ Return date in specified format """
     import time
     if time_format is None:
         time_format = __default_dsf__
@@ -204,21 +202,8 @@ def timestamp(time_format=None):
 
 
 #==============================================================================
-def get_temp(directory=None):
-    import tempfile
-    if directory is not None and directory.lower() in 'directory':
-        return tempfile.mkdtemp(prefix='%s-d.' % __cononical_name__)
-    else:
-        return tempfile.mkstemp(prefix='%s.' % __cononical_name__)
-
-
-#==============================================================================
-def set_value(file, key, value):
-    pass
-
-
-#==============================================================================
 def CLILogger(options):
+    """ Set up the Logger """
 
     if options.debug:
         level = logging.DEBUG
@@ -254,7 +239,7 @@ def CLILogger(options):
     #-- File output
     if __logger_file__:
         if os.path.isfile(__logger_file__):
-            os.rename(__logger_file__, '%s.%s' % (__logger_file__,timestamp(__backup_dsf__)))
+            os.rename(__logger_file__, '%s.%s' % (__logger_file__, timestamp(__backup_dsf__)))
         #: NOTE: In Python >= 2.6 normally I give FileHandler 'delay="true"'
         logfile = logging.FileHandler(__logger_file__)
         logfile.setLevel(logging.DEBUG)
@@ -268,51 +253,14 @@ def CLILogger(options):
 
     if options.debug:
         _debug_info()
-        print '\n----- start -----\n'
-    
+        print('\n----- start -----\n')
+
     return logger
-
-#==============================================================================
-def which(program):
-    """Test if a program exists in $PATH.
-
-    Args:
-        program (str): Name of program to find.
-
-    Returns:
-        String to use for program execution.
-
-    Note:
-        Originally found this here:
-        http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
-    """
-    logger = logging.getLogger(__name__)
-    logger.debug('Looking for command: %s', program)
-    def _is_exe(fpath):
-        """ Private test for executeable """
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-    fpath, fname = os.path.split(program) #: pylint: disable=unused-variable
-                                          #: We are totally throwing fname away
-    if fpath:
-        if _is_exe(program):
-            logger.debug('Found %s here.', program)
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if _is_exe(exe_file):
-                logger.debug('Found %s here: %s', program, exe_file)
-                return exe_file
-
-    logger.debug('Could not find %s.', program)
-    return None
 
 
 #==============================================================================
 class CLIOptions(object):
-    """ """
+    """ Parse the options and put them into an object """
     _hostname = None
     _lifecycle = None
     _org_name = None
@@ -420,14 +368,12 @@ class CLIOptions(object):
 
     @property
     def username(self):
-        print 'in property'
         if self._options is not None:
             return self._options.username
         return self._username
 
     @username.setter
     def username(self, value):
-        print 'in setter %s' % value
         self._username = value
 
     @property
@@ -613,7 +559,7 @@ class Sat6_Object:
             logger.debug('Caught Requests Exception.')
             error.message = '[Requests]: REST call failed: %s' % (error.message)
             raise error
-        
+
         logger.debug('Results: %s' % r)
 
         if r.get('error'):
@@ -667,7 +613,7 @@ class Sat6_Object:
             logger.debug('Caught Requests Exception.')
             error.message = '[Requests]: REST call failed: %s' % (error.message)
             raise error
-        
+
         logger.debug('Results: %s' % r)
 
         if 'error' in r:
@@ -716,10 +662,10 @@ class Sat6_Object:
         """
         logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name)
         logger.debug('Looking for lce: %s', lce_tag)
-       
+
         if 'lce' not in self.lutables:
             logger.debug('First time calling function, loading table.')
-            self.lutables['lce'] = self._get_rest_call('%s/%s' % (self.pub,self.lookup_tables['lce']))
+            self.lutables['lce'] = self._get_rest_call('%s/%s' % (self.pub, self.lookup_tables['lce']))
         return self.lutables['lce'].get(lce_tag.lower(), None)
 
     def get_host(self, hostname):
@@ -748,7 +694,7 @@ class Sat6_Object:
             return self._get_rest_call('%s/hosts/%s' % (self.foreman, hostname))
 
         results = self._get_rest_call('%s/hosts' % (self.foreman),
-                                     {'search': '"%s"' % hostname.split('.')[0]})
+                                      {'search': '"%s"' % hostname.split('.')[0]})
 
         if results['subtotal'] == 0:
             logger.debug('Error: No host matches for %s.', hostname.split('.')[0])
@@ -848,7 +794,7 @@ class Sat6_Object:
             return None
         else:
             return results['results'][0]
-    
+
     def get_org_list(self):
         """ This returns a list of Satellite 6 organizations.
 
@@ -899,7 +845,7 @@ class Sat6_Object:
             return None
         else:
             return results['results'][0]
-    
+
     def get_org_lce_list(self, org_id=None):
         """ This returns a list of an Orgs Lifecycel Environments
 
@@ -977,8 +923,8 @@ class Sat6_Object:
             self.results['success'] = True
             self.results['msg'] = 'LCE was already %s, no change needed.' % (lce['name'])
             return True
-        
-        results = self._put_rest_call('%s/hosts/%s' % (self.foreman, host['id']), 
+
+        results = self._put_rest_call('%s/hosts/%s' % (self.foreman, host['id']),
                 {'host': {'content_facet_attributes': {'lifecycle_environment_id': lce['id']}}}
             )
         if results['content_facet_attributes']['lifecycle_environment']['id'] == lce['id']:
@@ -996,72 +942,73 @@ class Sat6_Object:
 def main(options, logger):
     """ This is where the action takes place """
     logger.debug('Starting main()')
-    print 'username %s / password %s .' %(options.username, options.password)
-    print '_username %s / _password %s .' %(options._username, options._password)
+    print('username %s / password %s .' % (options.username, options.password))
+    print('_username %s / _password %s .' % (options._username, options._password))
     sat6_session = Sat6_Object(server=options.server, username=options.username,
                                password=options.password, authkey=options.authkey,
                                org_id=options.org_id, org_name=options.org_name)
 
     if options.lifecycle:
-        print sat6_session.lookup_lce_name(options.lifecycle)
-    print '-------------------'
+        print(sat6_session.lookup_lce_name(options.lifecycle))
+    print('-------------------')
 
     my_host = sat6_session.get_host(options.hostname)
     if my_host:
-        print 'Host ID:           %s' % my_host['id']
-        print 'Host Org Name:     %s' % my_host['organization_name']
-        print 'Host Org ID:       %s' % my_host['organization_id']
+        print('Host ID:           %s' % my_host['id'])
+        print('Host Org Name:     %s' % my_host['organization_name'])
+        print('Host Org ID:       %s' % my_host['organization_id'])
         if 'content_facet_attributes' in my_host:
-            print 'Host Lifecycle:    %s' % my_host['content_facet_attributes']['lifecycle_environment']['name']
-            print 'Host Lifecycle ID: %s' % my_host['content_facet_attributes']['lifecycle_environment']['id']
-            print 'Host Content View: %s' % my_host['content_facet_attributes']['content_view']['name']
+            print('Host Lifecycle:    %s' % my_host['content_facet_attributes']['lifecycle_environment']['name'])
+            print('Host Lifecycle ID: %s' % my_host['content_facet_attributes']['lifecycle_environment']['id'])
+            print('Host Content View: %s' % my_host['content_facet_attributes']['content_view']['name'])
     else:
-        print 'Warning: No host matches for %s.' % options.hostname
-    print '-------------------'
+        print('Warning: No host matches for %s.' % options.hostname)
+    print('-------------------')
 
     if options.lifecycle:
         if sat6_session.set_host_lce(my_host, options.lifecycle):
-            print 'LCE set for %s (%s)' % (my_host['name'], sat6_session.results['msg'])
+            print('LCE set for %s (%s)' % (my_host['name'], sat6_session.results['msg']))
             my_host = sat6_session.results['return']
         else:
-            print 'LCE *not* set for %s (%s)' % (my_host['name'], sat6_session.results['msg'])
+            print('LCE *not* set for %s (%s)' % (my_host['name'], sat6_session.results['msg']))
     else:
-        print 'No LCE provided.'
-    print 'host LCE now: %s' % my_host['content_facet_attributes']['lifecycle_environment']['name']
-    print '-------------------'
+        print('No LCE provided.')
+    print('host LCE now: %s' % my_host['content_facet_attributes']['lifecycle_environment']['name'])
+    print('-------------------')
 
-    # for host in sat6_session.get_host_list():
-    #     if 'content_facet_attributes' in host:
-    #         print "Host ID: %s  Name: %s  LCE: %s" % (host['id'], host['name'], host['content_facet_attributes']['lifecycle_environment']['name'])
-    #     else:
-    #         print "Host ID: %s  Name: %s" % (host['id'], host['name'])
-    # print 'host LCE now: %s' % my_host['content_facet_attributes']['lifecycle_environment']['name']
+    for host in sat6_session.get_host_list():
+        if 'content_facet_attributes' in host:
+            print("Host ID: %s  Name: %s  LCE: %s" % (host['id'], host['name'], host['content_facet_attributes']['lifecycle_environment']['name']))
+        else:
+            print("Host ID: %s  Name: %s" % (host['id'], host['name']))
+    print('host LCE now: %s' % my_host['content_facet_attributes']['lifecycle_environment']['name'])
+    print('-------------------')
 
-    # my_org = sat6_session.get_org()
-    # print 'Org ID:            %s' % my_org['id']
-    # print 'Org Label:         %s' % my_org['label']
-    # print '-------------------'
+    my_org = sat6_session.get_org()
+    print('Org ID:            %s' % my_org['id'])
+    print('Org Label:         %s' % my_org['label'])
+    print('-------------------')
 
-    # for cview in sat6_session.get_cv_list():
-    #     print "CV ID: %s  Name: %s  Label: %s" % (cview['id'], cview['name'], cview['label'])
-    # print '-------------------'
+    for cview in sat6_session.get_cv_list():
+        print("CV ID: %s  Name: %s  Label: %s" % (cview['id'], cview['name'], cview['label']))
+    print('-------------------')
 
-    # for org in sat6_session.get_org_list():
-    #     print "Org ID: %s  Name: %s  Label: %s" % (org['id'], org['name'], org['label'])
-    # print '-------------------'
+    for org in sat6_session.get_org_list():
+        print("Org ID: %s  Name: %s  Label: %s" % (org['id'], org['name'], org['label']))
+    print('-------------------')
 
-    # lce_check = 'Incoming'
-    # my_lce = sat6_session.get_org_lce(lce_check)
-    # if my_lce:
-    #     print 'LCE ID:            %s' % my_lce['id']
-    #     print 'LCE Name:          %s' % my_lce['name']
-    # else:
-    #     print 'Warning: LCE %s unknown.' % lce_check
-    # print '-------------------'
+    lce_check = 'Incoming'
+    my_lce = sat6_session.get_org_lce(lce_check)
+    if my_lce:
+        print('LCE ID:            %s' % my_lce['id'])
+        print('LCE Name:          %s' % my_lce['name'])
+    else:
+        print('Warning: LCE %s unknown.' % lce_check)
+    print('-------------------')
 
-    # for lce in sat6_session.get_org_lce_list():
-    #     print "LCE ID: %s  Name: %s  Label: %s" % (lce['id'], lce['name'], lce['label'])
-    # print '-------------------'
+    for lce in sat6_session.get_org_lce_list():
+        print("LCE ID: %s  Name: %s  Label: %s" % (lce['id'], lce['name'], lce['label']))
+    print('-------------------')
 
 #==============================================================================
 if __name__ == '__main__':
@@ -1145,7 +1092,7 @@ if __name__ == '__main__':
             logger.debug('EXIT_STATUS is still None.')
             EXIT_STATUS = 20
         if options.debug:
-            print '\n------ end ------\n'
+            print('\n------ end ------\n')
         logging.shutdown()
         sys.exit(EXIT_STATUS)
     #-- NOTE: more exit codes here:
