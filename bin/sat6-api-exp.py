@@ -27,11 +27,11 @@
 """
 #===============================================================================
 #-- Standard Imports
-#-- NOTE: We use optparse for compatibility with python < 2.7 as (the superior)
+#-- NOTE: We use optparse for compatibility with python < 2.7 as
 #--       argparse wasn't standard until 2.7 (2.7 deprecates optparse)
 #--       As of 20161212 the template is coded for optparse only
 import logging      #: Python's standard logging facilities
-import optparse     #: Argument parsing
+import optparse     #: pylint: disable=deprecated-module
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
 # import traceback    #: Print/retrieve a stack traceback
@@ -202,10 +202,11 @@ def timestamp(time_format=None):
 
 
 #==============================================================================
-def CLILogger(options):
+def CLILogger(opts):
     """ Set up the Logger """
-
-    if options.debug:
+    if 'logger' in globals():
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if opts.debug:
         level = logging.DEBUG
         formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s',
                                       __logger_dsf__
@@ -226,15 +227,14 @@ def CLILogger(options):
     if isinstance(level, str) and level.startswith('Level'):
         level = logging.INFO
 
-    logger = logging.getLogger(__name__) #: pylint: disable=invalid-name
-                                         #: lower-case is better here
-    logger.setLevel(level)
+    new_logger = logging.getLogger(__name__)
+    new_logger.setLevel(level)
 
     #-- Console output
     console = logging.StreamHandler()
     console.setLevel(level)
     console.setFormatter(formatter)
-    logger.addHandler(console)
+    new_logger.addHandler(console)
 
     #-- File output
     if __logger_file__:
@@ -248,14 +248,15 @@ def CLILogger(options):
             __logger_dsf__
             )
         logfile.setFormatter(formatter)
-        logger.addHandler(logfile)
+        new_logger.addHandler(logfile)
+        global __logger_file_set__ #: pylint: disable=global-statement
         __logger_file_set__ = True
 
-    if options.debug:
+    if opts.debug:
         _debug_info()
         print('\n----- start -----\n')
 
-    return logger
+    return new_logger
 
 
 #==============================================================================
@@ -279,12 +280,10 @@ class CLIOptions(object):
     def __init__(self, args=None):
         if self._options is not None:
             raise ValueError('CLIOptions already initialized.')
-        elif args:
-            (self._options, self._arguments) = self._parse_args(args)
         else:
-            self._options = None
+            (self._options, self._arguments) = self._parse_args(args)
         if self.helprest:
-            self._print_ReSTHelp()
+            self._print_rest_help()
 
     @property
     def args(self):
@@ -418,14 +417,14 @@ class CLIOptions(object):
     def configfile(self, value):
         self._configfile = value
 
-    def _print_ReSTHelp(self):
+    def _print_rest_help(self):
         self.parser.formatter = _ReSTHelpFormatter()
         self.parser.usage = '[*options*]'            #: pylint: disable=attribute-defined-outside-init
                                                 #: Not yet sure of a better way to do this...
         self.parser.description = __description__    #: pylint: disable=attribute-defined-outside-init
         self.parser.epilog = ('\nAuthor\n------\n\n'
-                         '%s\n'
-                        ) % ('; '.join(__author__))
+                              '%s\n'
+                             ) % ('; '.join(__author__))
         self.parser.print_help()
         sys.exit(os.EX_OK)
 
@@ -485,7 +484,22 @@ class CLIOptions(object):
         parser.add_option('--debug', dest='debug', action='store_true',
                           help=optparse.SUPPRESS_HELP, default=False
                          )
-        return parser.parse_args()
+
+        parsed_opts, parsed_args = parser.parse_args(args)
+        if parsed_opts.authkey is None:
+            if parsed_opts.username is None:
+                try:
+                    parsed_opts.username = raw_input('Username for Satellite server: ')
+                except:
+                    raise
+            if parsed_opts.password is None:
+                try:
+                    import getpass
+                    parsed_opts.password = getpass.getpass('Password for Satellite server: ')
+                except:
+                    raise
+
+        return parsed_opts, parsed_args
 
 
 #==============================================================================
@@ -555,7 +569,7 @@ class Sat6Object:
         try:
             results = self.connection.get(url, params=params)
             logger.debug('Final URL: %s', results.url)
-            r = results.json()
+            rjson = results.json()
         except requests.exceptions.ConnectionError as error:
             logger.debug('Caught Requests Connection Error.')
             error.message = '[ConnectionError]: %s' % (error.message)
@@ -573,12 +587,12 @@ class Sat6Object:
             error.message = '[Requests]: REST call failed: %s' % (error.message)
             raise error
 
-        logger.debug('Results: %s', r)
+        logger.debug('Results: %s', rjson)
 
-        if r.get('error'):
+        if rjson.get('error'):
             logger.debug('Requests API call returned error.')
-            raise IOError(127, '[Requests]: API call failed: %s' % (r['error']['message']))
-        return r
+            raise IOError(127, '[Requests]: API call failed: %s' % (rjson['error']['message']))
+        return rjson
 
     def _put_rest_call(self, url, data=None):
         """ Call a REST API URL using PUT .
@@ -592,7 +606,7 @@ class Sat6Object:
             Results of API call in a dict
 
         """
-        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         try:
             import requests
         except ImportError:
@@ -609,7 +623,7 @@ class Sat6Object:
         try:
             results = self.connection.put(url, data=json.dumps(data))
             logger.debug('Final URL: %s', results.url)
-            r = results.json()
+            rjson = results.json()
         except requests.exceptions.ConnectionError as error:
             logger.debug('Caught Requests Connection Error.')
             error.message = '[ConnectionError]: %s' % (error.message)
@@ -627,12 +641,12 @@ class Sat6Object:
             error.message = '[Requests]: REST call failed: %s' % (error.message)
             raise error
 
-        logger.debug('Results: %s', r)
+        logger.debug('Results: %s', rjson)
 
-        if 'error' in r:
+        if 'error' in rjson:
             logger.debug('Requests API call returned error.')
-            raise IOError(127, '[Requests]: API call failed: %s' % (r['error']['message']))
-        return r
+            raise IOError(127, '[Requests]: API call failed: %s' % (rjson['error']['message']))
+        return rjson
 
     def _new_connection(self, authkey=None):
         """ Create a Request session object
@@ -703,7 +717,10 @@ class Sat6Object:
         """
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         logger.debug('Looking for host: %s', hostname)
-        if isinstance(hostname, int):
+        if hostname is None:
+            logger.debug('Error: hostname passed was type None.')
+            return None
+        elif isinstance(hostname, int):
             return self._get_rest_call('%s/hosts/%s' % (self.foreman, hostname))
 
         results = self._get_rest_call('%s/hosts' % (self.foreman),
@@ -847,6 +864,9 @@ class Sat6Object:
         if org_id is None:
             org_id = self.org_id
         logger.debug('Looking for Life Cycle Environment %s in org %s.', lce_name, org_id)
+        if lce_name is None:
+            logger.debug('Error: lce_name passed was type None.')
+            return None
 
         results = self._get_rest_call('%s/organizations/%s/environments' % (self.katello, org_id),
                                       {'search': '"%s"' % lce_name})
@@ -872,7 +892,7 @@ class Sat6Object:
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         if org_id is None:
             org_id = self.org_id
-        logger.debug('Retriveing list of Lifecycle Environments...')
+        logger.debug('Retriveing list of Lifecycle Environments for org_id %s.', org_id)
         item = 0
         page_item = 0
         page = 1
@@ -954,11 +974,9 @@ class Sat6Object:
         return False
 
 #==============================================================================
-def main(options, logger):
+def main():
     """ This is where the action takes place """
     logger.debug('Starting main()')
-    print('username %s / password %s .' % (options.username, options.password))
-    print('_username %s / _password %s .' % (options._username, options._password))
     sat6_session = Sat6Object(server=options.server, username=options.username,
                               password=options.password, authkey=options.authkey,
                               org_id=options.org_id, org_name=options.org_name)
@@ -1032,28 +1050,15 @@ if __name__ == '__main__':
     options = CLIOptions(sys.argv[1:])
     logger = CLILogger(options)
 
-    if options.authkey is None:
-        if options.username is None:
-            try:
-                options.username = raw_input('Username for Satellite server: ')
-            except:
-                raise
-        if options.password is None:
-            try:
-                import getpass
-                options.password = getpass.getpass('Password for Satellite server: ')
-            except:
-                raise
-
-   #-- This will disable insecure https warnings (amongst others)
-    logging.captureWarnings(True)
-
     if __require_root__ and os.getegid() != 0:
         logger.error('Must be run as root.')
         sys.exit(77)
 
+   #-- This will disable insecure https warnings (amongst others)
+    logging.captureWarnings(True)
+
     try:
-        main(options, logger)
+        main()
     except KeyboardInterrupt: # Catches Ctrl-C
         logger.debug('Caught Ctrl-C')
         EXIT_STATUS = 130
