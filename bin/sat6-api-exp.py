@@ -262,17 +262,6 @@ def CLILogger(opts):
 #==============================================================================
 class CLIOptions(object):
     """ Parse the options and put them into an object """
-    _hostname = None
-    _lifecycle = None
-    _org_name = None
-    _org_id = None
-    _server = None
-    _username = None
-    _password = None
-    _authkey = None
-    _configfile = None
-    _helprest = False
-    _debug = False
 
     _options = None
     _args = None
@@ -290,132 +279,84 @@ class CLIOptions(object):
         """ Class property """
         if self._arguments is not None:
             return self._arguments
-        return self._args
-
-    @args.setter
-    def args(self, value):
-        self._args = value
+        return None
 
     @property
     def helprest(self):
         """ Class property """
         if self._options is not None:
             return self._options.helprest
-        return self._helprest
-
-    @helprest.setter
-    def helprest(self, value):
-        self._helprest = value
+        return None
 
     @property
     def debug(self):
         """ Class property """
         if self._options is not None:
             return self._options.debug
-        return self._debug
-
-    @debug.setter
-    def debug(self, value):
-        self._debug = value
+        return None
 
     @property
     def hostname(self):
         """ Class property """
         if self._options is not None:
             return self._options.hostname
-        return self._hostname
-
-    @hostname.setter
-    def hostname(self, value):
-        self._hostname = value
+        return None
 
     @property
     def lifecycle(self):
         """ Class property """
         if self._options is not None:
             return self._options.lifecycle
-        return self._lifecycle
-
-    @lifecycle.setter
-    def lifecycle(self, value):
-        self._lifecycle = value
+        return None
 
     @property
     def org_name(self):
         """ Class property """
         if self._options is not None:
             return self._options.org_name
-        return self._org_name
-
-    @org_name.setter
-    def org_name(self, value):
-        self._org_name = value
+        return None
 
     @property
     def org_id(self):
         """ Class property """
         if self._options is not None:
             return self._options.org_id
-        return self._org_id
-
-    @org_id.setter
-    def org_id(self, value):
-        self._org_id = value
+        return None
 
     @property
     def server(self):
         """ Class property """
         if self._options is not None:
             return self._options.server
-        return self._server
-
-    @server.setter
-    def server(self, value):
-        self._server = value
+        return None
 
     @property
     def username(self):
         """ Class property """
         if self._options is not None:
             return self._options.username
-        return self._username
-
-    @username.setter
-    def username(self, value):
-        self._username = value
+        return None
 
     @property
     def password(self):
         """ Class property """
         if self._options is not None:
             return self._options.password
-        return self._password
-
-    @password.setter
-    def password(self, value):
-        self._password = value
+        return None
 
     @property
     def authkey(self):
         """ Class property """
         if self._options is not None:
             return self._options.authkey
-        return self._authkey
-
-    @authkey.setter
-    def authkey(self, value):
-        self._authkey = value
+        return None
 
     @property
     def configfile(self):
         """ Class property """
         if self._options is not None:
             return self._options.configfile
-        return self._configfile
-
-    @configfile.setter
-    def configfile(self, value):
-        self._configfile = value
+        return None
 
     def _print_rest_help(self):
         self.parser.formatter = _ReSTHelpFormatter()
@@ -489,7 +430,8 @@ class CLIOptions(object):
         if parsed_opts.authkey is None:
             if parsed_opts.username is None:
                 try:
-                    parsed_opts.username = raw_input('Username for Satellite server: ')
+                    from six.moves import input
+                    parsed_opts.username = input('Username for Satellite server: ')
                 except:
                     raise
             if parsed_opts.password is None:
