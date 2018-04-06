@@ -572,19 +572,19 @@ class Sat6Object:
             rjson = results.json()
         except requests.exceptions.ConnectionError as error:
             logger.debug('Caught Requests Connection Error.')
-            error.message = '[ConnectionError]: %s' % (error.message)
+            error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
             raise error
         except requests.exceptions.HTTPError as error:
             logger.debug('Caught Requests HTTP Error.')
-            error.message = '[HTTPError]: %s' % (error.message)
+            error.message = '[HTTPError]: %s' % (error.message) #: pylint: disable=no-member
             raise error
         except requests.exceptions.Timeout as error:
             logger.debug('Caught Requests Timeout.')
-            error.message = '[Timeout]: %s' % (error.message)
+            error.message = '[Timeout]: %s' % (error.message) #: pylint: disable=no-member
             raise error
         except Exception as error:
             logger.debug('Caught Requests Exception.')
-            error.message = '[Requests]: REST call failed: %s' % (error.message)
+            error.message = '[Requests]: REST call failed: %s' % (error.message) #: pylint: disable=no-member
             raise error
 
         logger.debug('Results: %s', rjson)
@@ -626,19 +626,19 @@ class Sat6Object:
             rjson = results.json()
         except requests.exceptions.ConnectionError as error:
             logger.debug('Caught Requests Connection Error.')
-            error.message = '[ConnectionError]: %s' % (error.message)
+            error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
             raise error
         except requests.exceptions.HTTPError as error:
             logger.debug('Caught Requests HTTP Error.')
-            error.message = '[HTTPError]: %s' % (error.message)
+            error.message = '[HTTPError]: %s' % (error.message) #: pylint: disable=no-member
             raise error
         except requests.exceptions.Timeout as error:
             logger.debug('Caught Requests Timeout.')
-            error.message = '[Timeout]: %s' % (error.message)
+            error.message = '[Timeout]: %s' % (error.message) #: pylint: disable=no-member
             raise error
         except Exception as error:
             logger.debug('Caught Requests Exception.')
-            error.message = '[Requests]: REST call failed: %s' % (error.message)
+            error.message = '[Requests]: REST call failed: %s' % (error.message) #: pylint: disable=no-member
             raise error
 
         logger.debug('Results: %s', rjson)
