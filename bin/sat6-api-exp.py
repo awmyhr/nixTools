@@ -288,6 +288,7 @@ class CLIOptions(object):
 
     @property
     def args(self):
+        """ Class property """
         if self._arguments is not None:
             return self._arguments
         return self._args
@@ -298,6 +299,7 @@ class CLIOptions(object):
 
     @property
     def helprest(self):
+        """ Class property """
         if self._options is not None:
             return self._options.helprest
         return self._helprest
@@ -308,6 +310,7 @@ class CLIOptions(object):
 
     @property
     def debug(self):
+        """ Class property """
         if self._options is not None:
             return self._options.debug
         return self._debug
@@ -318,6 +321,7 @@ class CLIOptions(object):
 
     @property
     def hostname(self):
+        """ Class property """
         if self._options is not None:
             return self._options.hostname
         return self._hostname
@@ -328,6 +332,7 @@ class CLIOptions(object):
 
     @property
     def lifecycle(self):
+        """ Class property """
         if self._options is not None:
             return self._options.lifecycle
         return self._lifecycle
@@ -338,6 +343,7 @@ class CLIOptions(object):
 
     @property
     def org_name(self):
+        """ Class property """
         if self._options is not None:
             return self._options.org_name
         return self._org_name
@@ -348,6 +354,7 @@ class CLIOptions(object):
 
     @property
     def org_id(self):
+        """ Class property """
         if self._options is not None:
             return self._options.org_id
         return self._org_id
@@ -358,6 +365,7 @@ class CLIOptions(object):
 
     @property
     def server(self):
+        """ Class property """
         if self._options is not None:
             return self._options.server
         return self._server
@@ -368,6 +376,7 @@ class CLIOptions(object):
 
     @property
     def username(self):
+        """ Class property """
         if self._options is not None:
             return self._options.username
         return self._username
@@ -378,6 +387,7 @@ class CLIOptions(object):
 
     @property
     def password(self):
+        """ Class property """
         if self._options is not None:
             return self._options.password
         return self._password
@@ -388,6 +398,7 @@ class CLIOptions(object):
 
     @property
     def authkey(self):
+        """ Class property """
         if self._options is not None:
             return self._options.authkey
         return self._authkey
@@ -398,6 +409,7 @@ class CLIOptions(object):
 
     @property
     def configfile(self):
+        """ Class property """
         if self._options is not None:
             return self._options.configfile
         return self._configfile
@@ -477,14 +489,15 @@ class CLIOptions(object):
 
 
 #==============================================================================
-class Sat6_Object:
+class Sat6Object:
+    """ Class for interacting with Satellite 6 API """
     #-- Max number of items returned per page.
     per_page = 100
     lookup_tables = {'lce': 'lut/lce_name.json'}
 
     def __init__(self, server=None, username=None, password=None,
                  authkey=None, org_id=None, org_name=None):
-        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name)
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         logger.debug('Initiallizing a Sat6_Object.')
         if authkey is None:
             if username is None or password is None:
@@ -493,9 +506,9 @@ class Sat6_Object:
                 import base64
             except ImportError:
                 raise ImportError('The python-base64 module is required.')
-            logger.debug('Creating authkey for user: %s' % username)
+            logger.debug('Creating authkey for user: %s', username)
             self.username = username
-            self.authkey = base64.encodestring('%s:%s' % (username, password)).strip()
+            self.authkey = base64.b64encode('%s:%s' % (username, password)).strip()
         else:
             self.authkey = authkey
         if server is None:
@@ -529,19 +542,19 @@ class Sat6_Object:
             Results of API call in a dict
 
         """
-        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name)
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         try:
             import requests
         except ImportError:
             raise ImportError('The python-requests module is required.')
 
-        logger.debug('Calling URL: %s' % url)
+        logger.debug('Calling URL: %s', url)
         if params is not None:
-            logger.debug('With params: %s' % params)
+            logger.debug('With params: %s', params)
 
         try:
             results = self.connection.get(url, params=params)
-            logger.debug('Final URL: %s' % results.url)
+            logger.debug('Final URL: %s', results.url)
             r = results.json()
         except requests.exceptions.ConnectionError as error:
             logger.debug('Caught Requests Connection Error.')
@@ -560,7 +573,7 @@ class Sat6_Object:
             error.message = '[Requests]: REST call failed: %s' % (error.message)
             raise error
 
-        logger.debug('Results: %s' % r)
+        logger.debug('Results: %s', r)
 
         if r.get('error'):
             logger.debug('Requests API call returned error.')
@@ -579,7 +592,7 @@ class Sat6_Object:
             Results of API call in a dict
 
         """
-        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name)
+        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         try:
             import requests
         except ImportError:
@@ -589,13 +602,13 @@ class Sat6_Object:
         except ImportError:
             raise ImportError('The python-json module is required.')
 
-        logger.debug('Calling URL: %s' % url)
+        logger.debug('Calling URL: %s', url)
         if data is not None:
-            logger.debug('With data: %s' % data)
+            logger.debug('With data: %s', data)
 
         try:
             results = self.connection.put(url, data=json.dumps(data))
-            logger.debug('Final URL: %s' % results.url)
+            logger.debug('Final URL: %s', results.url)
             r = results.json()
         except requests.exceptions.ConnectionError as error:
             logger.debug('Caught Requests Connection Error.')
@@ -614,7 +627,7 @@ class Sat6_Object:
             error.message = '[Requests]: REST call failed: %s' % (error.message)
             raise error
 
-        logger.debug('Results: %s' % r)
+        logger.debug('Results: %s', r)
 
         if 'error' in r:
             logger.debug('Requests API call returned error.')
@@ -631,7 +644,7 @@ class Sat6_Object:
             Requests session object.
 
         """
-        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name)
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         try:
             import requests
         except ImportError:
@@ -642,7 +655,7 @@ class Sat6_Object:
         connection.headers = {'accept': 'application/json',
                               'authorization': 'Basic %s' % authkey,
                               'content-type': 'application/json'}
-        logger.debug('Headers set: %s' % connection.headers)
+        logger.debug('Headers set: %s', connection.headers)
         connection.verify = False
         return connection
 
@@ -660,7 +673,7 @@ class Sat6_Object:
             Satellite 6 name of LCE.
 
         """
-        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name)
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         logger.debug('Looking for lce: %s', lce_tag)
 
         if 'lce' not in self.lutables:
@@ -688,7 +701,7 @@ class Sat6_Object:
             return['organization_id']
 
         """
-        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name)
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         logger.debug('Looking for host: %s', hostname)
         if isinstance(hostname, int):
             return self._get_rest_call('%s/hosts/%s' % (self.foreman, hostname))
@@ -702,8 +715,8 @@ class Sat6_Object:
         elif results['subtotal'] > 1:
             logger.debug('Error: Too many host matches for %s.', hostname.split('.')[0])
             return None
-        else:
-            return results['results'][0]
+
+        return results['results'][0]
 
     def get_host_list(self):
         """ This returns a list of Satellite 6 Hosts.
@@ -712,19 +725,19 @@ class Sat6_Object:
             List of Hosts (dict). Of particular value will be
 
         """
-        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name)
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         item = 0
         page_item = 0
         page = 1
 
         results = self._get_rest_call('%s/hosts' % (self.foreman),
-                                     {'page': page, 'per_page': self.per_page})
+                                      {'page': page, 'per_page': self.per_page})
         while item < results['subtotal']:
             if page_item == self.per_page:
                 page += 1
                 page_item = 0
                 results = self._get_rest_call('%s/hosts' % (self.foreman),
-                                             {'page': page, 'per_page': self.per_page})
+                                              {'page': page, 'per_page': self.per_page})
             yield results['results'][page_item]
             item += 1
             page_item += 1
@@ -736,19 +749,19 @@ class Sat6_Object:
             List of Orgs (dict). Of particular value will be
 
         """
-        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name)
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         item = 0
         page_item = 0
         page = 1
 
         results = self._get_rest_call('%s/content_views' % (self.katello),
-                                     {'page': page, 'per_page': self.per_page})
+                                      {'page': page, 'per_page': self.per_page})
         while item < results['subtotal']:
             if page_item == self.per_page:
                 page += 1
                 page_item = 0
                 results = self._get_rest_call('%s/content_views' % (self.katello),
-                                             {'page': page, 'per_page': self.per_page})
+                                              {'page': page, 'per_page': self.per_page})
             yield results['results'][page_item]
             item += 1
             page_item += 1
@@ -772,7 +785,7 @@ class Sat6_Object:
             return['description']
 
         """
-        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name)
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         if organization is None:
             if self.org_id is None:
                 organization = self.org_name
@@ -784,7 +797,7 @@ class Sat6_Object:
             return self._get_rest_call('%s/organizations/%s' % (self.katello, organization))
 
         results = self._get_rest_call('%s/organizations' % (self.katello),
-                                     {'search': '"%s"' % organization})
+                                      {'search': '"%s"' % organization})
 
         if results['subtotal'] == 0:
             logger.debug('Error: No org matches for %s.', organization)
@@ -792,8 +805,8 @@ class Sat6_Object:
         elif results['subtotal'] > 1:
             logger.debug('Error: Too many org matches for %s.', organization)
             return None
-        else:
-            return results['results'][0]
+
+        return results['results'][0]
 
     def get_org_list(self):
         """ This returns a list of Satellite 6 organizations.
@@ -802,19 +815,19 @@ class Sat6_Object:
             List of Orgs (dict). Of particular value will be
 
         """
-        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name)
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         item = 0
         page_item = 0
         page = 1
 
         results = self._get_rest_call('%s/organizations' % (self.katello),
-                                     {'page': page, 'per_page': self.per_page})
+                                      {'page': page, 'per_page': self.per_page})
         while item < results['subtotal']:
             if page_item == self.per_page:
                 page += 1
                 page_item = 0
                 results = self._get_rest_call('%s/organizations' % (self.katello),
-                                             {'page': page, 'per_page': self.per_page})
+                                              {'page': page, 'per_page': self.per_page})
             yield results['results'][page_item]
             item += 1
             page_item += 1
@@ -830,21 +843,21 @@ class Sat6_Object:
             A dict of info about a LCE
 
         """
-        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name)
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         if org_id is None:
             org_id = self.org_id
-        logger.debug('Looking for Life Cycle Environment %s in org %s.' % (lce_name, org_id))
+        logger.debug('Looking for Life Cycle Environment %s in org %s.', lce_name, org_id)
 
         results = self._get_rest_call('%s/organizations/%s/environments' % (self.katello, org_id),
-                                     {'search': '"%s"' % lce_name})
+                                      {'search': '"%s"' % lce_name})
         if results['subtotal'] == 0:
-            logger.debug('Error: No LCE matches for %s in org %s.' % (lce_name, org_id))
+            logger.debug('Error: No LCE matches for %s in org %s.', lce_name, org_id)
             return None
         elif results['subtotal'] > 1:
-            logger.debug('Error: Too many LCE matches for %s in org %s.' % (lce_name, org_id))
+            logger.debug('Error: Too many LCE matches for %s in org %s.', lce_name, org_id)
             return None
-        else:
-            return results['results'][0]
+
+        return results['results'][0]
 
     def get_org_lce_list(self, org_id=None):
         """ This returns a list of an Orgs Lifecycel Environments
@@ -856,7 +869,7 @@ class Sat6_Object:
             List of LCEs (dict). Of particular value may be
 
         """
-        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name)
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         if org_id is None:
             org_id = self.org_id
         logger.debug('Retriveing list of Lifecycle Environments...')
@@ -865,13 +878,13 @@ class Sat6_Object:
         page = 1
 
         results = self._get_rest_call('%s/organizations/%s/environments' % (self.katello, org_id),
-                                     {'page': page, 'per_page': self.per_page})
+                                      {'page': page, 'per_page': self.per_page})
         while item < results['subtotal']:
             if page_item == self.per_page:
                 page += 1
                 page_item = 0
                 results = self._get_rest_call('%s/organizations/%s/environments' % (self.katello, org_id),
-                                             {'page': page, 'per_page': self.per_page})
+                                              {'page': page, 'per_page': self.per_page})
             yield results['results'][page_item]
             item += 1
             page_item += 1
@@ -887,7 +900,7 @@ class Sat6_Object:
             Status of request. Will set self.results
 
        """
-        logger.debug('Entering Function: %s' % sys._getframe().f_code.co_name)
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         self.results = {"success": None, "msg": None, "return": None}
         if host is None:
             self.results['success'] = False
@@ -899,7 +912,7 @@ class Sat6_Object:
             return False
 
         if 'id' not in host:
-            logger.debug('Host does not have ID attribute, attempting lookup for: %s.' % host)
+            logger.debug('Host does not have ID attribute, attempting lookup for: %s.', host)
             host = self.get_host(host)
             if host is None:
                 self.results['success'] = False
@@ -907,7 +920,7 @@ class Sat6_Object:
                 return False
         if 'content_facet_attributes' in host:
             if 'id' not in lce:
-                logger.debug('LCE does not have ID attribute, attempting lookup for: %s.' % lce)
+                logger.debug('LCE does not have ID attribute, attempting lookup for: %s.', lce)
                 lce = self.get_org_lce(self.lookup_lce_name(lce))
                 if lce is None:
                     self.results['success'] = False
@@ -925,18 +938,20 @@ class Sat6_Object:
             return True
 
         results = self._put_rest_call('%s/hosts/%s' % (self.foreman, host['id']),
-                {'host': {'content_facet_attributes': {'lifecycle_environment_id': lce['id']}}}
-            )
+                                      {'host': {'content_facet_attributes':
+                                                    {'lifecycle_environment_id': lce['id']}
+                                               }}
+                                     )
         if results['content_facet_attributes']['lifecycle_environment']['id'] == lce['id']:
             self.results['return'] = results
             self.results['success'] = True
             self.results['msg'] = 'LCE changed to %s.' % (lce['name'])
             return True
-        else:
-            self.results['return'] = results
-            self.results['success'] = False
-            self.results['msg'] = 'LCE not set, cause unknown.'
-            return False
+
+        self.results['return'] = results
+        self.results['success'] = False
+        self.results['msg'] = 'LCE not set, cause unknown.'
+        return False
 
 #==============================================================================
 def main(options, logger):
@@ -944,9 +959,9 @@ def main(options, logger):
     logger.debug('Starting main()')
     print('username %s / password %s .' % (options.username, options.password))
     print('_username %s / _password %s .' % (options._username, options._password))
-    sat6_session = Sat6_Object(server=options.server, username=options.username,
-                               password=options.password, authkey=options.authkey,
-                               org_id=options.org_id, org_name=options.org_name)
+    sat6_session = Sat6Object(server=options.server, username=options.username,
+                              password=options.password, authkey=options.authkey,
+                              org_id=options.org_id, org_name=options.org_name)
 
     if options.lifecycle:
         print(sat6_session.lookup_lce_name(options.lifecycle))
