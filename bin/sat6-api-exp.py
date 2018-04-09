@@ -54,8 +54,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '0.1.1-alpha' #: current version
-__revised__ = '20180405-163321' #: date of most recent revision
+__version__ = '0.9.0-alpha' #: current version
+__revised__ = '20180409-100006' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = """TODO: CHANGEME
@@ -289,6 +289,13 @@ class CLIOptions(object):
         return None
 
     @property
+    def hostlist(self):
+        """ Class property """
+        if self._options is not None:
+            return self._options.hostlist
+        return None
+
+    @property
     def debug(self):
         """ Class property """
         if self._options is not None:
@@ -418,6 +425,9 @@ class CLIOptions(object):
         #-- 'Hidden' options
         parser.add_option('-c', '--config', dest='configfile', type='string',
                           help='User Satellite config file.', default=None
+                         )
+        parser.add_option('--hostlist', dest='hostlist', action='store_true',
+                          help=optparse.SUPPRESS_HELP, default=False
                          )
         parser.add_option('--help-rest', dest='helprest', action='store_true',
                           help=optparse.SUPPRESS_HELP, default=False
@@ -923,40 +933,45 @@ def main():
                               password=options.password, authkey=options.authkey,
                               org_id=options.org_id, org_name=options.org_name)
 
+    if options.hostname:
+        my_host = sat6_session.get_host(options.hostname)
+        if my_host:
+            print('Host ID:           %s' % my_host['id'])
+            print('Host Org Name:     %s' % my_host['organization_name'])
+            print('Host Org ID:       %s' % my_host['organization_id'])
+            if 'content_facet_attributes' in my_host:
+                print('Host Lifecycle:    %s' % my_host['content_facet_attributes']['lifecycle_environment']['name'])
+                print('Host Lifecycle ID: %s' % my_host['content_facet_attributes']['lifecycle_environment']['id'])
+                print('Host Content View: %s' % my_host['content_facet_attributes']['content_view']['name'])
+        else:
+            print('Warning: No host matches for %s.' % options.hostname)
+    else:
+        print('No hostname passed.')
+    print('-------------------')
+
     if options.lifecycle:
         print(sat6_session.lookup_lce_name(options.lifecycle))
-    print('-------------------')
-
-    my_host = sat6_session.get_host(options.hostname)
-    if my_host:
-        print('Host ID:           %s' % my_host['id'])
-        print('Host Org Name:     %s' % my_host['organization_name'])
-        print('Host Org ID:       %s' % my_host['organization_id'])
-        if 'content_facet_attributes' in my_host:
-            print('Host Lifecycle:    %s' % my_host['content_facet_attributes']['lifecycle_environment']['name'])
-            print('Host Lifecycle ID: %s' % my_host['content_facet_attributes']['lifecycle_environment']['id'])
-            print('Host Content View: %s' % my_host['content_facet_attributes']['content_view']['name'])
-    else:
-        print('Warning: No host matches for %s.' % options.hostname)
-    print('-------------------')
-
-    if options.lifecycle:
-        if sat6_session.set_host_lce(my_host, options.lifecycle):
-            print('LCE set for %s (%s)' % (my_host['name'], sat6_session.results['msg']))
-            my_host = sat6_session.results['return']
+        if options.hostname:
+            if sat6_session.set_host_lce(my_host, options.lifecycle):
+                print('LCE set for %s (%s)' % (my_host['name'], sat6_session.results['msg']))
+                my_host = sat6_session.results['return']
+            else:
+                print('LCE *not* set for %s (%s)' % (my_host['name'], sat6_session.results['msg']))
+            print('host LCE now: %s' % my_host['content_facet_attributes']['lifecycle_environment']['name'])
         else:
-            print('LCE *not* set for %s (%s)' % (my_host['name'], sat6_session.results['msg']))
+            print('LCE passed, but no hostname passed')
     else:
-        print('No LCE provided.')
-    print('host LCE now: %s' % my_host['content_facet_attributes']['lifecycle_environment']['name'])
+        print('No LCE passed.')
     print('-------------------')
 
-    for host in sat6_session.get_host_list():
-        if 'content_facet_attributes' in host:
-            print("Host ID: %s  Name: %s  LCE: %s" % (host['id'], host['name'], host['content_facet_attributes']['lifecycle_environment']['name']))
-        else:
-            print("Host ID: %s  Name: %s" % (host['id'], host['name']))
-    print('host LCE now: %s' % my_host['content_facet_attributes']['lifecycle_environment']['name'])
+    if options.hostlist:
+        for host in sat6_session.get_host_list():
+            if 'content_facet_attributes' in host:
+                print("Host ID: %s  Name: %s  LCE: %s" % (host['id'], host['name'], host['content_facet_attributes']['lifecycle_environment']['name']))
+            else:
+                print("Host ID: %s  Name: %s" % (host['id'], host['name']))
+    else:
+        print('Hostlist not asked for.')
     print('-------------------')
 
     my_org = sat6_session.get_org()
