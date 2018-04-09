@@ -62,7 +62,7 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 __version__ = '0.9.1-alpha' #: current version
-__revised__ = '20180409-140559' #: date of most recent revision
+__revised__ = '20180409-144628' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Testbed script for Sat6Object class.'
 __description__ = """This script exists to support the development of the
@@ -196,7 +196,7 @@ def timestamp(time_format=None):
 
 
 #==============================================================================
-def CLILogger(debug=False):
+def CLILogger(debug=False): #: pylint: disable=invalid-name
     """ Set up Python's Logging
 
     Args:
