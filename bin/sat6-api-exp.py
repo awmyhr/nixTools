@@ -18,7 +18,7 @@
 
         Output debug-level information.
 
-    :synopsis: TODO: CHANGEME
+    :synopsis: Testbed script for Sat6Object class.
 
     :copyright: 2016 awmyhr
     :license: Apache-2.0
@@ -27,11 +27,19 @@
 """
 #===============================================================================
 #-- Standard Imports
+#-- NOTE: See __future__ documentation at https://docs.python.org/2/library/__future__.html
+#--       This allows us to write Python 3 code for older version.
+from __future__ import absolute_import  #: Require parens to group imports PEP-0328
+from __future__ import division         #: Enable 3.x True Division PEP-0238
+from __future__ import with_statement   #: Clean up some uses of try/except PEP--343
+#-- These may break 2.5 compatibility
+from __future__ import print_function   #: Makes print a function, not a statement PEP-3105
+from __future__ import unicode_literals #: Introduce bytes type for older strings PEP-3112
 #-- NOTE: We use optparse for compatibility with python < 2.7 as
 #--       argparse wasn't standard until 2.7 (2.7 deprecates optparse)
 #--       As of 20161212 the template is coded for optparse only
-import logging      #: Python's standard logging facilities
 import optparse     #: pylint: disable=deprecated-module
+import logging      #: Python's standard logging facilities
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
 # import traceback    #: Print/retrieve a stack traceback
@@ -53,12 +61,14 @@ if sys.version_info <= (2, 6):
 #-- Application Library Imports
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-#-- TODO: Update meta vars
-__version__ = '0.9.0-alpha' #: current version
-__revised__ = '20180409-100006' #: date of most recent revision
+__version__ = '0.9.1-alpha' #: current version
+__revised__ = '20180409-140559' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
-__synopsis__ = 'TODO: CHANGEME'
-__description__ = """TODO: CHANGEME
+__synopsis__ = 'Testbed script for Sat6Object class.'
+__description__ = """This script exists to support the development of the
+Python Sat6Object class. Most 'functionality' are simple examples of method
+usage. Eventually this may be converted into a proper module, but until then
+here we are...
 """
 #------------------------------------------------------------------------------
 #-- The following few variables should be relatively static over life of script
@@ -89,19 +99,22 @@ __logger_lvl__ = os.getenv('LOGGER_LVL') if 'LOGGER_LVL' in os.environ else 'inf
 EXIT_STATUS = None
 #==============================================================================
 class _ModOptionParser(optparse.OptionParser):
-    """By default format_epilog() strips newlines, we don't want that, os override."""
+    """ By default format_epilog() strips newlines, we don't want that,
+        so we override.
+    """
 
     def format_epilog(self, formatter):
-        """We'll preformat the epilog in the decleration, just pass it through"""
+        """ We'll preformat the epilog in the decleration, just pass it through """
         return self.epilog
 
 
 #==============================================================================
 class _ReSTHelpFormatter(optparse.HelpFormatter):
-    """Format help for Sphinx/ReST output.
+    """ Format help for Sphinx/ReST output.
 
-    All over-ridden methods started life as copy'n'paste from original's source
-    code.
+    NOTE: All over-ridden methods started life as copy'n'paste from original's
+          source code.
+
     """
 
     def __init__(self, indent_increment=0, max_help_position=4, width=80, short_first=0):
@@ -110,20 +123,20 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
                                        )
 
     def format_usage(self, usage):
-        retval = ["%s\n" % ("=-"[self.level] * len(__cononical_name__))]
-        retval.append("%s\n" % (__cononical_name__))
-        retval.append("%s\n\n" % ("=-"[self.level] * len(__cononical_name__)))
-        retval.append("%s" % self.format_heading('Synopsis'))
-        retval.append("**%s** %s\n\n" % (__cononical_name__, usage))
+        retval = ['%s\n' % ('=-'[self.level] * len(__cononical_name__))]
+        retval.append('%s\n' % (__cononical_name__))
+        retval.append('%s\n\n' % ('=-'[self.level] * len(__cononical_name__)))
+        retval.append('%s' % self.format_heading('Synopsis'))
+        retval.append('**%s** %s\n\n' % (__cononical_name__, usage))
         return ''.join(retval)
 
     def format_heading(self, heading):
-        return "%s\n%s\n\n" % (heading, "--"[self.level] * len(heading))
+        return '%s\n%s\n\n' % (heading, '--'[self.level] * len(heading))
 
     def format_description(self, description):
         if description:
-            retval = ["%s" % self.format_heading('Description')]
-            retval.append("%s\n" % self._format_text(description))
+            retval = ['%s' % self.format_heading('Description')]
+            retval.append('%s\n' % self._format_text(description))
             return ''.join(retval)
         return ''
 
@@ -133,23 +146,23 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
         if option.help:
             # help_text = self.expand_default(option)
             # help_lines = textwrap.wrap(help_text, self.help_width)
-            retval.append("%4s%s\n\n" % ("", self.expand_default(option)))
-            # retval.extend(["%4s%s\n" % ("", line)
+            retval.append('%4s%s\n\n' % ('', self.expand_default(option)))
+            # retval.extend(['%4s%s\n' % ('', line)
             #                for line in help_lines[1:]])
-        elif opts[-1] != "\n":
-            retval.append("\n")
-        return "".join(retval)
+        elif opts[-1] != '\n':
+            retval.append('\n')
+        return ''.join(retval)
 
     def format_option_strings(self, option):
-        """Return a comma-separated list of option strings & metavariables."""
+        """ Return a comma-separated list of option strings & metavariables. """
         if option.takes_value():
             metavar = option.metavar or option.dest.upper()
-            short_opts = ["%s <%s>" % (sopt, metavar)
+            short_opts = ['%s <%s>' % (sopt, metavar)
                           for sopt in option._short_opts] #: pylint: disable=protected-access
                                                           #: We're over-riding the default
                                                           #:    method, keeping most the code.
                                                           #:    Not sure how else we'd do this.
-            long_opts = ["%s=<%s>" % (lopt, metavar)
+            long_opts = ['%s=<%s>' % (lopt, metavar)
                          for lopt in option._long_opts]   #: pylint: disable=protected-access
         else:
             short_opts = option._short_opts               #: pylint: disable=protected-access
@@ -160,53 +173,43 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
         else:
             opts = long_opts + short_opts
 
-        return ", ".join(opts)
-
-
-#==============================================================================
-def _debug_info():
-    """ Provides meta info for debug-level output """
-    import platform #: Easily get platforms identifying info
-    logger = logging.getLogger(__name__)
-    logger.debug('Cononical: %s', __cononical_name__)
-    logger.debug('Abs Path:  %s', os.path.abspath(sys.argv[0]))
-    logger.debug('Full Args: %s', ' '.join(sys.argv[:]))
-    logger.debug('Python:    %s (%s)', sys.executable, platform.python_version())
-    logger.debug('Version:   %s', __version__)
-    logger.debug('Created:   %s', __created__)
-    logger.debug('Revised:   %s', __revised__)
-    logger.debug('Coder(s):  %s', __author__)
-    logger.debug('Contact:   %s', __contact__)
-    logger.debug('Project:   %s', __project_name__)
-    logger.debug('Project Home: %s', __project_home__)
-    logger.debug('Template Version: %s', __template_version__)
-    logger.debug('System:    %s', platform.system_alias(platform.system(),
-                                                        platform.release(),
-                                                        platform.version()
-                                                       )
-                )
-    logger.debug('Platform:  %s', platform.platform())
-    logger.debug('Hostname:  %s', platform.node())
-    logger.debug('[res]uid:  %s', os.getresuid())
-    logger.debug('PID/PPID:  %s/%s', os.getpid(), os.getppid())
+        return ', '.join(opts)
 
 
 #==============================================================================
 def timestamp(time_format=None):
-    """ Return date in specified format """
+    """ Return date in specified format
+
+    Args:
+        time_format (str): Format string for timestamp. Compatible w/'date'.
+
+    Returns:
+        The formatted timestamp as a string.
+
+    """
+    if 'logger' in globals():
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     import time
     if time_format is None:
         time_format = __default_dsf__
-    time_format = time_format.strip('+')
-    return time.strftime(time_format)
+    return time.strftime(time_format.strip('+'))
 
 
 #==============================================================================
-def CLILogger(opts):
-    """ Set up the Logger """
-    if 'logger' in globals():
-        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-    if opts.debug:
+def CLILogger(debug=False):
+    """ Set up Python's Logging
+
+    Args:
+        debug (boolean): Debug flag.
+
+    Returns:
+        The logging object.
+
+    """
+    new_logger = logging.getLogger(__name__)
+    new_logger.setLevel(logging.DEBUG)
+
+    if debug:
         level = logging.DEBUG
         formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s',
                                       __logger_dsf__
@@ -221,14 +224,10 @@ def CLILogger(opts):
                 level = (int(__logger_lvl__)) //10 * 10
         else:
             level = logging.getLevelName(__logger_lvl__.upper())
+        #-- Yes, we are going to ignore unknown values by setting to INFO
+        if isinstance(level, str) and level.startswith('Level'):
+            level = logging.INFO
         formatter = logging.Formatter('%(message)s')
-
-    #-- Yes, we are going to ignore unknown values by setting to INFO
-    if isinstance(level, str) and level.startswith('Level'):
-        level = logging.INFO
-
-    new_logger = logging.getLogger(__name__)
-    new_logger.setLevel(level)
 
     #-- Console output
     console = logging.StreamHandler()
@@ -252,8 +251,26 @@ def CLILogger(opts):
         global __logger_file_set__ #: pylint: disable=global-statement
         __logger_file_set__ = True
 
-    if opts.debug:
-        _debug_info()
+    import platform #: Easily get platforms identifying info
+    new_logger.debug('Version:   %s (%s) %s', __cononical_name__, __project_name__, __version__)
+    new_logger.debug('Created:   %s / Revised: %s', __created__, __revised__)
+    new_logger.debug('Abs Path:  %s', os.path.abspath(sys.argv[0]))
+    new_logger.debug('Full Args: %s', ' '.join(sys.argv[:]))
+    new_logger.debug('Python:    %s (%s)', sys.executable, platform.python_version())
+    new_logger.debug('Coder(s):  %s', __author__)
+    new_logger.debug('Contact:   %s', __contact__)
+    new_logger.debug('Project Home: %s', __project_home__)
+    new_logger.debug('Template Version: %s', __template_version__)
+    new_logger.debug('System:    %s', platform.system_alias(platform.system(),
+                                                            platform.release(),
+                                                            platform.version()
+                                                           )
+                    )
+    new_logger.debug('Platform:  %s', platform.platform())
+    new_logger.debug('Hostname:  %s', platform.node())
+    new_logger.debug('[res]uid:  %s', os.getresuid())
+    new_logger.debug('PID/PPID:  %s/%s', os.getpid(), os.getppid())
+    if debug:
         print('\n----- start -----\n')
 
     return new_logger
@@ -264,28 +281,19 @@ class CLIOptions(object):
     """ Parse the options and put them into an object """
 
     _options = None
-    _args = None
+    _arguments = None
 
     def __init__(self, args=None):
         if self._options is not None:
             raise ValueError('CLIOptions already initialized.')
         else:
             (self._options, self._arguments) = self._parse_args(args)
-        if self.helprest:
-            self._print_rest_help()
 
     @property
     def args(self):
         """ Class property """
         if self._arguments is not None:
             return self._arguments
-        return None
-
-    @property
-    def helprest(self):
-        """ Class property """
-        if self._options is not None:
-            return self._options.helprest
         return None
 
     @property
@@ -365,17 +373,6 @@ class CLIOptions(object):
             return self._options.configfile
         return None
 
-    def _print_rest_help(self):
-        self.parser.formatter = _ReSTHelpFormatter()
-        self.parser.usage = '[*options*]'            #: pylint: disable=attribute-defined-outside-init
-                                                #: Not yet sure of a better way to do this...
-        self.parser.description = __description__    #: pylint: disable=attribute-defined-outside-init
-        self.parser.epilog = ('\nAuthor\n------\n\n'
-                              '%s\n'
-                             ) % ('; '.join(__author__))
-        self.parser.print_help()
-        sys.exit(os.EX_OK)
-
     def _parse_args(self, args):
         #-- Parse Options (rely on OptionsParser's exception handling)
         description_string = __synopsis__
@@ -391,9 +388,7 @@ class CLIOptions(object):
         usage_string = '%s [options]' % (__basename__)
         version_string = '%s (%s) %s' % (__cononical_name__, __project_name__, __version__)
         if __gnu_version__:
-            version_string += ('\nCopyright 2016 awmyhr\n'
-                               'License Apache-2.0\n'
-                              )
+            version_string += '\nCopyright %s\nLicense %s\n' % (__copyright__, __license__)
         parser = _ModOptionParser(version=version_string, usage=usage_string,
                                   description=description_string, epilog=epilog_string
                                  )
@@ -422,13 +417,13 @@ class CLIOptions(object):
         parser.add_option('-K', '--userkey', dest='authkey', type='string',
                           help='Satellite user access key.', default=None
                          )
-        #-- 'Hidden' options
         parser.add_option('-c', '--config', dest='configfile', type='string',
                           help='User Satellite config file.', default=None
                          )
         parser.add_option('--hostlist', dest='hostlist', action='store_true',
-                          help=optparse.SUPPRESS_HELP, default=False
+                          help='Retreive and display a host list.', default=False
                          )
+        #-- 'Hidden' options
         parser.add_option('--help-rest', dest='helprest', action='store_true',
                           help=optparse.SUPPRESS_HELP, default=False
                          )
@@ -437,6 +432,18 @@ class CLIOptions(object):
                          )
 
         parsed_opts, parsed_args = parser.parse_args(args)
+        if parsed_opts.helprest:
+            parser.formatter = _ReSTHelpFormatter()
+            parser.usage = '[*options*]'            #: pylint: disable=attribute-defined-outside-init
+                                                    #: Not yet sure of a better way to do this...
+            parser.description = __description__    #: pylint: disable=attribute-defined-outside-init
+            parser.epilog = ('\nAuthor\n------\n\n'
+                             '%s\n'
+                            ) % ('; '.join(__author__))
+            parser.print_help()
+            sys.exit(os.EX_OK)
+        if parsed_opts.org_id and parsed_opts.org_name:
+            parser.error('Provide either Organization ID or Name (or neither), not both.')
         if parsed_opts.authkey is None:
             if parsed_opts.username is None:
                 try:
@@ -1005,7 +1012,7 @@ if __name__ == '__main__':
     #-- Setting up logger here so we can use them in even of exceptions.
     #   Parsing options here as we need them to setup the logger.
     options = CLIOptions(sys.argv[1:])
-    logger = CLILogger(options)
+    logger = CLILogger(options.debug)
 
     if __require_root__ and os.getegid() != 0:
         logger.error('Must be run as root.')
@@ -1020,44 +1027,47 @@ if __name__ == '__main__':
         logger.debug('Caught Ctrl-C')
         EXIT_STATUS = 130
     except SystemExit as error: # Catches sys.exit()
+        #_, error, _ = sys.exc_info()
         logger.debug('Caught SystemExit')
-        logger.warning('%s: [SystemExit] %s', __basename__, error.strerror)
+        logger.warning('%s: [SystemExit] %s', __basename__, error)
         if error.errno is None:
             EXIT_STATUS = 10
         else:
             EXIT_STATUS = error.errno
-    #-- NOTE: "except Exception as variable:" syntax was added in 2.6
     except IOError as error:
+        #_, error, _ = sys.exc_info()
         logger.debug('Caught IOError')
         if error.errno is None:
-            logger.critical('%s: [IOError]: %s', __basename__, error.message)
+            logger.critical('%s: [IOError]: %s', __basename__, error)
             EXIT_STATUS = 10
         elif error.errno == 2:                #: No such file/directory
             logger.critical('%s: [IOError] %s: %s', __basename__,
-                            error.strerror, error.filename
+                            error, error.filename
                            )
             EXIT_STATUS = os.EX_UNAVAILABLE
         elif error.errno == 13:                #: Permission Denied
             logger.critical('%s: [IOError] %s: %s', __basename__,
-                            error.strerror, error.filename
+                            error, error.filename
                            )
             EXIT_STATUS = os.EX_NOPERM
         else:
-            logger.critical('%s: [IOError] %s', __basename__, error.strerror)
+            logger.critical('%s: [IOError] %s', __basename__, error)
             EXIT_STATUS = error.errno
     except OSError as error:
+        #_, error, _ = sys.exc_info()
         logger.debug('Caught OSError')
         if error.errno == 2:                #: No such file/directory
             logger.critical('%s: [OSError] %s: %s', __basename__,
-                            error.strerror, error.filename
+                            error, error.filename
                            )
             EXIT_STATUS = os.EX_UNAVAILABLE
         else:
-            logger.critical('%s: [OSError] %s', __basename__, error.strerror)
+            logger.critical('%s: [OSError] %s', __basename__, error)
             EXIT_STATUS = error.errno
     except Exception as error:
+        #_, error, _ = sys.exc_info()
         logger.debug('Caught Exception')
-        logger.critical('%s: %s' % (__basename__, error))
+        logger.critical('%s: %s', __basename__, error)
         EXIT_STATUS = 10
     else:
         logger.debug('main() exited cleanly.')
