@@ -1,15 +1,9 @@
-#!/usr/bin/python -tt
+#!/usr/bin/python2 -tt
+# -*- coding: utf-8 -*-
+# ^^-- use utf-8 strings by default
 #-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.
 #===============================================================================
-#-- NOTE: default Python versions:
-#--       RHEL4    2.3.4
-#--       RHEL5    2.4.3
-#--       RHEL6.0  2.6.5
-#--       RHEL6.1+ 2.6.6
-#--       REHL7    2.7.5
-#-- Recent Fedora versions (24/25) stay current on 2.7 (2.7.12 as of 20161212)
-#===============================================================================
-"""
+'''
     :program:`repo_pkg_count`
     ============================================================
 
@@ -24,76 +18,103 @@
 
         Output debug-level information.
 
-    .. option:: --debug-file <FILE>
+    :synopsis: Lists number of packages installed from each repo.
 
-        Save debug-level information to specified file.
-
-        .. note:: This output is more detailed, but less readable, than simple --debug
-
-    :synopsis: TODO: CHANGEME
-
-    :copyright: (c) 2016 awmyhr
+    :copyright: 2016 awmyhr
     :license: Apache-2.0
 
     .. codeauthor:: awmyhr <awmyhr@gmail.com>
-"""
+'''
 #===============================================================================
 #-- Standard Imports
-#-- NOTE: We use optparse for compatibility with python < 2.7 as (the superior)
+#-- NOTE: See __future__ documentation at https://docs.python.org/2/library/__future__.html
+#--       This allows us to write Python 3 code for older version.
+from __future__ import absolute_import  #: Require parens to group imports PEP-0328
+from __future__ import division         #: Enable 3.x True Division PEP-0238
+from __future__ import with_statement   #: Clean up some uses of try/except PEP--343
+#-- These may break 2.5 compatibility
+from __future__ import print_function   #: Makes print a function, not a statement PEP-3105
+from __future__ import unicode_literals #: Introduce bytes type for older strings PEP-3112
+#-- NOTE: We use optparse for compatibility with python < 2.7 as
 #--       argparse wasn't standard until 2.7 (2.7 deprecates optparse)
 #--       As of 20161212 the template is coded for optparse only
+import optparse     #: pylint: disable=deprecated-module
 import logging      #: Python's standard logging facilities
-import optparse     #: Argument parsing
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
 # import traceback    #: Print/retrieve a stack traceback
-from collections import defaultdict #: easily build an empty dictionary
-#===============================================================================
+#==============================================================================
 #-- Third Party Imports
-#===============================================================================
+#==============================================================================
+#-- Require a minimum Python version
+if sys.version_info <= (2, 6):
+    sys.exit("Minimum Python version: 2.6")
+#-- NOTE: default Python versions:
+#--       RHEL4    2.3.4
+#--       RHEL5    2.4.3
+#--       RHEL6.0  2.6.5
+#--       RHEL6.1+ 2.6.6
+#--       REHL7    2.7.5
+#-- Recent Fedora versions (24/25) stay current on 2.7 (2.7.12 as of 20161212)
+#==============================================================================
+#==============================================================================
 #-- Application Library Imports
-#===============================================================================
+#==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.7.2' #: current version
-__revised__ = '20180320-102617' #: date of most recent revision
+__version__ = '1.8.0' #: current version
+__revised__ = '20180410-102900' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
-
+__synopsis__ = 'Lists number of packages installed from each repo.'
+__description__ = '''This will check the yum database to build a list of which repositories
+packages have been installed from.
+'''
+#------------------------------------------------------------------------------
 #-- The following few variables should be relatively static over life of script
 __author__ = ['awmyhr <awmyhr@gmail.com>'] #: coder(s) of script
-__created__ = '2016-11-16'               #: date script originlly created
-__copyright__ = '(c) 2016 awmyhr' #: Copyright short name
+__created__ = '2018-04-09'               #: date script originlly created
+__copyright__ = '2016 awmyhr' #: Copyright short name
 __license__ = 'Apache-2.0'
+__gnu_version__ = False #: If True print GNU version string (which includes copyright/license)
 __cononical_name__ = 'repo_pkg_count' #: static name, *NOT* os.path.basename(sys.argv[0])
-__project_name__ = 'nixTools'  #: name of overall project, if needed
+__project_name__ = 'nixTools from *NIXLand'  #: name of overall project, if needed
 __project_home__ = 'https://github.com/awmyhr/nixTools'  #: where to find source/documentation
-__template_version__ = '1.6.1'              #: version of template file used
+__template_version__ = '2.1.0'  #: version of template file used
+#-- We are not using this variable for now.
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
 __basename__ = os.path.basename(sys.argv[0]) #: name script run as
-__synopsis__ = 'Lists number of packages installed from each repo.'
-__description__ = """This will check the yum database to build a list of which repositories
-packages have been installed from. 
-"""
+#------------------------------------------------------------------------------
+#-- Flags
+__logger_file_set__ = False #: If a file setup for logger
+__require_root__ = False    #: Does script require root
+#------------------------------------------------------------------------------
+#-- Load in environment variables, or set defaults
+__default_dsf__ = os.getenv('DEFAULT_TIMESTAMP') if 'DEFAULT_TIMESTAMP' in os.environ else "%Y%m%d-%H%M%S"
+__logger_dsf__ = os.getenv('LOGGER_DSF') if 'LOGGER_DSF' in os.environ else __default_dsf__
+__backup_dsf__ = os.getenv('BACKUP_DSF') if 'BACKUP_DSF' in os.environ else __default_dsf__
+__logger_file__ = os.getenv('LOGGER_FILE') if 'LOGGER_FILE' in os.environ else None
+__logger_lvl__ = os.getenv('LOGGER_LVL') if 'LOGGER_LVL' in os.environ else 'info'
 
 EXIT_STATUS = None
-
-
-#===============================================================================
+#==============================================================================
 class _ModOptionParser(optparse.OptionParser):
-    """By default format_epilog() strips newlines, we don't want that, os override."""
+    ''' By default format_epilog() strips newlines, we don't want that,
+        so we override.
+    '''
 
     def format_epilog(self, formatter):
-        """We'll preformat the epilog in the decleration, just pass it through"""
+        ''' We'll preformat the epilog in the decleration, just pass it through '''
         return self.epilog
 
 
-#===============================================================================
+#==============================================================================
 class _ReSTHelpFormatter(optparse.HelpFormatter):
-    """Format help for Sphinx/ReST output.
+    ''' Format help for Sphinx/ReST output.
 
-    All over-ridden methods started life as copy'n'paste from original's source
-    code.
-    """
+    NOTE: All over-ridden methods started life as copy'n'paste from original's
+          source code.
+
+    '''
 
     def __init__(self, indent_increment=0, max_help_position=4, width=80, short_first=0):
         optparse.HelpFormatter.__init__(self, indent_increment,
@@ -101,23 +122,22 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
                                        )
 
     def format_usage(self, usage):
-        retval = ["%s\n" % ("=-"[self.level] * len(__cononical_name__))]
-        retval.append("%s\n" % (__cononical_name__))
-        retval.append("%s\n\n" % ("=-"[self.level] * len(__cononical_name__)))
-        retval.append("%s" % self.format_heading('Synopsis'))
-        retval.append("**%s** %s\n\n" % (__cononical_name__, usage))
+        retval = ['%s\n' % ('=-'[self.level] * len(__cononical_name__))]
+        retval.append('%s\n' % (__cononical_name__))
+        retval.append('%s\n\n' % ('=-'[self.level] * len(__cononical_name__)))
+        retval.append('%s' % self.format_heading('Synopsis'))
+        retval.append('**%s** %s\n\n' % (__cononical_name__, usage))
         return ''.join(retval)
 
     def format_heading(self, heading):
-        return "%s\n%s\n\n" % (heading, "--"[self.level] * len(heading))
+        return '%s\n%s\n\n' % (heading, '--'[self.level] * len(heading))
 
     def format_description(self, description):
         if description:
-            retval = ["%s" % self.format_heading('Description')]
-            retval.append("%s\n" % self._format_text(description))
+            retval = ['%s' % self.format_heading('Description')]
+            retval.append('%s\n' % self._format_text(description))
             return ''.join(retval)
-        else:
-            return ""
+        return ''
 
     def format_option(self, option):
         opts = self.option_strings[option]
@@ -125,23 +145,23 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
         if option.help:
             # help_text = self.expand_default(option)
             # help_lines = textwrap.wrap(help_text, self.help_width)
-            retval.append("%4s%s\n\n" % ("", self.expand_default(option)))
-            # retval.extend(["%4s%s\n" % ("", line)
+            retval.append('%4s%s\n\n' % ('', self.expand_default(option)))
+            # retval.extend(['%4s%s\n' % ('', line)
             #                for line in help_lines[1:]])
-        elif opts[-1] != "\n":
-            retval.append("\n")
-        return "".join(retval)
+        elif opts[-1] != '\n':
+            retval.append('\n')
+        return ''.join(retval)
 
     def format_option_strings(self, option):
-        """Return a comma-separated list of option strings & metavariables."""
+        ''' Return a comma-separated list of option strings & metavariables. '''
         if option.takes_value():
             metavar = option.metavar or option.dest.upper()
-            short_opts = ["%s <%s>" % (sopt, metavar)
+            short_opts = ['%s <%s>' % (sopt, metavar)
                           for sopt in option._short_opts] #: pylint: disable=protected-access
                                                           #: We're over-riding the default
                                                           #:    method, keeping most the code.
                                                           #:    Not sure how else we'd do this.
-            long_opts = ["%s=<%s>" % (lopt, metavar)
+            long_opts = ['%s=<%s>' % (lopt, metavar)
                          for lopt in option._long_opts]   #: pylint: disable=protected-access
         else:
             short_opts = option._short_opts               #: pylint: disable=protected-access
@@ -152,52 +172,317 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
         else:
             opts = long_opts + short_opts
 
-        return ", ".join(opts)
+        return ', '.join(opts)
 
 
-#===============================================================================
-def _debug_info():
-    """ Provides meta info for debug-level output """
+#==============================================================================
+def timestamp(time_format=None):
+    ''' Return date in specified format
+
+    Args:
+        time_format (str): Format string for timestamp. Compatible w/'date'.
+
+    Returns:
+        The formatted timestamp as a string.
+
+    '''
+    if 'logger' in globals():
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    import time
+    if time_format is None:
+        time_format = __default_dsf__
+    return time.strftime(time_format.strip('+'))
+
+
+#==============================================================================
+def CLILogger(debug=False): #: pylint: disable=invalid-name
+    ''' Set up Python's Logging
+
+    Args:
+        debug (boolean): Debug flag.
+
+    Returns:
+        The logging object.
+
+    '''
+    new_logger = logging.getLogger(__name__)
+    new_logger.setLevel(logging.DEBUG)
+
+    if debug:
+        level = logging.DEBUG
+        formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s',
+                                      __logger_dsf__
+                                     )
+    else:
+        if __logger_lvl__.isdigit():
+            if int(__logger_lvl__) > 49:
+                level = logging.CRITICAL
+            elif int(__logger_lvl__) < 10:
+                level = logging.NOTSET
+            else:
+                level = (int(__logger_lvl__)) //10 * 10
+        else:
+            level = logging.getLevelName(__logger_lvl__.upper())
+        #-- Yes, we are going to ignore unknown values by setting to INFO
+        if isinstance(level, str) and level.startswith('Level'):
+            level = logging.INFO
+        formatter = logging.Formatter('%(message)s')
+
+    #-- Console output
+    console = logging.StreamHandler()
+    console.setLevel(level)
+    console.setFormatter(formatter)
+    new_logger.addHandler(console)
+
+    #-- File output
+    if __logger_file__:
+        if os.path.isfile(__logger_file__):
+            os.rename(__logger_file__, '%s.%s' % (__logger_file__, timestamp(__backup_dsf__)))
+        #: NOTE: In Python >= 2.6 normally I give FileHandler 'delay="true"'
+        logfile = logging.FileHandler(__logger_file__)
+        logfile.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            '%(asctime)s.%(msecs)d:%(levelno)s:%(name)s.%(funcName)s:%(lineno)d:%(message)s',
+            __logger_dsf__
+            )
+        logfile.setFormatter(formatter)
+        new_logger.addHandler(logfile)
+        global __logger_file_set__ #: pylint: disable=global-statement
+        __logger_file_set__ = True
+
     import platform #: Easily get platforms identifying info
-    logger.debug('Cononical: %s', __cononical_name__)
-    logger.debug('Abs Path:  %s', os.path.abspath(sys.argv[0]))
-    logger.debug('Full Args: %s', ' '.join(sys.argv[:]))
-    logger.debug('Python:    %s (%s)', sys.executable, platform.python_version())
-    logger.debug('Version:   %s', __version__)
-    logger.debug('Created:   %s', __created__)
-    logger.debug('Revised:   %s', __revised__)
-    logger.debug('Coder(s):  %s', __author__)
-    logger.debug('Contact:   %s', __contact__)
-    logger.debug('Project:   %s', __project_name__)
-    logger.debug('Project Home: %s', __project_home__)
-    logger.debug('Template Version: %s', __template_version__)
-    logger.debug('System:    %s',
-                 platform.system_alias(platform.system(),
-                                       platform.release(),
-                                       platform.version()
-                                      )
-                )
-    if platform.system() in 'Linux':
-        logger.debug('Distro:    %s', platform.linux_distribution())
-    logger.debug('Hostname:  %s', platform.node())
-    logger.debug('[res]uid:  %s', os.getresuid())
-    logger.debug('PID/PPID:  %s/%s', os.getpid(), os.getppid())
+    new_logger.debug('Version:   %s (%s) %s', __cononical_name__, __project_name__, __version__)
+    new_logger.debug('Created:   %s / Revised: %s', __created__, __revised__)
+    new_logger.debug('Abs Path:  %s', os.path.abspath(sys.argv[0]))
+    new_logger.debug('Full Args: %s', ' '.join(sys.argv[:]))
+    new_logger.debug('Python:    %s (%s)', sys.executable, platform.python_version())
+    new_logger.debug('Coder(s):  %s', __author__)
+    new_logger.debug('Contact:   %s', __contact__)
+    new_logger.debug('Project Home: %s', __project_home__)
+    new_logger.debug('Template Version: %s', __template_version__)
+    new_logger.debug('System:    %s', platform.system_alias(platform.system(),
+                                                            platform.release(),
+                                                            platform.version()
+                                                           )
+                    )
+    new_logger.debug('Platform:  %s', platform.platform())
+    new_logger.debug('Hostname:  %s', platform.node())
+    new_logger.debug('[res]uid:  %s', os.getresuid())
+    new_logger.debug('PID/PPID:  %s/%s', os.getpid(), os.getppid())
+    if options._options is not None:                             #: pylint: disable=protected-access
+        new_logger.debug('Parsed Options: %s', options._options) #: pylint: disable=protected-access
+    if debug:
+        print('\n----- start -----\n')
+
+    return new_logger
+
+
+#==============================================================================
+class CLIOptions(object):
+    ''' Parse the options and put them into an object
+
+        Returns:
+            A CLIOptions object.
+
+    '''
+
+    _options = None
+    _arguments = None
+
+    def __init__(self, args=None):
+        if self._options is not None:
+            raise ValueError('CLIOptions already initialized.')
+        else:
+            (self._options, self._arguments) = self._parse_args(args)
+
+    @property
+    def args(self):
+        ''' Class property '''
+        if self._arguments is not None:
+            return self._arguments
+        return None
+
+    @property
+    def key(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.key
+        return None
+
+    @key.setter
+    def key(self, value):
+        ''' Property setter '''
+        if self._options is not None:
+            self._options.key = value
+            return True
+        return False
+
+    @property
+    def debug(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.debug
+        return None
+
+    @property
+    def ansible_called(self):
+        ''' Class property '''
+        return bool(__basename__.startswith('ansible_module'))
+
+    @property
+    def shell(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.shell
+        return None
+
+    @property
+    def yaml(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.yaml
+        return None
+
+    @property
+    def json(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.json
+        return None
+
+    @property
+    def all(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.all
+        return True
+
+    @property
+    def enabled(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.enabled
+        return False
+
+    @property
+    def disabled(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.disabled
+        return False
+
+    def _parse_args(self, args):
+        #-- Parse Options (rely on OptionsParser's exception handling)
+        description_string = __synopsis__
+        epilog_string = ('\n%s\n\n'
+                         'Created: %s  Contact: %s\n'
+                         'Revised: %s  Version: %s\n'
+                         '%s, part of %s. Project home: %s\n'
+                        ) % (__description__,
+                             __created__, __contact__,
+                             __revised__, __version__,
+                             __cononical_name__, __project_name__, __project_home__
+                            )
+        usage_string = '%s [options]' % (__basename__)
+        version_string = '%s (%s) %s' % (__cononical_name__, __project_name__, __version__)
+        if __gnu_version__:
+            version_string += '\nCopyright %s\nLicense %s\n' % (__copyright__, __license__)
+        parser = _ModOptionParser(version=version_string, usage=usage_string,
+                                  description=description_string, epilog=epilog_string
+                                 )
+        self.parser = parser
+        #-- Put visible options here (don't forget @property if needed).
+        parser.add_option('-e', '--enabled', dest='enabled', action='store_true',
+                          help='Enabled repos only.', default=False
+                         )
+        parser.add_option('-d', '--disabled', dest='disabled', action='store_true',
+                          help='Disabled repos only.', default=False
+                         )
+        parser.add_option('-k', '--key', dest='key', type='string', default='custom',
+                          help='key for fact tree'
+                         )
+
+        #-- Output group options.
+        group = optparse.OptionGroup(parser, 'Output Options',
+                                     'Select an alternative output format, if desired. '
+                                     '(Only one).'
+                                    )
+        group.add_option('--shell', dest='shell', action='store_true',
+                         help='output shell variables', default=False
+                        )
+        group.add_option('--json', dest='json', action='store_true',
+                         help='output json snippet', default=False
+                        )
+        group.add_option('--yaml', dest='yaml', action='store_true',
+                         help='output yaml snippet', default=False
+                        )
+        parser.add_option_group(group)
+        #-- Put hidden options here (don't forget @property if needed).
+        parser.add_option('-a', '--all', dest='all', action='store_true',
+                          help=optparse.SUPPRESS_HELP, default=True
+                         )
+        parser.add_option('--help-rest', dest='helprest', action='store_true',
+                          help=optparse.SUPPRESS_HELP, default=False
+                         )
+        parser.add_option('--debug', dest='debug', action='store_true',
+                          help=optparse.SUPPRESS_HELP, default=False
+                         )
+
+        parsed_opts, parsed_args = parser.parse_args(args)
+        if parsed_opts.helprest:
+            parser.formatter = _ReSTHelpFormatter()
+            parser.usage = '[*options*]'            #: pylint: disable=attribute-defined-outside-init
+                                                    #: Not yet sure of a better way to do this...
+            parser.description = __description__    #: pylint: disable=attribute-defined-outside-init
+            parser.epilog = ('\nAuthor\n------\n\n'
+                             '%s\n'
+                            ) % ('; '.join(__author__))
+            parser.print_help()
+            sys.exit(os.EX_OK)
+        #-- Put any option validation here...
+        if parsed_opts.shell and parsed_opts.json:
+            parser.error('--shell, --json and --yaml are mutually exclusive')
+        if parsed_opts.shell and parsed_opts.yaml:
+            parser.error('--shell, --json and --yaml are mutually exclusive')
+        if parsed_opts.yaml and parsed_opts.json:
+            parser.error('--shell, --json and --yaml are mutually exclusive')
+
+        if parsed_opts.enabled and parsed_opts.disabled:
+            parser.error('Options -e and -d are mutually exclusive.')
+        elif parsed_opts.enabled or parsed_opts.disabled:
+            parsed_opts.all = False
+
+        return parsed_opts, parsed_args
+
+
+#==============================================================================
+def dicttree():
+    ''' Return a defaultdict tree.
+
+    Returns:
+        Returns an empty dictionary.
+
+    '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    from collections import defaultdict #: easily build an empty dictionary
+    tree = lambda: defaultdict(tree)
+    return tree()
 
 
 #===============================================================================
 def num_rpm_installed():
     """ Quick'n'Dirty 'rpm -qa | wc -l' """
-    logger.debug('Entering num_rpm_installed()')
-    count = 0
-    
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
     try:
         import rpm
+        count = 0
         for _ in rpm.TransactionSet().dbMatch():
             count += 1
-    except:
-        count = -1
+        return count
+    except ImportError:
+        return -1
 
-    return count
 
 #===============================================================================
 def num_yum_installed():
@@ -207,8 +492,8 @@ def num_yum_installed():
                         | grep -v "^ " \
                         | wc -l'
     """
-    logger.debug('Entering num_yum_installed()')
-    
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
     try:
         import yum
         yumb = yum.YumBase()
@@ -219,16 +504,15 @@ def num_yum_installed():
         yumb.conf.cache = os.geteuid() != 0
 
         return len(yumb.rpmdb.returnPackages())
-    except:
+    except ImportError:
         return -1
+
 
 #===============================================================================
 def build_repolist():
     """ Builds dictionary of repos with counts & enabled status """
-    logger.debug('Entering build_repolist()')
-    from collections import defaultdict #: easily build an empty dictionary
-    tree = lambda: defaultdict(tree)
-    repos = tree()
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    repos = dicttree()
 
     try:
         import yum
@@ -259,29 +543,105 @@ def build_repolist():
             else:
                 repos[repoid]['count'] = 1
                 try:
-                    repos[repoid]['baseurl'] =  yumb.repos.getRepo(repoid).baseurl
-                    repos[repoid]['name'] =  yumb.repos.getRepo(repoid).name
+                    repos[repoid]['baseurl'] = yumb.repos.getRepo(repoid).baseurl
+                    repos[repoid]['name'] = yumb.repos.getRepo(repoid).name
                     repos[repoid]['isenabled'] = yumb.repos.getRepo(repoid).isEnabled()
                     repos[repoid]['exists'] = True
                 except:
-                    repos[repoid]['baseurl'] =  '<unknown>'
-                    repos[repoid]['name'] =  '<unknown>'
+                    repos[repoid]['baseurl'] = '<unknown>'
+                    repos[repoid]['name'] = '<unknown>'
                     repos[repoid]['isenabled'] = False
                     repos[repoid]['exists'] = False
-    except:
+    except ImportError:
         pass
 
     return repos
 
 
-#===============================================================================
+#==============================================================================
+def output_json(facts, key=None):
+    ''' Output a dictionary in json '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if key is not None:
+        facts = {key: facts}
+
+    try:
+        import json
+        print(json.dumps(facts, sort_keys=True, indent=4))
+    except ImportError:
+        raise ImportError('Error: Python json module requried.')
+
+    return True
+
+
+#==============================================================================
+def output_yaml(facts, key=None):
+    ''' Output a dictionary in yaml '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if key is not None:
+        facts = {key: facts}
+
+    try:
+        import yaml
+        from yaml.representer import Representer
+        from collections import defaultdict
+        yaml.add_representer(defaultdict, Representer.represent_dict)
+        print(yaml.dump(facts, default_flow_style=False))
+    except ImportError:
+        raise ImportError('Error: Python yaml module requried.')
+
+    return True
+
+
+#==============================================================================
+def output_shell(facts):
+    ''' Output a dictionary as shell variables '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    print("RPM_TOTAL=%s" % facts['rpm_total'])
+    print("YUM_TOTAL=%s" % facts['yum_total'])
+    count = 0
+    for repoid, repoinfo in sorted(facts['repolist'].iteritems()):
+        if repoinfo['count'] == 0:
+            continue
+        if repoid is None:
+            print("REPO_NONE_COUNT=%s" % repoinfo['count'])
+        elif repoinfo['isenabled'] and (options.all or options.enabled):
+            print("REPO_%s_NAME=%s" % (count, repoid))
+            print("REPO_%s_COUNT=%s" % (count, repoinfo['count']))
+            print("REPO_%s_ENABLED=%s" % (count, repoinfo['isenabled']))
+            count += 1
+        elif not repoinfo['isenabled'] and (options.all or options.disabled):
+            print("REPO_%s_NAME=%s" % (count, repoid))
+            print("REPO_%s_COUNT=%s" % (count, repoinfo['count']))
+            print("REPO_%s_ENABLED=%s" % (count, repoinfo['isenabled']))
+            count += 1
+    return True
+
+
+#==============================================================================
+def output_console(facts):
+    ''' Output a dictionary to the console '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    print('%+6s\tTotal Packages in RPM database' % facts['rpm_total'])
+    print('%+6s\tTotal Packages in YUM database' % facts['yum_total'])
+    for repoid, repoinfo in sorted(facts['repolist'].iteritems()):
+        if repoinfo['count'] == 0:
+            continue
+        if repoid is None:
+            print('%+6s\tPackages have no repo info' % repoinfo['count'])
+        elif repoinfo['isenabled'] and (options.all or options.enabled):
+            print('%+6s\t%s [enabled]' % (repoinfo['count'], repoid))
+        elif not repoinfo['isenabled'] and (options.all or options.disabled):
+            print('%+6s\t%s [disabled]' % (repoinfo['count'], repoid))
+    return True
+
+#==============================================================================
 def main():
-    """ This is where the action takes place """
+    ''' This is where the action takes place
+        We expect options and logger to be global
+    '''
     logger.debug('Starting main()')
-    logger.debug('Enabled: %s; Disabled: %s; All: %s',
-                 OPTIONS.enabled, OPTIONS.disabled, OPTIONS.all
-                )
-    if OPTIONS.ansiblecalled:
+    if options.ansible_called:
         from ansible.module_utils.basic import AnsibleModule
         module = AnsibleModule(
             argument_spec=dict(
@@ -289,206 +649,92 @@ def main():
                 key=dict(required=False)
             )
         )
-    tree = lambda: defaultdict(tree)
-    facts = tree()
+        if module.params['key']:
+            options.key = module.params['key']
+    facts = dicttree()
 
-    facts[OPTIONS.key]['rpm_total'] = num_rpm_installed()
-    facts[OPTIONS.key]['yum_total'] = num_yum_installed()
-    facts[OPTIONS.key]['repolist'] = build_repolist()
+    facts['rpm_total'] = num_rpm_installed()
+    facts['yum_total'] = num_yum_installed()
+    facts['repolist'] = build_repolist()
 
-    if OPTIONS.ansiblecalled:
+    if options.ansible_called:
+        facts = {options.key: facts}
         module.exit_json(changed=False, ansible_facts=facts)
-    elif OPTIONS.shell:
-        print "RPM_TOTAL=%s" % facts[OPTIONS.key]['rpm_total']
-        print "YUM_TOTAL=%s" % facts[OPTIONS.key]['yum_total']
-        count = 0
-        for repoid, repoinfo in sorted(facts[OPTIONS.key]['repolist'].iteritems()):
-            if repoinfo['count'] == 0:
-                continue
-            if repoid is None:
-                print "REPO_NONE_COUNT=%s" % repoinfo['count']
-            elif repoinfo['isenabled'] and (OPTIONS.all or OPTIONS.enabled):
-                print "REPO_%s_NAME=%s" % (count, repoid)
-                print "REPO_%s_COUNT=%s" % (count, repoinfo['count'])
-                print "REPO_%s_ENABLED=%s" % (count, repoinfo['isenabled'])
-                count += 1
-            elif not repoinfo['isenabled'] and (OPTIONS.all or OPTIONS.disabled):
-                print "REPO_%s_NAME=%s" % (count, repoid)
-                print "REPO_%s_COUNT=%s" % (count, repoinfo['count'])
-                print "REPO_%s_ENABLED=%s" % (count, repoinfo['isenabled'])
-                count += 1
-    elif OPTIONS.json:
-        import json
-        print json.dumps(facts, sort_keys=True, indent=4)
-    elif OPTIONS.yaml:
-        import yaml
-        from yaml.representer import Representer
-        yaml.add_representer(defaultdict, Representer.represent_dict)
-        print yaml.dump(facts, default_flow_style=False)
+    elif options.shell:
+        output_shell(facts)
+    elif options.json:
+        output_json(facts, options.key)
+    elif options.yaml:
+        output_yaml(facts, options.key)
     else:
-        logger.info('%+6s\tTotal Packages in RPM database', facts[OPTIONS.key]['rpm_total'])
-        logger.info('%+6s\tTotal Packages in YUM database', facts[OPTIONS.key]['yum_total'])
-        for repoid, repoinfo in sorted(facts[OPTIONS.key]['repolist'].iteritems()):
-            if repoinfo['count'] == 0:
-                continue
-            if repoid is None:
-                logger.info('%+6s\tPackages have no repo info', repoinfo['count'])
-            elif repoinfo['isenabled'] and (OPTIONS.all or OPTIONS.enabled):
-                logger.info('%+6s\t%s [enabled]', repoinfo['count'], repoid)
-            elif not repoinfo['isenabled'] and (OPTIONS.all or OPTIONS.disabled):
-                logger.info('%+6s\t%s [disabled]', repoinfo['count'], repoid)
+        output_console(facts)
 
     return os.EX_OK
 
-
-#===============================================================================
+#==============================================================================
 if __name__ == '__main__':
-    #-- Parse Options (rely on OptionsParser's exception handling)
-    PARSER = _ModOptionParser(
-        version='%s (%s) %s' % (__cononical_name__, __project_name__, __version__),
-        usage='%s [options]' % (__basename__),
-        description=__synopsis__,
-        epilog=('\n%s\n\n'
-                'Created: %s  Contact: %s\n'
-                'Revised: %s  Version: %s\n'
-                '%s, part of %s. Project home: %s\n'
-               ) % (__description__,
-                    __created__, __contact__,
-                    __revised__, __version__,
-                    __cononical_name__, __project_name__, __project_home__
-                   )
-    )
-    PARSER.add_option('-e', '--enabled', dest='enabled', action='store_true',
-                      help='Enabled repos only.', default=False
-                     )
-    PARSER.add_option('-d', '--disabled', dest='disabled', action='store_true',
-                      help='Disabled repos only.', default=False
-                     )
-    PARSER.add_option('-k', '--key', dest='key', type='string', default='custom',
-                      help='key for fact tree'
-                     )
-    PARSER.add_option('--shell', dest='shell', action='store_true',
-                      help='output shell variables', default=False
-                     )
-    PARSER.add_option('--json', dest='json', action='store_true',
-                      help='output json snippet', default=False
-                     )
-    PARSER.add_option('--yaml', dest='yaml', action='store_true',
-                      help='output yaml snippet', default=False
-                     )
-    #-- 'Hidden' options
-    PARSER.add_option('-a', '--all', dest='all', action='store_true',
-                      help=optparse.SUPPRESS_HELP, default=True
-                     )
-    PARSER.add_option('--help-rest', dest='helprest', action='store_true',
-                      help=optparse.SUPPRESS_HELP, default=False
-                     )
-    PARSER.add_option('--debug', dest='debug', action='store_true',
-                      help=optparse.SUPPRESS_HELP, default=False
-                     )
-    PARSER.add_option('--debug-file', dest='debugfile', type='string',
-                      help=optparse.SUPPRESS_HELP
-                     )
-    (OPTIONS, ARGS) = PARSER.parse_args()
-    if OPTIONS.helprest:
-        PARSER.formatter = _ReSTHelpFormatter()
-        PARSER.usage = '[*options*]'            #: pylint: disable=attribute-defined-outside-init
-                                                #: Not yet sure of a better way to do this...
-        PARSER.description = __description__    #: pylint: disable=attribute-defined-outside-init
-        PARSER.epilog = ('\nAuthor\n------\n\n'
-                         '%s\n'
-                        ) % ('; '.join(__author__))
-        PARSER.print_help()
-        sys.exit(os.EX_OK)
+    #-- Setting up logger here so we can use them in even of exceptions.
+    #   Parsing options here as we need them to setup the logger.
+    options = CLIOptions(sys.argv[1:])
+    logger = CLILogger(options.debug)
+    if __require_root__ and os.getegid() != 0:
+        logger.error('Must be run as root.')
+        sys.exit(77)
 
-    if OPTIONS.shell and OPTIONS.json:
-        PARSER.error('--shell, --json and --yaml are mutually exclusive')
-    if OPTIONS.shell and OPTIONS.yaml:
-        PARSER.error('--shell, --json and --yaml are mutually exclusive')
-    if OPTIONS.yaml and OPTIONS.json:
-        PARSER.error('--shell, --json and --yaml are mutually exclusive')
-
-    if OPTIONS.enabled and OPTIONS.disabled:
-        PARSER.error('Options -e and -d are mutually exclusive.')
-    elif OPTIONS.enabled or OPTIONS.disabled:
-        OPTIONS.all = False
-
-    OPTIONS.ansiblecalled = bool(__basename__.startswith('ansible_module'))
-
-    #-- Setup output(s)
-    if OPTIONS.debug:
-        LEVEL = logging.DEBUG
-        FORMATTER = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s',
-                                      '%Y%m%d-%H%M'
-                                     )
-    else:
-        LEVEL = logging.INFO
-        FORMATTER = logging.Formatter('%(message)s')
-    logger = logging.getLogger(__name__) #: pylint: disable=invalid-name
-                                         #: lower-case is better here
-    logger.setLevel(LEVEL)
-
-    #-- Console output
-    CONSOLE = logging.StreamHandler()
-    CONSOLE.setLevel(LEVEL)
-    CONSOLE.setFormatter(FORMATTER)
-    logger.addHandler(CONSOLE)
-
-    #-- File output
-    if OPTIONS.debug and OPTIONS.debugfile:
-        #: NOTE: In Python >= 2.6 normally I give FileHandler 'delay="true"'
-        LOGFILE = logging.FileHandler(OPTIONS.debugfile)
-        LOGFILE.setLevel(LEVEL)
-        FORMATTER = logging.Formatter(
-            '%(asctime)s.%(msecs)d:%(levelno)s:%(name)s.%(funcName)s:%(lineno)d:%(message)s',
-            '%Y%m%d-%H%M'
-            )
-        LOGFILE.setFormatter(FORMATTER)
-        logger.addHandler(LOGFILE)
-
-    if OPTIONS.debug:
-        _debug_info()
-        print '\n----- start -----\n'
-
-    #-- Do The Stuff
+    #-- NOTE: "except Exception as variable:" syntax was added in 2.6, previously
+    #         one would use "except Exception, variable:", but that is not
+    #         compatible with 3.x. In order to be compatible with 2.5 (for RHEL 5)
+    #         and forward, we use "execpt Exception:", then on the first line of
+    #         the exception use "_, error, _ = sys.exc_info()". HOWEVER, pylint
+    #         will no longer be able to warn on object members...
     try:
         main()
     except KeyboardInterrupt: # Catches Ctrl-C
         logger.debug('Caught Ctrl-C')
         EXIT_STATUS = 130
-    except SystemExit: # Catches sys.exit()
+    except SystemExit as error: # Catches sys.exit()
+        #_, error, _ = sys.exc_info()
         logger.debug('Caught SystemExit')
-        raise
-    #-- NOTE: "except Exception as variable:" syntax was added in 2.6
+        logger.warning('%s: [SystemExit] %s', __basename__, error)
+        if error.errno is None:
+            EXIT_STATUS = 10
+        else:
+            EXIT_STATUS = error.errno
     except IOError as error:
+        #_, error, _ = sys.exc_info()
         logger.debug('Caught IOError')
-        if error.errno == 2:                #: No such file/directory
+        if error.errno is None:
+            logger.critical('%s: [IOError]: %s', __basename__, error)
+            EXIT_STATUS = 10
+        elif error.errno == 2:                #: No such file/directory
             logger.critical('%s: [IOError] %s: %s', __basename__,
-                            error.strerror, error.filename
+                            error, error.filename
                            )
             EXIT_STATUS = os.EX_UNAVAILABLE
         elif error.errno == 13:                #: Permission Denied
             logger.critical('%s: [IOError] %s: %s', __basename__,
-                            error.strerror, error.filename
+                            error, error.filename
                            )
             EXIT_STATUS = os.EX_NOPERM
         else:
-            logger.critical('%s: [IOError] %s', __basename__, error.strerror)
+            logger.critical('%s: [IOError] %s', __basename__, error)
             EXIT_STATUS = error.errno
     except OSError as error:
+        #_, error, _ = sys.exc_info()
         logger.debug('Caught OSError')
         if error.errno == 2:                #: No such file/directory
             logger.critical('%s: [OSError] %s: %s', __basename__,
-                            error.strerror, error.filename
+                            error, error.filename
                            )
             EXIT_STATUS = os.EX_UNAVAILABLE
         else:
-            logger.critical('%s: [OSError] %s', __basename__, error.strerror)
+            logger.critical('%s: [OSError] %s', __basename__, error)
             EXIT_STATUS = error.errno
-    # except:       #: This is _not_ working, see hack below
-    #     EXIT_STATUS = 1
-    #     # print "Unexpected error:", sys.exc_info()[0]
-    #     raise
+    except Exception as error:
+        #_, error, _ = sys.exc_info()
+        logger.debug('Caught Exception')
+        logger.critical('%s: %s', __basename__, error)
+        EXIT_STATUS = 10
     else:
         logger.debug('main() exited cleanly.')
         EXIT_STATUS = os.EX_OK
@@ -497,11 +743,10 @@ if __name__ == '__main__':
         logger.debug('Mandatory clean-up.')
         if EXIT_STATUS is None:
             logger.debug('EXIT_STATUS is still None.')
-            EXIT_STATUS = 1
-            raise #: pylint: disable=misplaced-bare-raise
-                  #: Ignoring this here until I find a Better Way(TM)
-        if OPTIONS.debug:
-            print '\n------ end ------\n'
+            EXIT_STATUS = 20
+        if options.debug:
+            print('\n------ end ------\n')
+        logging.shutdown()
         sys.exit(EXIT_STATUS)
     #-- NOTE: more exit codes here:
     #--   https://docs.python.org/2/library/os.html#process-management
