@@ -63,7 +63,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '1.8.0' #: current version
-__revised__ = '20180410-103152' #: date of most recent revision
+__revised__ = '20180410-104826' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Lists number of packages installed from each repo.'
 __description__ = '''This will check the yum database to build a list of which repositories
@@ -675,8 +675,8 @@ def main():
 if __name__ == '__main__':
     #-- Setting up logger here so we can use them in even of exceptions.
     #   Parsing options here as we need them to setup the logger.
-    options = CLIOptions(sys.argv[1:])
-    logger = CLILogger(options.debug)
+    options = CLIOptions(sys.argv[1:]) #: pylint: disable=invalid-name
+    logger = CLILogger(options.debug)  #: pylint: disable=invalid-name
     if __require_root__ and os.getegid() != 0:
         logger.error('Must be run as root.')
         sys.exit(77)
@@ -730,7 +730,7 @@ if __name__ == '__main__':
         else:
             logger.critical('%s: [OSError] %s', __basename__, error)
             EXIT_STATUS = error.errno
-    except Exception as error:
+    except Exception as error: #: pylint: disable=broad-except
         #_, error, _ = sys.exc_info()
         logger.debug('Caught Exception')
         logger.critical('%s: %s', __basename__, error)
