@@ -63,7 +63,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '1.8.0' #: current version
-__revised__ = '20180410-102900' #: date of most recent revision
+__revised__ = '20180410-103152' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Lists number of packages installed from each repo.'
 __description__ = '''This will check the yum database to build a list of which repositories
@@ -72,7 +72,7 @@ packages have been installed from.
 #------------------------------------------------------------------------------
 #-- The following few variables should be relatively static over life of script
 __author__ = ['awmyhr <awmyhr@gmail.com>'] #: coder(s) of script
-__created__ = '2018-04-09'               #: date script originlly created
+__created__ = '2016-11-16'               #: date script originlly created
 __copyright__ = '2016 awmyhr' #: Copyright short name
 __license__ = 'Apache-2.0'
 __gnu_version__ = False #: If True print GNU version string (which includes copyright/license)
