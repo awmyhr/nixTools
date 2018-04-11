@@ -35,6 +35,7 @@ from __future__ import with_statement   #: Clean up some uses of try/except PEP-
 #-- These may break 2.5 compatibility
 from __future__ import print_function   #: Makes print a function, not a statement PEP-3105
 from __future__ import unicode_literals #: Introduce bytes type for older strings PEP-3112
+import ConfigParser #: 'Easy' configuration parsing
 #-- NOTE: We use optparse for compatibility with python < 2.7 as
 #--       argparse wasn't standard until 2.7 (2.7 deprecates optparse)
 #--       As of 20161212 the template is coded for optparse only
@@ -61,8 +62,8 @@ if sys.version_info <= (2, 6):
 #-- Application Library Imports
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '0.9.1-alpha' #: current version
-__revised__ = '20180409-144628' #: date of most recent revision
+__version__ = '1.0.0-rc' #: current version
+__revised__ = '20180411-163425' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Testbed script for Sat6Object class.'
 __description__ = """This script exists to support the development of the
@@ -77,7 +78,7 @@ __created__ = '2018-04-05'               #: date script originlly created
 __copyright__ = '2016 awmyhr' #: Copyright short name
 __license__ = 'Apache-2.0'
 __gnu_version__ = False #: If True print GNU version string (which includes copyright/license)
-__cononical_name__ = 'bin/sat6-api-exp.py' #: static name, *NOT* os.path.basename(sys.argv[0])
+__cononical_name__ = 'sat6-api-exp' #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__ = 'nixTools from *NIXLand'  #: name of overall project, if needed
 __project_home__ = 'https://github.com/awmyhr/nixTools'  #: where to find source/documentation
 __template_version__ = '2.0.0-alpha-02'              #: version of template file used
@@ -196,7 +197,7 @@ def timestamp(time_format=None):
 
 
 #==============================================================================
-def CLILogger(debug=False): #: pylint: disable=invalid-name
+def RunLogger(debug=False):
     """ Set up Python's Logging
 
     Args:
@@ -277,17 +278,47 @@ def CLILogger(debug=False): #: pylint: disable=invalid-name
 
 
 #==============================================================================
-class CLIOptions(object):
+class RunOptions(object):
     """ Parse the options and put them into an object """
+    _defaults = {
+        'authkey': None,
+        'debug': False,
+        'id': None,
+        'name': None,
+        'password': None,
+        'hostname': None,
+        'username': None
+    }
 
-    _options = None
     _arguments = None
+    _configs = None
+    _options = None
 
     def __init__(self, args=None):
+        if self._configs is not None:
+            raise ValueError('Configs already initialized.')
+        else:
+            self._configs = self._load_configs()
         if self._options is not None:
-            raise ValueError('CLIOptions already initialized.')
+            raise ValueError('Options already initialized.')
         else:
             (self._options, self._arguments) = self._parse_args(args)
+
+    def _load_configs(self):
+        parser = ConfigParser.SafeConfigParser(defaults=self._defaults)
+        parser.read(['/etc/rhsm/rhsm.conf',
+                     os.path.expanduser('~/.satellite6'),
+                     '%s.cfg' % __cononical_name__])
+        #-- TODO: Define possible sections
+        if not parser.has_section('debug'):
+            parser.add_section('debug')
+        if not parser.has_section('organization'):
+            parser.add_section('organization')
+        if not parser.has_section('server'):
+            parser.add_section('server')
+        if not parser.has_section('user'):
+            parser.add_section('user')
+        return parser
 
     @property
     def args(self):
@@ -390,46 +421,44 @@ class CLIOptions(object):
         if __gnu_version__:
             version_string += '\nCopyright %s\nLicense %s\n' % (__copyright__, __license__)
         parser = _ModOptionParser(version=version_string, usage=usage_string,
-                                  description=description_string, epilog=epilog_string
-                                 )
-        self.parser = parser
+                                  description=description_string, epilog=epilog_string)
+        #-- Visible Options
+        #   These can *not* be set in a config file
         parser.add_option('-H', '--hostname', dest='hostname', type='string',
-                          help='Hostname to change.', default=None
-                         )
+                          help='Hostname to change.', default=None)
         parser.add_option('-L', '--lifecycle', dest='lifecycle', type='string',
-                          help='Life-cycle environment.', default=None
-                         )
-        parser.add_option('-o', '--organization', dest='org_name', type='string',
-                          help='Organization name.', default=None
-                         )
-        parser.add_option('-O', '--organization-id', dest='org_id', type='int',
-                          help='Organization ID number.', default=None
-                         )
-        parser.add_option('-s', '--server', dest='server', type='string',
-                          help='Satellite server.', default=None
-                         )
-        parser.add_option('-u', '--username', dest='username', type='string',
-                          help='Satellite username.', default=None
-                         )
-        parser.add_option('-p', '--password', dest='password', type='string',
-                          help='Satellite user password.', default=None
-                         )
-        parser.add_option('-K', '--userkey', dest='authkey', type='string',
-                          help='Satellite user access key.', default=None
-                         )
-        parser.add_option('-c', '--config', dest='configfile', type='string',
-                          help='User Satellite config file.', default=None
-                         )
+                          help='Life-cycle environment.', default=None)
         parser.add_option('--hostlist', dest='hostlist', action='store_true',
-                          help='Retreive and display a host list.', default=False
-                         )
+                          help='Retreive and display a host list.', default=False)
+        parser.add_option('-c', '--config', dest='configfile', type='string',
+                          help='User Satellite config file.', default=None)
+        #   These could be set in a config file
+        parser.add_option('-o', '--organization', dest='org_name', type='string',
+                          help='Organization name.',
+                          default=self._configs.get('organization', 'name'))
+        parser.add_option('-O', '--organization-id', dest='org_id', type='int',
+                          help='Organization ID number.',
+                          default=self._configs.get('organization', 'id'))
+        parser.add_option('-s', '--server', dest='server', type='string',
+                          help='Satellite server.',
+                          default=self._configs.get('server', 'hostname'))
+        parser.add_option('-u', '--username', dest='username', type='string',
+                          help='Satellite username.',
+                          default=self._configs.get('user', 'username'))
+        parser.add_option('-p', '--password', dest='password', type='string',
+                          help='Satellite user password.',
+                          default=self._configs.get('user', 'password'))
+        parser.add_option('-K', '--userkey', dest='authkey', type='string',
+                          help='Satellite user access key.',
+                          default=self._configs.get('user', 'authkey'))
         #-- 'Hidden' options
+        #   These can *not* be set in a config file
         parser.add_option('--help-rest', dest='helprest', action='store_true',
-                          help=optparse.SUPPRESS_HELP, default=False
-                         )
+                          help=optparse.SUPPRESS_HELP, default=None)
+        #   These could be set in a config file
         parser.add_option('--debug', dest='debug', action='store_true',
-                          help=optparse.SUPPRESS_HELP, default=False
-                         )
+                          help=optparse.SUPPRESS_HELP,
+                          default=self._configs.get('debug', 'debug'))
 
         parsed_opts, parsed_args = parser.parse_args(args)
         if parsed_opts.helprest:
@@ -437,9 +466,7 @@ class CLIOptions(object):
             parser.usage = '[*options*]'            #: pylint: disable=attribute-defined-outside-init
                                                     #: Not yet sure of a better way to do this...
             parser.description = __description__    #: pylint: disable=attribute-defined-outside-init
-            parser.epilog = ('\nAuthor\n------\n\n'
-                             '%s\n'
-                            ) % ('; '.join(__author__))
+            parser.epilog = '\nAuthor\n------\n\n%s\n' % ('; '.join(__author__))
             parser.print_help()
             sys.exit(os.EX_OK)
         if parsed_opts.org_id and parsed_opts.org_name:
@@ -462,7 +489,7 @@ class CLIOptions(object):
 
 
 #==============================================================================
-class Sat6Object:
+class Sat6Object(object):
     """ Class for interacting with Satellite 6 API """
     #-- Max number of items returned per page.
     per_page = 100
@@ -947,9 +974,12 @@ def main():
             print('Host Org Name:     %s' % my_host['organization_name'])
             print('Host Org ID:       %s' % my_host['organization_id'])
             if 'content_facet_attributes' in my_host:
-                print('Host Lifecycle:    %s' % my_host['content_facet_attributes']['lifecycle_environment']['name'])
-                print('Host Lifecycle ID: %s' % my_host['content_facet_attributes']['lifecycle_environment']['id'])
-                print('Host Content View: %s' % my_host['content_facet_attributes']['content_view']['name'])
+                print('Host Lifecycle:    %s' %
+                      my_host['content_facet_attributes']['lifecycle_environment']['name'])
+                print('Host Lifecycle ID: %s' %
+                      my_host['content_facet_attributes']['lifecycle_environment']['id'])
+                print('Host Content View: %s' %
+                      my_host['content_facet_attributes']['content_view']['name'])
         else:
             print('Warning: No host matches for %s.' % options.hostname)
     else:
@@ -964,7 +994,8 @@ def main():
                 my_host = sat6_session.results['return']
             else:
                 print('LCE *not* set for %s (%s)' % (my_host['name'], sat6_session.results['msg']))
-            print('host LCE now: %s' % my_host['content_facet_attributes']['lifecycle_environment']['name'])
+            print('host LCE now: %s' %
+                  my_host['content_facet_attributes']['lifecycle_environment']['name'])
         else:
             print('LCE passed, but no hostname passed')
     else:
@@ -974,7 +1005,9 @@ def main():
     if options.hostlist:
         for host in sat6_session.get_host_list():
             if 'content_facet_attributes' in host:
-                print("Host ID: %s  Name: %s  LCE: %s" % (host['id'], host['name'], host['content_facet_attributes']['lifecycle_environment']['name']))
+                print("Host ID: %s  Name: %s  LCE: %s" %
+                      (host['id'], host['name'],
+                       host['content_facet_attributes']['lifecycle_environment']['name']))
             else:
                 print("Host ID: %s  Name: %s" % (host['id'], host['name']))
     else:
@@ -1011,8 +1044,8 @@ def main():
 if __name__ == '__main__':
     #-- Setting up logger here so we can use them in even of exceptions.
     #   Parsing options here as we need them to setup the logger.
-    options = CLIOptions(sys.argv[1:])
-    logger = CLILogger(options.debug)
+    options = RunOptions(sys.argv[1:])
+    logger = RunLogger(options.debug)
 
     if __require_root__ and os.getegid() != 0:
         logger.error('Must be run as root.')
