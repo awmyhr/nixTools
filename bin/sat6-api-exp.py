@@ -62,8 +62,8 @@ if sys.version_info <= (2, 6):
 #-- Application Library Imports
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '1.0.0-rc' #: current version
-__revised__ = '20180411-163425' #: date of most recent revision
+__version__ = '1.0.1' #: current version
+__revised__ = '20180412-150242' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Testbed script for Sat6Object class.'
 __description__ = """This script exists to support the development of the
@@ -678,7 +678,12 @@ class Sat6Object(object):
 
         if 'lce' not in self.lutables:
             logger.debug('First time calling function, loading table.')
-            self.lutables['lce'] = self._get_rest_call('%s/%s' % (self.pub, self.lookup_tables['lce']))
+            self.lutables['lce'] = self._get_rest_call('%s/%s' % (self.pub,
+                                                                  self.lookup_tables['lce']))
+            if '_revision' in self.lutables['lce']:
+                logger.debug('LCE Table revision: %s', self.lutables['lce']['_revision'])
+            else:
+                logger.debug('Warning: LCE Table did not have _revision tag.')
         return self.lutables['lce'].get(lce_tag.lower(), None)
 
     def get_host(self, hostname):
