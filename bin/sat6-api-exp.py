@@ -62,8 +62,8 @@ if sys.version_info <= (2, 6):
 #-- Application Library Imports
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '1.0.1' #: current version
-__revised__ = '20180412-150242' #: date of most recent revision
+__version__ = '1.1.0-alpha' #: current version
+__revised__ = '20180413-162630' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Testbed script for Sat6Object class.'
 __description__ = """This script exists to support the development of the
@@ -520,6 +520,7 @@ class Sat6Object(object):
         self.foreman = '%s/api/v2' % self.url
         self.katello = '%s/katello/api' % self.url
         self.connection = self._new_connection()
+        self.connection.cookies = self._get_cookies()
         self.results = {"success": None, "msg": None, "return": None}
         self.lutables = {}
         if org_name is not None:
@@ -529,6 +530,9 @@ class Sat6Object(object):
             self.org_id = org_id
         else:
             self.org_id = 1
+
+    def __del__(self):
+        self.cookies.save(ignore_discard=True)
 
     def _get_rest_call(self, url, params=None):
         """ Call a REST API URL using GET.
@@ -657,7 +661,20 @@ class Sat6Object(object):
                               'content-type': 'application/json'}
         logger.debug('Headers set: %s', connection.headers)
         connection.verify = False
+
         return connection
+
+    def _get_cookies(self):
+        try:
+            from cookielib import LWPCookieJar
+        except ImportError:
+            raise ImportError('The python-cookielib module is required.')
+        self.cookies = LWPCookieJar(os.getenv("HOME") + "/.sat6_api_session")
+        try:
+            self.cookies.load(ignore_discard=True)
+        except IOError:
+            pass
+        return self.cookies
 
     def lookup_lce_name(self, lce_tag):
         """ Searches for and returns LCE from Satellite 6.
@@ -990,7 +1007,8 @@ def main():
     else:
         print('No hostname passed.')
     print('-------------------')
-
+    print(sat6_session.connection.cookies)
+    sys.exit(0)
     if options.lifecycle:
         print(sat6_session.lookup_lce_name(options.lifecycle))
         if options.hostname:
