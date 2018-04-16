@@ -63,7 +63,7 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 __version__ = '1.1.0-alpha' #: current version
-__revised__ = '20180416-122425' #: date of most recent revision
+__revised__ = '20180416-133429' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Testbed script for Sat6Object class.'
 __description__ = '''This script exists to support the development of the
@@ -491,7 +491,10 @@ class RunOptions(object):
 #==============================================================================
 class Sat6Object(object):
     ''' Class for interacting with Satellite 6 API '''
+    _version = '1.1.0-alpha'
     #-- Max number of items returned per page.
+    #   Though we allow this to be configured, KB articles say 100 is the
+    #   optimal value to avoid timeouts.
     per_page = 100
     lookup_tables = {'lce': 'lut/lce_name.json'}
 
@@ -560,15 +563,15 @@ class Sat6Object(object):
             results = self.connection.get(url, params=params)
             logger.debug('Final URL: %s', results.url)
             rjson = results.json()
-        except requests.exceptions.ConnectionError as error:
+        except requests.ConnectionError as error:
             logger.debug('Caught Requests Connection Error.')
             error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
             raise error
-        except requests.exceptions.HTTPError as error:
+        except requests.HTTPError as error:
             logger.debug('Caught Requests HTTP Error.')
             error.message = '[HTTPError]: %s' % (error.message) #: pylint: disable=no-member
             raise error
-        except requests.exceptions.Timeout as error:
+        except requests.Timeout as error:
             logger.debug('Caught Requests Timeout.')
             error.message = '[Timeout]: %s' % (error.message) #: pylint: disable=no-member
             raise error
@@ -614,15 +617,15 @@ class Sat6Object(object):
             results = self.connection.put(url, data=json.dumps(data))
             logger.debug('Final URL: %s', results.url)
             rjson = results.json()
-        except requests.exceptions.ConnectionError as error:
+        except requests.ConnectionError as error:
             logger.debug('Caught Requests Connection Error.')
             error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
             raise error
-        except requests.exceptions.HTTPError as error:
+        except requests.HTTPError as error:
             logger.debug('Caught Requests HTTP Error.')
             error.message = '[HTTPError]: %s' % (error.message) #: pylint: disable=no-member
             raise error
-        except requests.exceptions.Timeout as error:
+        except requests.Timeout as error:
             logger.debug('Caught Requests Timeout.')
             error.message = '[Timeout]: %s' % (error.message) #: pylint: disable=no-member
             raise error
@@ -1009,8 +1012,7 @@ def main():
     else:
         print('No hostname passed.')
     print('-------------------')
-    print(sat6_session.connection.cookies)
-    sys.exit(0)
+
     if options.lifecycle:
         print(sat6_session.lookup_lce_name(options.lifecycle))
         if options.hostname:
@@ -1039,31 +1041,31 @@ def main():
         print('Hostlist not asked for.')
     print('-------------------')
 
-    my_org = sat6_session.get_org()
-    print('Org ID:            %s' % my_org['id'])
-    print('Org Label:         %s' % my_org['label'])
-    print('-------------------')
+    # my_org = sat6_session.get_org()
+    # print('Org ID:            %s' % my_org['id'])
+    # print('Org Label:         %s' % my_org['label'])
+    # print('-------------------')
 
-    for cview in sat6_session.get_cv_list():
-        print("CV ID: %s  Name: %s  Label: %s" % (cview['id'], cview['name'], cview['label']))
-    print('-------------------')
+    # for cview in sat6_session.get_cv_list():
+    #     print("CV ID: %s  Name: %s  Label: %s" % (cview['id'], cview['name'], cview['label']))
+    # print('-------------------')
 
-    for org in sat6_session.get_org_list():
-        print("Org ID: %s  Name: %s  Label: %s" % (org['id'], org['name'], org['label']))
-    print('-------------------')
+    # for org in sat6_session.get_org_list():
+    #     print("Org ID: %s  Name: %s  Label: %s" % (org['id'], org['name'], org['label']))
+    # print('-------------------')
 
-    lce_check = 'Incoming'
-    my_lce = sat6_session.get_org_lce(lce_check)
-    if my_lce:
-        print('LCE ID:            %s' % my_lce['id'])
-        print('LCE Name:          %s' % my_lce['name'])
-    else:
-        print('Warning: LCE %s unknown.' % lce_check)
-    print('-------------------')
+    # lce_check = 'Incoming'
+    # my_lce = sat6_session.get_org_lce(lce_check)
+    # if my_lce:
+    #     print('LCE ID:            %s' % my_lce['id'])
+    #     print('LCE Name:          %s' % my_lce['name'])
+    # else:
+    #     print('Warning: LCE %s unknown.' % lce_check)
+    # print('-------------------')
 
-    for lce in sat6_session.get_org_lce_list():
-        print("LCE ID: %s  Name: %s  Label: %s" % (lce['id'], lce['name'], lce['label']))
-    print('-------------------')
+    # for lce in sat6_session.get_org_lce_list():
+    #     print("LCE ID: %s  Name: %s  Label: %s" % (lce['id'], lce['name'], lce['label']))
+    # print('-------------------')
 
 #==============================================================================
 if __name__ == '__main__':
