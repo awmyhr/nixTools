@@ -63,7 +63,7 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 __version__ = '1.1.0-alpha' #: current version
-__revised__ = '20180416-133429' #: date of most recent revision
+__revised__ = '20180416-144424' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Testbed script for Sat6Object class.'
 __description__ = '''This script exists to support the development of the
@@ -284,6 +284,7 @@ class RunOptions(object):
         'authkey': None,
         'debug': False,
         'id': None,
+        'insecure': 0,
         'name': None,
         'password': None,
         'hostname': None,
@@ -339,6 +340,13 @@ class RunOptions(object):
         ''' Class property '''
         if self._options is not None:
             return self._options.debug
+        return None
+
+    @property
+    def insecure(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.insecure
         return None
 
     @property
@@ -456,6 +464,9 @@ class RunOptions(object):
         parser.add_option('--help-rest', dest='helprest', action='store_true',
                           help=optparse.SUPPRESS_HELP, default=None)
         #   These could be set in a config file
+        parser.add_option('--ssl-insecure', dest='insecure', action='store_true',
+                          help=optparse.SUPPRESS_HELP,
+                          default=self._configs.get('server', 'insecure'))
         parser.add_option('--debug', dest='debug', action='store_true',
                           help=optparse.SUPPRESS_HELP,
                           default=self._configs.get('debug', 'debug'))
@@ -499,7 +510,7 @@ class Sat6Object(object):
     lookup_tables = {'lce': 'lut/lce_name.json'}
 
     def __init__(self, server=None, username=None, password=None,
-                 authkey=None, org_id=None, org_name=None):
+                 authkey=None, org_id=None, org_name=None, insecure=False):
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         logger.debug('Initiallizing a Sat6_Object.')
         if authkey is None:
@@ -522,6 +533,7 @@ class Sat6Object(object):
         self.pub = '%s/pub' % self.url
         self.foreman = '%s/api/v2' % self.url
         self.katello = '%s/katello/api' % self.url
+        self.insecure = insecure
         self.connection = self._new_connection()
         self.connection.cookies = self._get_cookies()
         self.results = {"success": None, "msg": None, "return": None}
@@ -537,7 +549,7 @@ class Sat6Object(object):
     def __del__(self):
         self.cookies.save(ignore_discard=True)
 
-    def _get_rest_call(self, url, params=None):
+    def _get_rest_call(self, url, params=None, data=None):
         ''' Call a REST API URL using GET.
 
         Args:
@@ -554,13 +566,19 @@ class Sat6Object(object):
             import requests
         except ImportError:
             raise ImportError('The python-requests module is required.')
+        try:
+            import json
+        except ImportError:
+            raise ImportError('The python-json module is required.')
 
         logger.debug('Calling URL: %s', url)
         if params is not None:
             logger.debug('With params: %s', params)
+        if data is not None:
+            logger.debug('With data: %s', data)
 
         try:
-            results = self.connection.get(url, params=params)
+            results = self.connection.get(url, params=params, data=json.dumps(data))
             logger.debug('Final URL: %s', results.url)
             rjson = results.json()
         except requests.ConnectionError as error:
@@ -641,7 +659,7 @@ class Sat6Object(object):
             raise IOError(127, '[Requests]: API call failed: %s' % (rjson['error']['message']))
         return rjson
 
-    def _new_connection(self, authkey=None):
+    def _new_connection(self, authkey=None, insecure=None):
         ''' Create a Request session object
 
         Args:
@@ -658,12 +676,16 @@ class Sat6Object(object):
             raise ImportError('The python-requests module is required.')
         if authkey is None:
             authkey = self.authkey
+        if insecure is None:
+            verify = not bool(self.insecure)
+        else:
+            verify = not bool(insecure)
         connection = requests.Session()
         connection.headers = {'accept': 'application/json',
                               'authorization': 'Basic %s' % authkey,
                               'content-type': 'application/json'}
         logger.debug('Headers set: %s', connection.headers)
-        connection.verify = False
+        connection.verify = verify
 
         return connection
 
@@ -992,7 +1014,8 @@ def main():
     logger.debug('Starting main()')
     sat6_session = Sat6Object(server=options.server, username=options.username,
                               password=options.password, authkey=options.authkey,
-                              org_id=options.org_id, org_name=options.org_name)
+                              org_id=options.org_id, org_name=options.org_name,
+                              insecure=options.insecure)
 
     if options.hostname:
         my_host = sat6_session.get_host(options.hostname)
