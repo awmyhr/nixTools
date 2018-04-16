@@ -3,7 +3,7 @@
 # ^^-- use utf-8 strings by default
 #-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.
 #===============================================================================
-"""
+'''
     :program:`bin/sat6-api-exp.py`
     ============================================================
 
@@ -24,7 +24,7 @@
     :license: Apache-2.0
 
     .. codeauthor:: awmyhr <awmyhr@gmail.com>
-"""
+'''
 #===============================================================================
 #-- Standard Imports
 #-- NOTE: See __future__ documentation at https://docs.python.org/2/library/__future__.html
@@ -63,14 +63,14 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 __version__ = '1.1.0-alpha' #: current version
-__revised__ = '20180413-162630' #: date of most recent revision
+__revised__ = '20180416-122425' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Testbed script for Sat6Object class.'
-__description__ = """This script exists to support the development of the
+__description__ = '''This script exists to support the development of the
 Python Sat6Object class. Most 'functionality' are simple examples of method
 usage. Eventually this may be converted into a proper module, but until then
 here we are...
-"""
+'''
 #------------------------------------------------------------------------------
 #-- The following few variables should be relatively static over life of script
 __author__ = ['awmyhr <awmyhr@gmail.com>'] #: coder(s) of script
@@ -100,23 +100,23 @@ __logger_lvl__ = os.getenv('LOGGER_LVL') if 'LOGGER_LVL' in os.environ else 'inf
 EXIT_STATUS = None
 #==============================================================================
 class _ModOptionParser(optparse.OptionParser):
-    """ By default format_epilog() strips newlines, we don't want that,
+    ''' By default format_epilog() strips newlines, we don't want that,
         so we override.
-    """
+    '''
 
     def format_epilog(self, formatter):
-        """ We'll preformat the epilog in the decleration, just pass it through """
+        ''' We'll preformat the epilog in the decleration, just pass it through '''
         return self.epilog
 
 
 #==============================================================================
 class _ReSTHelpFormatter(optparse.HelpFormatter):
-    """ Format help for Sphinx/ReST output.
+    ''' Format help for Sphinx/ReST output.
 
     NOTE: All over-ridden methods started life as copy'n'paste from original's
           source code.
 
-    """
+    '''
 
     def __init__(self, indent_increment=0, max_help_position=4, width=80, short_first=0):
         optparse.HelpFormatter.__init__(self, indent_increment,
@@ -155,7 +155,7 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
         return ''.join(retval)
 
     def format_option_strings(self, option):
-        """ Return a comma-separated list of option strings & metavariables. """
+        ''' Return a comma-separated list of option strings & metavariables. '''
         if option.takes_value():
             metavar = option.metavar or option.dest.upper()
             short_opts = ['%s <%s>' % (sopt, metavar)
@@ -179,7 +179,7 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
 
 #==============================================================================
 def timestamp(time_format=None):
-    """ Return date in specified format
+    ''' Return date in specified format
 
     Args:
         time_format (str): Format string for timestamp. Compatible w/'date'.
@@ -187,7 +187,7 @@ def timestamp(time_format=None):
     Returns:
         The formatted timestamp as a string.
 
-    """
+    '''
     if 'logger' in globals():
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     import time
@@ -198,7 +198,7 @@ def timestamp(time_format=None):
 
 #==============================================================================
 def RunLogger(debug=False):
-    """ Set up Python's Logging
+    ''' Set up Python's Logging
 
     Args:
         debug (boolean): Debug flag.
@@ -206,7 +206,7 @@ def RunLogger(debug=False):
     Returns:
         The logging object.
 
-    """
+    '''
     new_logger = logging.getLogger(__name__)
     new_logger.setLevel(logging.DEBUG)
 
@@ -279,7 +279,7 @@ def RunLogger(debug=False):
 
 #==============================================================================
 class RunOptions(object):
-    """ Parse the options and put them into an object """
+    ''' Parse the options and put them into an object '''
     _defaults = {
         'authkey': None,
         'debug': False,
@@ -322,84 +322,84 @@ class RunOptions(object):
 
     @property
     def args(self):
-        """ Class property """
+        ''' Class property '''
         if self._arguments is not None:
             return self._arguments
         return None
 
     @property
     def hostlist(self):
-        """ Class property """
+        ''' Class property '''
         if self._options is not None:
             return self._options.hostlist
         return None
 
     @property
     def debug(self):
-        """ Class property """
+        ''' Class property '''
         if self._options is not None:
             return self._options.debug
         return None
 
     @property
     def hostname(self):
-        """ Class property """
+        ''' Class property '''
         if self._options is not None:
             return self._options.hostname
         return None
 
     @property
     def lifecycle(self):
-        """ Class property """
+        ''' Class property '''
         if self._options is not None:
             return self._options.lifecycle
         return None
 
     @property
     def org_name(self):
-        """ Class property """
+        ''' Class property '''
         if self._options is not None:
             return self._options.org_name
         return None
 
     @property
     def org_id(self):
-        """ Class property """
+        ''' Class property '''
         if self._options is not None:
             return self._options.org_id
         return None
 
     @property
     def server(self):
-        """ Class property """
+        ''' Class property '''
         if self._options is not None:
             return self._options.server
         return None
 
     @property
     def username(self):
-        """ Class property """
+        ''' Class property '''
         if self._options is not None:
             return self._options.username
         return None
 
     @property
     def password(self):
-        """ Class property """
+        ''' Class property '''
         if self._options is not None:
             return self._options.password
         return None
 
     @property
     def authkey(self):
-        """ Class property """
+        ''' Class property '''
         if self._options is not None:
             return self._options.authkey
         return None
 
     @property
     def configfile(self):
-        """ Class property """
+        ''' Class property '''
         if self._options is not None:
             return self._options.configfile
         return None
@@ -490,7 +490,7 @@ class RunOptions(object):
 
 #==============================================================================
 class Sat6Object(object):
-    """ Class for interacting with Satellite 6 API """
+    ''' Class for interacting with Satellite 6 API '''
     #-- Max number of items returned per page.
     per_page = 100
     lookup_tables = {'lce': 'lut/lce_name.json'}
@@ -535,7 +535,7 @@ class Sat6Object(object):
         self.cookies.save(ignore_discard=True)
 
     def _get_rest_call(self, url, params=None):
-        """ Call a REST API URL using GET.
+        ''' Call a REST API URL using GET.
 
         Args:
             session_obj (obj): Session object
@@ -545,7 +545,7 @@ class Sat6Object(object):
         Returns:
             Results of API call in a dict
 
-        """
+        '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         try:
             import requests
@@ -585,7 +585,7 @@ class Sat6Object(object):
         return rjson
 
     def _put_rest_call(self, url, data=None):
-        """ Call a REST API URL using PUT .
+        ''' Call a REST API URL using PUT .
 
         Args:
             session_obj (obj): Session object
@@ -595,7 +595,7 @@ class Sat6Object(object):
         Returns:
             Results of API call in a dict
 
-        """
+        '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         try:
             import requests
@@ -639,7 +639,7 @@ class Sat6Object(object):
         return rjson
 
     def _new_connection(self, authkey=None):
-        """ Create a Request session object
+        ''' Create a Request session object
 
         Args:
             authkey (str): Username
@@ -647,7 +647,7 @@ class Sat6Object(object):
         Returns:
             Requests session object.
 
-        """
+        '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         try:
             import requests
@@ -665,6 +665,8 @@ class Sat6Object(object):
         return connection
 
     def _get_cookies(self):
+        ''' Handle session cookie '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         try:
             from cookielib import LWPCookieJar
         except ImportError:
@@ -677,7 +679,7 @@ class Sat6Object(object):
         return self.cookies
 
     def lookup_lce_name(self, lce_tag):
-        """ Searches for and returns LCE from Satellite 6.
+        ''' Searches for and returns LCE from Satellite 6.
             This is a highly-custom routine which depends on a lookup-table
             existing as a static json file in the Satellites pub directory.
             The json file is a simple, manually maintained list of possible
@@ -689,7 +691,7 @@ class Sat6Object(object):
         Returns:
             Satellite 6 name of LCE.
 
-        """
+        '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         logger.debug('Looking for lce: %s', lce_tag)
 
@@ -704,7 +706,7 @@ class Sat6Object(object):
         return self.lutables['lce'].get(lce_tag.lower(), None)
 
     def get_host(self, hostname):
-        """ Searches for and returns info for a Satellite 6 host.
+        ''' Searches for and returns info for a Satellite 6 host.
 
         Args:
             hostname (str):        Name of host to find.
@@ -722,7 +724,7 @@ class Sat6Object(object):
             return['organization_name']
             return['organization_id']
 
-        """
+        '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         logger.debug('Looking for host: %s', hostname)
         if hostname is None:
@@ -744,12 +746,12 @@ class Sat6Object(object):
         return results['results'][0]
 
     def get_host_list(self):
-        """ This returns a list of Satellite 6 Hosts.
+        ''' This returns a list of Satellite 6 Hosts.
 
         Returns:
             List of Hosts (dict). Of particular value will be
 
-        """
+        '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         item = 0
         page_item = 0
@@ -768,12 +770,12 @@ class Sat6Object(object):
             page_item += 1
 
     def get_cv_list(self):
-        """ This returns a list of Satellite 6 content views.
+        ''' This returns a list of Satellite 6 content views.
 
         Returns:
             List of Orgs (dict). Of particular value will be
 
-        """
+        '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         item = 0
         page_item = 0
@@ -792,7 +794,7 @@ class Sat6Object(object):
             page_item += 1
 
     def get_org(self, organization=None):
-        """ Returns info about a Satellite 6 organization.
+        ''' Returns info about a Satellite 6 organization.
             If organization is an integer (i.e., self.org_id), will return
             detailed info about that specific org.
             Otherwise will run a search for string passed. If only one result
@@ -809,7 +811,7 @@ class Sat6Object(object):
             return['label']
             return['description']
 
-        """
+        '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         if organization is None:
             if self.org_id is None:
@@ -834,12 +836,12 @@ class Sat6Object(object):
         return results['results'][0]
 
     def get_org_list(self):
-        """ This returns a list of Satellite 6 organizations.
+        ''' This returns a list of Satellite 6 organizations.
 
         Returns:
             List of Orgs (dict). Of particular value will be
 
-        """
+        '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         item = 0
         page_item = 0
@@ -858,7 +860,7 @@ class Sat6Object(object):
             page_item += 1
 
     def get_org_lce(self, lce_name, org_id=None):
-        """ This returns info about an Lifecycle Environments
+        ''' This returns info about an Lifecycle Environments
 
         Args:
             lce_name: LCE name to lookup
@@ -867,7 +869,7 @@ class Sat6Object(object):
         Returns:
             A dict of info about a LCE
 
-        """
+        '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         if org_id is None:
             org_id = self.org_id
@@ -888,7 +890,7 @@ class Sat6Object(object):
         return results['results'][0]
 
     def get_org_lce_list(self, org_id=None):
-        """ This returns a list of an Orgs Lifecycel Environments
+        ''' This returns a list of an Orgs Lifecycel Environments
 
         Args:
             org_id:           Organization ID to check
@@ -896,7 +898,7 @@ class Sat6Object(object):
         Returns:
             List of LCEs (dict). Of particular value may be
 
-        """
+        '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         if org_id is None:
             org_id = self.org_id
@@ -918,7 +920,7 @@ class Sat6Object(object):
             page_item += 1
 
     def set_host_lce(self, host, lce):
-        """ Set the LifeCycle Environment of a Sat6 host
+        ''' Set the LifeCycle Environment of a Sat6 host
 
          Args:
             host:           Host to change
@@ -927,7 +929,7 @@ class Sat6Object(object):
         Returns:
             Status of request. Will set self.results
 
-       """
+       '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         self.results = {"success": None, "msg": None, "return": None}
         if host is None:
@@ -983,7 +985,7 @@ class Sat6Object(object):
 
 #==============================================================================
 def main():
-    """ This is where the action takes place """
+    ''' This is where the action takes place '''
     logger.debug('Starting main()')
     sat6_session = Sat6Object(server=options.server, username=options.username,
                               password=options.password, authkey=options.authkey,
