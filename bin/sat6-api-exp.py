@@ -63,7 +63,7 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 __version__ = '1.1.0-alpha' #: current version
-__revised__ = '20180419-165255' #: date of most recent revision
+__revised__ = '20180419-170640' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Testbed script for Sat6Object class.'
 __description__ = '''This script exists to support the development of the
@@ -675,26 +675,25 @@ class Sat6Object(object):
 
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        if authkey is None:
-            authkey = self.authkey
-        if token is None:
-            authorization = 'Basic %s' % authkey
-        else:
-            authorization = 'Bearer %s' % token['access_token']
-        if insecure is None:
-            verify = not bool(self.insecure)
-        else:
-            verify = not bool(insecure)
         connection = requests.Session()
         connection.headers = {
-            'x-ibm-client-id': client_id,
             'content-type': 'application/json',
-            'authorization': authorization,
             'accept': 'application/json',
             'cache-control': 'no-cache'
         }
+        if token is None:
+            if authkey is None:
+                authkey = self.authkey
+            connection.headers['authorization'] = 'Basic %s' % authkey
+        else:
+            connection.headers['authorization'] = 'Bearer %s' % token['access_token']
+        if client_id is not None:
+            connection.headers['x-ibm-client-id'] = client_id
         logger.debug('Headers set: %s', connection.headers)
-        connection.verify = verify
+        if insecure is None:
+            connection.verify = not bool(self.insecure)
+        else:
+            connection.verify = not bool(insecure)
         connection.cookies = LWPCookieJar(os.getenv("HOME") + "/.sat6_api_session")
         try:
             connection.cookies.load(ignore_discard=True)
