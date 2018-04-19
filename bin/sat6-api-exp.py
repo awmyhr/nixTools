@@ -63,7 +63,7 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 __version__ = '1.1.0-alpha' #: current version
-__revised__ = '20180416-144424' #: date of most recent revision
+__revised__ = '20180419-165255' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Testbed script for Sat6Object class.'
 __description__ = '''This script exists to support the development of the
@@ -500,9 +500,27 @@ class RunOptions(object):
 
 
 #==============================================================================
+#-- Imports needed for Sat6Object
+try:
+    import base64
+except ImportError:
+    raise ImportError('The python-base64 module is required.')
+try:
+    import requests
+except ImportError:
+    raise ImportError('The python-requests module is required.')
+try:
+    import json
+except ImportError:
+    raise ImportError('The python-json module is required.')
+try:
+    from cookielib import LWPCookieJar
+except ImportError:
+    raise ImportError('The python-cookielib module is required.')
+#==============================================================================
 class Sat6Object(object):
     ''' Class for interacting with Satellite 6 API '''
-    _version = '1.1.0-alpha'
+    __version = '1.1.0-alpha02'
     #-- Max number of items returned per page.
     #   Though we allow this to be configured, KB articles say 100 is the
     #   optimal value to avoid timeouts.
@@ -512,14 +530,10 @@ class Sat6Object(object):
     def __init__(self, server=None, username=None, password=None,
                  authkey=None, org_id=None, org_name=None, insecure=False):
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        logger.debug('Initiallizing a Sat6_Object.')
+        logger.debug('Initiallizing Sat6Object version %s.', self.__version)
         if authkey is None:
             if username is None or password is None:
                 raise RuntimeError('Must provide either authkey or username/password pair.')
-            try:
-                import base64
-            except ImportError:
-                raise ImportError('The python-base64 module is required.')
             logger.debug('Creating authkey for user: %s', username)
             self.username = username
             self.authkey = base64.b64encode('%s:%s' % (username, password)).strip()
@@ -527,15 +541,13 @@ class Sat6Object(object):
             self.authkey = authkey
         if server is None:
             raise RuntimeError('Must provide Satellite server name.')
-        else:
-            self.server = server
+        self.server = server
         self.url = 'https://%s' % server
         self.pub = '%s/pub' % self.url
         self.foreman = '%s/api/v2' % self.url
         self.katello = '%s/katello/api' % self.url
         self.insecure = insecure
         self.connection = self._new_connection()
-        self.connection.cookies = self._get_cookies()
         self.results = {"success": None, "msg": None, "return": None}
         self.lutables = {}
         if org_name is not None:
@@ -547,7 +559,7 @@ class Sat6Object(object):
             self.org_id = 1
 
     def __del__(self):
-        self.cookies.save(ignore_discard=True)
+        self.connection.cookies.save(ignore_discard=True)
 
     def _get_rest_call(self, url, params=None, data=None):
         ''' Call a REST API URL using GET.
@@ -562,25 +574,20 @@ class Sat6Object(object):
 
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        try:
-            import requests
-        except ImportError:
-            raise ImportError('The python-requests module is required.')
-        try:
-            import json
-        except ImportError:
-            raise ImportError('The python-json module is required.')
 
         logger.debug('Calling URL: %s', url)
+        logger.debug('With Headers: %s', self.connection.headers)
         if params is not None:
             logger.debug('With params: %s', params)
         if data is not None:
             logger.debug('With data: %s', data)
+            data = json.dumps(data)
 
         try:
-            results = self.connection.get(url, params=params, data=json.dumps(data))
+            results = self.connection.get(url, params=params, data=data)
             logger.debug('Final URL: %s', results.url)
-            rjson = results.json()
+            logger.debug('Return Headers: %s', results.headers)
+            logger.debug('%s: %s', results.status_code, results.raw)
         except requests.ConnectionError as error:
             logger.debug('Caught Requests Connection Error.')
             error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
@@ -597,7 +604,9 @@ class Sat6Object(object):
             logger.debug('Caught Requests Exception.')
             error.message = '[Requests]: REST call failed: %s' % (error.message) #: pylint: disable=no-member
             raise error
+        results.raise_for_status()
 
+        rjson = results.json()
         logger.debug('Results: %s', rjson)
 
         if rjson.get('error'):
@@ -618,23 +627,17 @@ class Sat6Object(object):
 
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        try:
-            import requests
-        except ImportError:
-            raise ImportError('The python-requests module is required.')
-        try:
-            import json
-        except ImportError:
-            raise ImportError('The python-json module is required.')
 
         logger.debug('Calling URL: %s', url)
         if data is not None:
             logger.debug('With data: %s', data)
+            data = json.dumps(data)
 
         try:
-            results = self.connection.put(url, data=json.dumps(data))
+            results = self.connection.put(url, data=data)
             logger.debug('Final URL: %s', results.url)
-            rjson = results.json()
+            logger.debug('Return Headers: %s', results.headers)
+            logger.debug('%s: %s', results.status_code, results.raw)
         except requests.ConnectionError as error:
             logger.debug('Caught Requests Connection Error.')
             error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
@@ -651,7 +654,9 @@ class Sat6Object(object):
             logger.debug('Caught Requests Exception.')
             error.message = '[Requests]: REST call failed: %s' % (error.message) #: pylint: disable=no-member
             raise error
+        results.raise_for_status()
 
+        rjson = results.json()
         logger.debug('Results: %s', rjson)
 
         if 'error' in rjson:
@@ -659,7 +664,7 @@ class Sat6Object(object):
             raise IOError(127, '[Requests]: API call failed: %s' % (rjson['error']['message']))
         return rjson
 
-    def _new_connection(self, authkey=None, insecure=None):
+    def _new_connection(self, authkey=None, insecure=None, token=None, client_id=None):
         ''' Create a Request session object
 
         Args:
@@ -670,38 +675,43 @@ class Sat6Object(object):
 
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        try:
-            import requests
-        except ImportError:
-            raise ImportError('The python-requests module is required.')
         if authkey is None:
             authkey = self.authkey
+        if token is None:
+            authorization = 'Basic %s' % authkey
+        else:
+            authorization = 'Bearer %s' % token['access_token']
         if insecure is None:
             verify = not bool(self.insecure)
         else:
             verify = not bool(insecure)
         connection = requests.Session()
-        connection.headers = {'accept': 'application/json',
-                              'authorization': 'Basic %s' % authkey,
-                              'content-type': 'application/json'}
+        connection.headers = {
+            'x-ibm-client-id': client_id,
+            'content-type': 'application/json',
+            'authorization': authorization,
+            'accept': 'application/json',
+            'cache-control': 'no-cache'
+        }
         logger.debug('Headers set: %s', connection.headers)
         connection.verify = verify
+        connection.cookies = LWPCookieJar(os.getenv("HOME") + "/.sat6_api_session")
+        try:
+            connection.cookies.load(ignore_discard=True)
+        except IOError:
+            pass
 
         return connection
 
-    def _get_cookies(self):
-        ''' Handle session cookie '''
-        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        try:
-            from cookielib import LWPCookieJar
-        except ImportError:
-            raise ImportError('The python-cookielib module is required.')
-        self.cookies = LWPCookieJar(os.getenv("HOME") + "/.sat6_api_session")
-        try:
-            self.cookies.load(ignore_discard=True)
-        except IOError:
-            pass
-        return self.cookies
+    # def _get_cookies(self):
+    #     ''' Handle session cookie '''
+    #     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    #     self.cookies = LWPCookieJar(os.getenv("HOME") + "/.sat6_api_session")
+    #     try:
+    #         self.cookies.load(ignore_discard=True)
+    #     except IOError:
+    #         pass
+    #     return self.cookies
 
     def lookup_lce_name(self, lce_tag):
         ''' Searches for and returns LCE from Satellite 6.
@@ -753,19 +763,20 @@ class Sat6Object(object):
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         logger.debug('Looking for host: %s', hostname)
         if hostname is None:
-            logger.debug('Error: hostname passed was type None.')
+            logger.info('Error: hostname passed was type None.')
             return None
         elif isinstance(hostname, int):
             return self._get_rest_call('%s/hosts/%s' % (self.foreman, hostname))
+        hostname = hostname.split('.')[0]
 
         results = self._get_rest_call('%s/hosts' % (self.foreman),
-                                      {'search': '"%s"' % hostname.split('.')[0]})
+                                      {'search': hostname})
 
         if results['subtotal'] == 0:
-            logger.debug('Error: No host matches for %s.', hostname.split('.')[0])
+            logger.info('Error: No host matches for %s.', hostname)
             return None
         elif results['subtotal'] > 1:
-            logger.debug('Error: Too many host matches for %s.', hostname.split('.')[0])
+            logger.info('Error: Too many host matches for %s (%s).', hostname, results['total'])
             return None
 
         return results['results'][0]
@@ -849,13 +860,13 @@ class Sat6Object(object):
             return self._get_rest_call('%s/organizations/%s' % (self.katello, organization))
 
         results = self._get_rest_call('%s/organizations' % (self.katello),
-                                      {'search': '"%s"' % organization})
+                                      {'search': organization})
 
         if results['subtotal'] == 0:
-            logger.debug('Error: No org matches for %s.', organization)
+            logger.info('Error: No org matches for %s.', organization)
             return None
         elif results['subtotal'] > 1:
-            logger.debug('Error: Too many org matches for %s.', organization)
+            logger.info('Error: Too many org matches for %s.', organization)
             return None
 
         return results['results'][0]
@@ -900,16 +911,16 @@ class Sat6Object(object):
             org_id = self.org_id
         logger.debug('Looking for Life Cycle Environment %s in org %s.', lce_name, org_id)
         if lce_name is None:
-            logger.debug('Error: lce_name passed was type None.')
+            logger.info('Error: lce_name passed was type None.')
             return None
 
         results = self._get_rest_call('%s/organizations/%s/environments' % (self.katello, org_id),
                                       {'search': '"%s"' % lce_name})
         if results['subtotal'] == 0:
-            logger.debug('Error: No LCE matches for %s in org %s.', lce_name, org_id)
+            logger.info('Error: No LCE matches for %s in org %s.', lce_name, org_id)
             return None
         elif results['subtotal'] > 1:
-            logger.debug('Error: Too many LCE matches for %s in org %s.', lce_name, org_id)
+            logger.info('Error: Too many LCE matches for %s in org %s.', lce_name, org_id)
             return None
 
         return results['results'][0]
@@ -938,8 +949,9 @@ class Sat6Object(object):
             if page_item == self.per_page:
                 page += 1
                 page_item = 0
-                results = self._get_rest_call('%s/organizations/%s/environments' % (self.katello, org_id),
-                                              {'page': page, 'per_page': self.per_page})
+                results = self._get_rest_call(
+                    '%s/organizations/%s/environments' % (self.katello, org_id),
+                    {'page': page, 'per_page': self.per_page})
             yield results['results'][page_item]
             item += 1
             page_item += 1
