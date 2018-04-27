@@ -63,7 +63,7 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 __version__ = '1.1.0-alpha' #: current version
-__revised__ = '20180419-170640' #: date of most recent revision
+__revised__ = '20180427-151432' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Testbed script for Sat6Object class.'
 __description__ = '''This script exists to support the development of the
@@ -565,9 +565,9 @@ class Sat6Object(object):
         ''' Call a REST API URL using GET.
 
         Args:
-            session_obj (obj): Session object
-            url (str):         URL of API
-            params (dict):     Dict of params to pass to Requests.get
+            url (str):       URL of API to call
+            params (dict):   Dict of params to pass to Requests.get
+            data (dict):     Dict of data to pass to Requests.get
 
         Returns:
             Results of API call in a dict
@@ -614,13 +614,13 @@ class Sat6Object(object):
             raise IOError(127, '[Requests]: API call failed: %s' % (rjson['error']['message']))
         return rjson
 
-    def _put_rest_call(self, url, data=None):
+    def _put_rest_call(self, url, params=None, data=None):
         ''' Call a REST API URL using PUT .
 
         Args:
-            session_obj (obj): Session object
-            url (str):         URL of API
-            data (dict):       Dict of data to pass to Requests.put
+            url (str):       URL of API to call
+            params (dict):   Dict of params to pass to Requests.get
+            data (dict):     Dict of data to pass to Requests.get
 
         Returns:
             Results of API call in a dict
@@ -629,12 +629,15 @@ class Sat6Object(object):
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
 
         logger.debug('Calling URL: %s', url)
+        logger.debug('With Headers: %s', self.connection.headers)
+        if params is not None:
+            logger.debug('With params: %s', params)
         if data is not None:
             logger.debug('With data: %s', data)
             data = json.dumps(data)
 
         try:
-            results = self.connection.put(url, data=data)
+            results = self.connection.put(url, params=params, data=data)
             logger.debug('Final URL: %s', results.url)
             logger.debug('Return Headers: %s', results.headers)
             logger.debug('%s: %s', results.status_code, results.raw)
@@ -668,7 +671,10 @@ class Sat6Object(object):
         ''' Create a Request session object
 
         Args:
-            authkey (str): Username
+            authkey (str):   User authorization key
+            insecure (bool): If True do not validate SSL
+            token (dict):    User token as a dict, need 'access_token'
+            client_id (str): User client ID for controlled API access
 
         Returns:
             Requests session object.
