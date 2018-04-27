@@ -62,8 +62,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.9.0' #: current version
-__revised__ = '20180427-090612' #: date of most recent revision
+__version__ = '1.9.1' #: current version
+__revised__ = '20180427-151345' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Lists number of packages installed from each repo.'
 __description__ = '''This will check the yum database to build a list of which repositories
@@ -653,7 +653,8 @@ def main():
             options.key = module.params['key']
     facts = dicttree()
 
-    facts['_script_version'] = __version__
+    facts['_version'] = __version__
+    facts['_source'] = __cononical_name__
     facts['rpm_total'] = num_rpm_installed()
     facts['yum_total'] = num_yum_installed()
     facts['repolist'] = build_repolist()
