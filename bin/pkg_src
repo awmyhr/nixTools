@@ -64,7 +64,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha' #: current version
-__revised__ = '20180530-160619' #: date of most recent revision
+__revised__ = '20180530-161622' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = '''TODO: CHANGEME
@@ -173,145 +173,6 @@ class _ReSTHelpFormatter(optparse.HelpFormatter):
             opts = long_opts + short_opts
 
         return ', '.join(opts)
-
-
-#==============================================================================
-class colors(object):
-    ''' Simple class to ease access to ENV colors '''
-    _colorlist = ['cf_black', 'cf_white', 'cf_orange', 'cf_magenta',
-                  'cf_yellow', 'cf_red', 'cf_purple', 'cf_blue',
-                  'cf_cyan', 'cf_green',
-                  'c_bold', 'c_reset', 'c_undr', 'c_hide',
-                  'c_blik', 'c_revr'
-                 ]
-    _colors = {}
-
-    def __init__(self):
-        for color in self._colorlist:
-            self._colors[color] = os.getenv(color) if color in os.environ else ''
-
-    @classmethod
-    def load_colors(cls):
-        ''' This will load colors from a file someday '''
-        for color in cls._colorlist:
-            cls._colors[color] = os.getenv(color) if color in os.environ else ''
-
-    @classmethod
-    def clear_colors(cls):
-        ''' This will reset all colors to empty '''
-        pass
-
-    @property
-    def black(self):
-        ''' Instance property '''
-        if 'cf_black' in self._colors:
-            return self._colors['cf_black']
-        return ''
-
-    @property
-    def white(self):
-        ''' Instance property '''
-        if 'cf_white' in self._colors:
-            return self._colors['cf_white']
-        return ''
-
-    @property
-    def magenta(self):
-        ''' Instance property '''
-        if 'cf_magenta' in self._colors:
-            return self._colors['cf_magenta']
-        return ''
-
-    @property
-    def orange(self):
-        ''' Instance property '''
-        if 'cf_orange' in self._colors:
-            return self._colors['cf_orange']
-        return ''
-
-    @property
-    def red(self):
-        ''' Instance property '''
-        if 'cf_red' in self._colors:
-            return self._colors['cf_red']
-        return ''
-
-    @property
-    def yellow(self):
-        ''' Instance property '''
-        if 'cf_yellow' in self._colors:
-            return self._colors['cf_yellow']
-        return ''
-
-    @property
-    def purple(self):
-        ''' Instance property '''
-        if 'cf_purple' in self._colors:
-            return self._colors['cf_purple']
-        return ''
-
-    @property
-    def blue(self):
-        ''' Instance property '''
-        if 'cf_blue' in self._colors:
-            return self._colors['cf_blue']
-        return ''
-
-    @property
-    def cyan(self):
-        ''' Instance property '''
-        if 'cf_cyan' in self._colors:
-            return self._colors['cf_cyan']
-        return ''
-
-    @property
-    def green(self):
-        ''' Instance property '''
-        if 'cf_green' in self._colors:
-            return self._colors['cf_green']
-        return ''
-
-    @property
-    def bold(self):
-        ''' Instance property '''
-        if 'c_bold' in self._colors:
-            return self._colors['c_bold']
-        return ''
-
-    @property
-    def reset(self):
-        ''' Instance property '''
-        if 'c_reset' in self._colors:
-            return self._colors['c_reset']
-        return ''
-
-    @property
-    def undr(self):
-        ''' Instance property '''
-        if 'c_undr' in self._colors:
-            return self._colors['c_undr']
-        return ''
-
-    @property
-    def hide(self):
-        ''' Instance property '''
-        if 'c_hide' in self._colors:
-            return self._colors['c_hide']
-        return ''
-
-    @property
-    def blik(self):
-        ''' Instance property '''
-        if 'c_blik' in self._colors:
-            return self._colors['c_blik']
-        return ''
-
-    @property
-    def revr(self):
-        ''' Instance property '''
-        if 'c_revr' in self._colors:
-            return self._colors['c_revr']
-        return ''
 
 
 #==============================================================================
@@ -446,7 +307,7 @@ def RunLogger(debug=False):
     new_logger.debug('Platform:  %s', platform.platform())
     new_logger.debug('Hostname:  %s', platform.node())
     new_logger.debug('Logname:   %s', os.getlogin())
-    new_logger.debug('[res]uid:  %s', os.getresuid())
+    new_logger.debug('[res]uid:  %s/%s/', os.getuid(), os.geteuid())
     new_logger.debug('PID/PPID:  %s/%s', os.getpid(), os.getppid())
     if options._options is not None:             #: pylint: disable=protected-access
         new_logger.debug('Parsed Options: %s', options._options) #: pylint: disable=protected-access
@@ -547,6 +408,42 @@ class RunOptions(object):
         ''' Class property '''
         return bool(__basename__.startswith('ansible_module'))
 
+    @property
+    def key(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.key
+        return None
+
+    @key.setter
+    def key(self, value):
+        ''' Property setter '''
+        if self._options is not None:
+            self._options.key = value
+            return True
+        return False
+
+    @property
+    def shell(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.shell
+        return None
+
+    @property
+    def yaml(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.yaml
+        return None
+
+    @property
+    def json(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.json
+        return None
+
     def _parse_args(self, args):
         #-- Parse Options (rely on OptionsParser's exception handling)
         description_string = __synopsis__
@@ -567,6 +464,25 @@ class RunOptions(object):
                                   description=description_string, epilog=epilog_string)
         #-- TODO: Add options, also set _default and @property (if needed).
         #-- Visible Options
+        parser.add_option('-k', '--key', dest='key', type='string', default='custom',
+                          help='key for fact tree'
+                         )
+
+        #-- Output group options.
+        group = optparse.OptionGroup(parser, 'Output Options',
+                                     'Select an alternative output format, if desired. '
+                                     '(Only one).'
+                                    )
+        group.add_option('--shell', dest='shell', action='store_true',
+                         help='output shell variables', default=False
+                        )
+        group.add_option('--json', dest='json', action='store_true',
+                         help='output json snippet', default=False
+                        )
+        group.add_option('--yaml', dest='yaml', action='store_true',
+                         help='output yaml snippet', default=False
+                        )
+        parser.add_option_group(group)
         #   These can *not* be set in a config file
         #   These could be set in a config file
 
@@ -589,8 +505,80 @@ class RunOptions(object):
             parser.print_help()
             sys.exit(os.EX_OK)
         #-- Put any option validation here...
+        if parsed_opts.shell and parsed_opts.json:
+            parser.error('--shell, --json and --yaml are mutually exclusive')
+        if parsed_opts.shell and parsed_opts.yaml:
+            parser.error('--shell, --json and --yaml are mutually exclusive')
+        if parsed_opts.yaml and parsed_opts.json:
+            parser.error('--shell, --json and --yaml are mutually exclusive')
+
 
         return parsed_opts, parsed_args
+
+
+#==============================================================================
+def dicttree():
+    ''' Return a defaultdict tree.
+
+    Returns:
+        Returns an empty dictionary.
+
+    '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    from collections import defaultdict #: easily build an empty dictionary
+    tree = lambda: defaultdict(tree)
+    return tree()
+
+
+#==============================================================================
+def output_json(facts, key=None):
+    ''' Output a dictionary in json '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if key is not None:
+        facts = {key: facts}
+
+    try:
+        import json
+        print(json.dumps(facts, sort_keys=True, indent=4))
+    except ImportError:
+        raise ImportError('Error: Python json module requried.')
+
+    return True
+
+
+#==============================================================================
+def output_yaml(facts, key=None):
+    ''' Output a dictionary in yaml '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if key is not None:
+        facts = {key: facts}
+
+    try:
+        import yaml
+        from yaml.representer import Representer
+        from collections import defaultdict
+        yaml.add_representer(defaultdict, Representer.represent_dict)
+        print(yaml.dump(facts, default_flow_style=False))
+    except ImportError:
+        raise ImportError('Error: Python yaml module requried.')
+
+    return True
+
+
+#==============================================================================
+def output_shell(facts):
+    ''' Output a dictionary as shell variables '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
+    return True
+
+
+#==============================================================================
+def output_console(facts):
+    ''' Output a dictionary to the console '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
+    return True
 
 
 #==============================================================================
@@ -599,7 +587,33 @@ def main():
         We expect options and logger to be global
     '''
     logger.debug('Starting main()')
-    #-- TODO: Do something more interesting here...
+    if options.ansible_called:
+        from ansible.module_utils.basic import AnsibleModule
+        module = AnsibleModule(
+            argument_spec=dict(
+                key=dict(required=False)
+            )
+        )
+        if module.params['key']:
+            options.key = module.params['key']
+    facts = dicttree()
+
+    facts['_version'] = __version__
+    facts['_source'] = __cononical_name__
+
+    if options.ansible_called:
+        facts = {options.key: facts}
+        module.exit_json(changed=False, ansible_facts=facts)
+    elif options.shell:
+        output_shell(facts)
+    elif options.json:
+        output_json(facts, options.key)
+    elif options.yaml:
+        output_yaml(facts, options.key)
+    else:
+        output_console(facts)
+
+    return os.EX_OK
 
 
 #==============================================================================
