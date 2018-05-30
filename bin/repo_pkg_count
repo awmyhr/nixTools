@@ -62,8 +62,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.9.1' #: current version
-__revised__ = '20180427-151345' #: date of most recent revision
+__version__ = '1.9.2' #: current version
+__revised__ = '20180530-163236' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Lists number of packages installed from each repo.'
 __description__ = '''This will check the yum database to build a list of which repositories
@@ -267,7 +267,7 @@ def CLILogger(debug=False): #: pylint: disable=invalid-name
                     )
     new_logger.debug('Platform:  %s', platform.platform())
     new_logger.debug('Hostname:  %s', platform.node())
-    new_logger.debug('[res]uid:  %s', os.getresuid())
+    new_logger.debug('[res]uid:  %s/%s/', os.getuid(),os.geteuid())
     new_logger.debug('PID/PPID:  %s/%s', os.getpid(), os.getppid())
     if options._options is not None:                             #: pylint: disable=protected-access
         new_logger.debug('Parsed Options: %s', options._options) #: pylint: disable=protected-access
