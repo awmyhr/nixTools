@@ -1,6 +1,6 @@
 #===============================================================================
 #-- Makefile for Sphinx documentation
-#-- Version     1.0.0
+#-- Version     1.0.1
 #-- Revised     2017-03-06
 #-- Contact     awmyhr <awmyhr@gmail.com>
 #===============================================================================
@@ -35,7 +35,7 @@ clean:
 .PHONY: pre-build
 pre-build:
 	@echo "Pre-build start..."
-	../bin/repo_pkg_count --help-rest >_inc/repo_pkg_count.inc
+	../bin/pkg_mgr_facts --help-rest >_inc/pkg_mgr_facts.inc
 	../Templates/python-script --help-rest >_inc/python-script.inc
 	../Templates/shell-script --help-rest >_inc/shell-script.inc
 	@echo "...pre-build done."

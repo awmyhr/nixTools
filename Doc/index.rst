@@ -16,7 +16,7 @@ Contents:
    :maxdepth: 1
    :titlesonly:
 
-   repo_pkg_count
+   pkg_mgr_facts
    python-script
    shell-script
    codedetails/index

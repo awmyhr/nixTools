@@ -18,6 +18,7 @@ however the project itself uses date versioning.
 - Old, archived scripts (for posterity)
 
 ### Changed
+- repo_pkg_count has been renamed to pkg_mgr_facts
 
 ### Deprecated
 
