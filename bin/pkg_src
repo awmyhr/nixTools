@@ -64,7 +64,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha' #: current version
-__revised__ = '20180530-161622' #: date of most recent revision
+__revised__ = '20180531-135230' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = '''TODO: CHANGEME
@@ -582,6 +582,40 @@ def output_console(facts):
 
 
 #==============================================================================
+def get_subscription_service():
+    ''' Try to discover subscription service and return some facts '''
+    results = {}
+    if 'type' not in results:
+        try:
+            sys.path.append('/usr/share/rhn')
+            import up2date_client.up2dateAuth
+            import up2date_client.config
+            import urlparse
+            config = up2date_client.config.initUp2dateConfig()
+            #-- NOTE: the official rhn_register Ansible module considers this good
+            #         enough 'proof' that a system is registered:
+            if os.path.isfile(config['systemIdPath']):
+                xml_string = up2date_client.up2dateAuth.getSystemId()
+                if 'RHSM' not in xml_string:
+                    results['server'] = urlparse.urlsplit(config['serverURL'])[1]
+                    results['type'] = 'RHN'
+        except ImportError:
+            pass
+    if 'type' not in results:
+        try:
+            import rhsm.config
+            import subscription_manager.identity
+            ident = subscription_manager.identity.Identity()
+            if ident.is_valid:
+                config = rhsm.config.initConfig()
+                results['server'] = config.get('server', 'hostname')
+                results['type'] = 'RHSM'
+        except ImportError:
+            pass
+    
+    return results
+
+#==============================================================================
 def main():
     ''' This is where the action takes place
         We expect options and logger to be global
@@ -600,6 +634,7 @@ def main():
 
     facts['_version'] = __version__
     facts['_source'] = __cononical_name__
+    facts['subscription_service'] = get_subscription_service()
 
     if options.ansible_called:
         facts = {options.key: facts}
