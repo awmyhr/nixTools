@@ -4,10 +4,10 @@
 #-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.
 #===============================================================================
 '''
-    :program:`repo_pkg_count`
+    :program:`pkg_mgr_facts`
     ============================================================
 
-    In addition to the options listed in help output, :program:`repo_pkg_count` includes
+    In addition to the options listed in help output, :program:`pkg_mgr_facts` includes
     the following 'hidden' optoins:
 
     .. option:: --help-rest
@@ -76,7 +76,7 @@ __created__ = '2016-11-16'               #: date script originlly created
 __copyright__ = '2016 awmyhr' #: Copyright short name
 __license__ = 'Apache-2.0'
 __gnu_version__ = False #: If True print GNU version string (which includes copyright/license)
-__cononical_name__ = 'repo_pkg_count' #: static name, *NOT* os.path.basename(sys.argv[0])
+__cononical_name__ = 'pkg_mgr_facts' #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__ = 'nixTools from *NIXLand'  #: name of overall project, if needed
 __project_home__ = 'https://github.com/awmyhr/nixTools'  #: where to find source/documentation
 __template_version__ = '2.1.0'  #: version of template file used
