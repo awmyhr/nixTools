@@ -62,8 +62,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.0.0-beta' #: current version
-__revised__ = '20180601-162059' #: date of most recent revision
+__version__ = '2.0.0' #: current version
+__revised__ = '20180601-162516' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Lists number of packages installed from each repo.'
 __description__ = '''This will check the yum database to build a list of which repositories
@@ -653,6 +653,7 @@ def get_package_format():
     #         one comes first in the list.
     #         Obviously this needs a *ton* of work.
     pkg_formats = {
+        '/bin/rpm': 'rpm',
         '/usr/bin/rpm': 'rpm',
     }
 
