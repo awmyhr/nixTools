@@ -8,7 +8,7 @@
     ============================================================
 
     In addition to the options listed in help output, :program:`pkg_mgr_facts` includes
-    the following 'hidden' optoins:
+    the following 'hidden' options:
 
     .. option:: --help-rest
 
@@ -62,8 +62,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.10.1' #: current version
-__revised__ = '20180601-101819' #: date of most recent revision
+__version__ = '2.0.0-beta' #: current version
+__revised__ = '20180601-161711' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Lists number of packages installed from each repo.'
 __description__ = '''This will check the yum database to build a list of which repositories
@@ -371,6 +371,13 @@ class CLIOptions(object):
             return self._options.disabled
         return False
 
+    @property
+    def inc_pkgs(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.inc_pkgs
+        return False
+
     def _parse_args(self, args):
         #-- Parse Options (rely on OptionsParser's exception handling)
         description_string = __synopsis__
@@ -401,6 +408,8 @@ class CLIOptions(object):
         parser.add_option('-k', '--key', dest='key', type='string', default='custom',
                           help='key for fact tree'
                          )
+        parser.add_option('--include-packages', dest='inc_pkgs', action='store_true',
+                          help='Include detailed package list', default=False)
 
         #-- Output group options.
         group = optparse.OptionGroup(parser, 'Output Options',
@@ -467,95 +476,6 @@ def dicttree():
     from collections import defaultdict #: easily build an empty dictionary
     tree = lambda: defaultdict(tree)
     return tree()
-
-
-#===============================================================================
-def num_rpm_installed():
-    """ Quick'n'Dirty 'rpm -qa | wc -l' """
-    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-
-    try:
-        import rpm
-        count = 0
-        for _ in rpm.TransactionSet().dbMatch():
-            count += 1
-        return count
-    except ImportError:
-        return -1
-
-
-#===============================================================================
-def num_yum_installed():
-    """ Quick'n'Dirty 'yum list installed \
-                        | grep -v "^Loaded plugins" \
-                        | grep -v "^Installed Packages" \
-                        | grep -v "^ " \
-                        | wc -l'
-    """
-    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-
-    try:
-        import yum
-        yumb = yum.YumBase()
-        #-- Suppress spurious messages
-        yumb.preconf.debuglevel = 0
-        yumb.preconf.errorlevel = 0
-        #-- Do not try to update cache if euid not root
-        yumb.conf.cache = os.geteuid() != 0
-
-        return len(yumb.rpmdb.returnPackages())
-    except ImportError:
-        return -1
-
-
-#===============================================================================
-def build_repolist():
-    """ Builds dictionary of repos with counts & enabled status """
-    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-    repos = dicttree()
-
-    try:
-        import yum
-
-        yumb = yum.YumBase()
-        #-- Suppress spurious messages
-        yumb.preconf.debuglevel = 0
-        yumb.preconf.errorlevel = 0
-        #-- Do not try to update cache if euid not root
-        yumb.conf.cache = os.geteuid() != 0
-
-        repos['_localinstall']['count'] = 0
-        repos['_localinstall']['name'] = 'yum localinstall'
-        repos['_localinstall']['baseurl'] = '<none>'
-        repos['_localinstall']['isenabled'] = False
-        repos['_localinstall']['exists'] = False
-
-        for pkg in yumb.rpmdb.returnPackages():
-            repoid = pkg.yumdb_info.get('from_repo')
-            try:
-                if repoid.startswith('/'):
-                    repos['_localinstall']['count'] += 1
-                    continue
-            except:
-                pass
-            if repoid in repos:
-                repos[repoid]['count'] += 1
-            else:
-                repos[repoid]['count'] = 1
-                try:
-                    repos[repoid]['baseurl'] = yumb.repos.getRepo(repoid).baseurl
-                    repos[repoid]['name'] = yumb.repos.getRepo(repoid).name
-                    repos[repoid]['isenabled'] = yumb.repos.getRepo(repoid).isEnabled()
-                    repos[repoid]['exists'] = True
-                except:
-                    repos[repoid]['baseurl'] = '<unknown>'
-                    repos[repoid]['name'] = '<unknown>'
-                    repos[repoid]['isenabled'] = False
-                    repos[repoid]['exists'] = False
-    except ImportError:
-        pass
-
-    return repos
 
 
 #==============================================================================
@@ -673,6 +593,184 @@ def get_subscription_service():
     return results
 
 
+#===============================================================================
+def get_package_manager():
+    ''' Determine package manager '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
+    #-- NOTE: it is possible a system may have more then one (example: on Fedora
+    #         yum is a symlink to dnf). Ensure the 'true' one comes first in the
+    #         list.
+    #         I originally found list in Ansible's 'pkg_mgr' fact library, but have
+    #         since modified it.
+    pkg_mgrs = {
+        '/usr/bin/dnf': 'dnf',
+        '/usr/bin/yum': 'yum',
+        '/usr/bin/apt-get': 'apt',
+        '/usr/bin/zypper': 'zypper',
+        '/usr/sbin/urpmi': 'urpmi',
+        '/usr/bin/pacman': 'pacman',
+        '/bin/opkg': 'opkg',
+        '/usr/pkg/bin/pkgin': 'pkgin',
+        '/opt/local/bin/pkgin': 'pkgin',
+        '/opt/tools/bin/pkgin': 'pkgin',
+        '/usr/local/bin/brew': 'homebrew',
+        '/opt/local/bin/port': 'macports',
+        '/sbin/apk': 'apk',
+        '/usr/sbin/pkg': 'pkgng',
+        '/usr/sbin/swlist': 'HP-UX',
+        '/usr/bin/emerge': 'portage',
+        '/usr/sbin/pkgadd': 'svr4pkg',
+        '/usr/bin/pkg': 'pkg5',
+        '/usr/bin/xbps-install': 'xbps',
+        '/usr/local/sbin/pkg': 'pkgng',
+        '/usr/bin/swupd': 'swupd',
+        '/usr/sbin/sorcery': 'sorcery',
+        '/usr/bin/rpm-ostree': 'atomic_container',
+    }
+
+    for pkg_mgr in pkg_mgrs:
+        if os.path.exists(pkg_mgr):
+            return pkg_mgrs[pkg_mgr]
+
+    return None
+
+
+#===============================================================================
+def get_package_format():
+    ''' Determine package manager '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
+    #-- NOTE: it is possible a system may have more then one. Ensure the 'true'
+    #         one comes first in the list.
+    #         Obviously this needs a *ton* of work.
+    pkg_formats = {
+        '/usr/bin/rpm': 'rpm',
+    }
+
+    for pkg_format in pkg_formats:
+        if os.path.exists(pkg_format):
+            return pkg_formats[pkg_format]
+
+    return None
+
+
+#===============================================================================
+def get_raw_packages_rpm():
+    """ Quick'n'Dirty 'rpm -qa | wc -l' """
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    results = {
+        'count': 0,
+        'packages': []
+    }
+
+    try:
+        import rpm
+        for pkg in rpm.TransactionSet().dbMatch():
+            if options.inc_pkgs:
+                results['packages'].append({
+                    'name': pkg['name'],
+                    'version': pkg['version'],
+                    'release': pkg['release'],
+                    'platform': pkg['platform'],
+                    'arch': pkg['arch'],
+                    'vendor': pkg['vendor'],
+                    'distribution': pkg['distribution'],
+                    'os': pkg['os']
+                })
+            results['count'] += 1 
+    except ImportError:
+        pass
+
+    return results
+
+
+#===============================================================================
+def get_packages_yum():
+    """ Builds dictionary of repos with counts & enabled status """
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    repos = dicttree()
+    count = 0
+    
+    try:
+        import yum
+
+        yumb = yum.YumBase()
+        #-- Suppress spurious messages
+        yumb.preconf.debuglevel = 0
+        yumb.preconf.errorlevel = 0
+        #-- Do not try to update cache if euid not root
+        yumb.conf.cache = os.geteuid() != 0
+
+        repos['_localinstall']['count'] = 0
+        repos['_localinstall']['name'] = 'yum localinstall'
+        repos['_localinstall']['baseurl'] = '<none>'
+        repos['_localinstall']['isenabled'] = False
+        repos['_localinstall']['exists'] = False
+        repos['_localinstall']['packages'] = []
+
+        for pkg in yumb.rpmdb.returnPackages():
+            repoid = pkg.yumdb_info.get('from_repo')
+            try:
+                if repoid.startswith('/'):
+                    repos['_localinstall']['count'] += 1
+                    if options.inc_pkgs:
+                        repos['_localinstall']['packages'].append({
+                            'name': pkg['name'],
+                            'version': pkg['version'],
+                            'release': pkg['release'],
+                            'platform': pkg['platform'],
+                            'arch': pkg['arch'],
+                            'vendor': pkg['vendor'],
+                            'distribution': pkg['distribution'],
+                            'os': pkg['os']
+                        })
+                    continue
+            except:
+                pass
+            if repoid in repos:
+                repos[repoid]['count'] += 1
+            else:
+                repos[repoid]['count'] = 1
+                repos[repoid]['packages'] = []
+                try:
+                    repos[repoid]['baseurl'] = yumb.repos.getRepo(repoid).baseurl
+                    repos[repoid]['name'] = yumb.repos.getRepo(repoid).name
+                    repos[repoid]['isenabled'] = yumb.repos.getRepo(repoid).isEnabled()
+                    repos[repoid]['exists'] = True
+                except:
+                    repos[repoid]['baseurl'] = '<unknown>'
+                    repos[repoid]['name'] = '<unknown>'
+                    repos[repoid]['isenabled'] = False
+                    repos[repoid]['exists'] = False
+            if options.inc_pkgs:
+                repos[repoid]['packages'].append({
+                    'name': pkg['name'],
+                    'version': pkg['version'],
+                    'release': pkg['release'],
+                    'platform': pkg['platform'],
+                    'arch': pkg['arch'],
+                    'vendor': pkg['vendor'],
+                    'distribution': pkg['distribution'],
+                    'os': pkg['os']
+                })
+        count = len(yumb.rpmdb.returnPackages())
+    except ImportError:
+        pass
+
+    return {'repolist': repos, 'count': count}
+
+
+#==============================================================================
+def get_packages_dnf():
+    """ Builds dictionary of repos with counts & enabled status """
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    repos = dicttree()
+    count = -1
+
+    return {'repolist': repos, 'count': count}
+
+
 #==============================================================================
 def main():
     ''' This is where the action takes place
@@ -694,9 +792,26 @@ def main():
     facts['_version'] = __version__
     facts['_source'] = __cononical_name__
     facts['subscription_service'] = get_subscription_service()
-    facts['rpm_total'] = num_rpm_installed()
-    facts['yum_total'] = num_yum_installed()
-    facts['repolist'] = build_repolist()
+    facts['package_manager'] = get_package_manager()
+    facts['package_format'] = get_package_format()
+    
+    try:
+        get_packages = getattr(__import__(__name__), 'get_packages_%s' % facts['package_manager'])
+        facts['packages_managed'] = get_packages()
+    except AttributeError:
+        facts['packages_managed'] = {
+            'count': -1,
+            'repository_list': {}
+        }
+
+    try:
+        get_raw_packages = getattr(__import__(__name__), 'get_raw_packages_%s' % facts['package_format'])
+        facts['packages_raw'] = get_raw_packages()
+    except AttributeError:
+        facts['packages_raw'] = {
+            'count': -1,
+            'packages': []
+        }
 
     if options.ansible_called:
         facts = {options.key: facts}
@@ -709,7 +824,7 @@ def main():
         output_yaml(facts, options.key)
     else:
         output_console(facts)
-
+    
     return os.EX_OK
 
 #==============================================================================
@@ -773,7 +888,7 @@ if __name__ == '__main__':
             EXIT_STATUS = error.errno
     except Exception as error: #: pylint: disable=broad-except
         #_, error, _ = sys.exc_info()
-        logger.debug('Caught Exception')
+        logger.debug('Caught Exception: %s', sys.exc_info())
         logger.critical('%s: %s', __basename__, error)
         EXIT_STATUS = 10
     else:
