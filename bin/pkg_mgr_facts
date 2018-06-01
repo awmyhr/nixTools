@@ -62,8 +62,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '1.10.0' #: current version
-__revised__ = '20180531-134945' #: date of most recent revision
+__version__ = '1.10.1' #: current version
+__revised__ = '20180601-101819' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Lists number of packages installed from each repo.'
 __description__ = '''This will check the yum database to build a list of which repositories
@@ -639,8 +639,10 @@ def output_console(facts):
 #==============================================================================
 def get_subscription_service():
     ''' Try to discover subscription service and return some facts '''
-    results = {}
-    if 'type' not in results:
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
+    results = {'server': None, 'type': None}
+    if results['type'] is None:
         try:
             sys.path.append('/usr/share/rhn')
             import up2date_client.up2dateAuth
@@ -649,14 +651,14 @@ def get_subscription_service():
             config = up2date_client.config.initUp2dateConfig()
             #-- NOTE: the official rhn_register Ansible module considers this good
             #         enough 'proof' that a system is registered:
-            if os.path.isfile(config['systemIdPath']):
+            if os.access(config['systemIdPath'], os.R_OK):
                 xml_string = up2date_client.up2dateAuth.getSystemId()
                 if 'RHSM' not in xml_string:
                     results['server'] = urlparse.urlsplit(config['serverURL'])[1]
                     results['type'] = 'RHN'
         except ImportError:
             pass
-    if 'type' not in results:
+    if results['type'] is None:
         try:
             import rhsm.config
             import subscription_manager.identity
