@@ -62,12 +62,14 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.0.0' #: current version
-__revised__ = '20180601-162516' #: date of most recent revision
+__version__ = '2.0.1' #: current version
+__revised__ = '20180601-163738' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
-__synopsis__ = 'Lists number of packages installed from each repo.'
-__description__ = '''This will check the yum database to build a list of which repositories
-packages have been installed from.
+__synopsis__ = 'Discover information about installed packages.'
+__description__ = '''This will try to discover information about packages installed on a system,
+the package manager, and subscription service (if any). Primarily intended
+to capture package counts from repositories, it can also capture detailed
+package information if desired.
 '''
 #------------------------------------------------------------------------------
 #-- The following few variables should be relatively static over life of script
@@ -525,10 +527,10 @@ def output_yaml(facts, key=None):
 def output_shell(facts):
     ''' Output a dictionary as shell variables '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-    print("RPM_TOTAL=%s" % facts['rpm_total'])
-    print("YUM_TOTAL=%s" % facts['yum_total'])
+    print("PACKAGES_RAW=%s" % facts['packages_raw']['count'])
+    print("PACKAGES_MANAGED=%s" % facts['packages_managed']['count'])
     count = 0
-    for repoid, repoinfo in sorted(facts['repolist'].iteritems()):
+    for repoid, repoinfo in sorted(facts['packages_managed']['repository_list'].iteritems()):
         if repoinfo['count'] == 0:
             continue
         if repoid is None:
@@ -550,9 +552,9 @@ def output_shell(facts):
 def output_console(facts):
     ''' Output a dictionary to the console '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-    print('%+6s\tTotal Packages in RPM database' % facts['rpm_total'])
-    print('%+6s\tTotal Packages in YUM database' % facts['yum_total'])
-    for repoid, repoinfo in sorted(facts['repolist'].iteritems()):
+    print('%+6s\tTotal raw packages' % facts['packages_raw']['count'])
+    print('%+6s\tTotal managed packages' % facts['packages_managed']['count'])
+    for repoid, repoinfo in sorted(facts['packages_managed']['repository_list'].iteritems()):
         if repoinfo['count'] == 0:
             continue
         if repoid is None:
@@ -767,7 +769,7 @@ def get_packages_yum():
     except ImportError:
         pass
 
-    return {'repolist': repos, 'count': count}
+    return {'repository_list': repos, 'count': count}
 
 
 #==============================================================================
@@ -777,7 +779,7 @@ def get_packages_dnf():
     repos = dicttree()
     count = -1
 
-    return {'repolist': repos, 'count': count}
+    return {'repository_list': repos, 'count': count}
 
 
 #==============================================================================
