@@ -63,7 +63,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '2.0.0-beta' #: current version
-__revised__ = '20180601-161711' #: date of most recent revision
+__revised__ = '20180601-162059' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Lists number of packages installed from each repo.'
 __description__ = '''This will check the yum database to build a list of which repositories
@@ -376,6 +376,14 @@ class CLIOptions(object):
         ''' Class property '''
         if self._options is not None:
             return self._options.inc_pkgs
+        return False
+
+    @inc_pkgs.setter
+    def inc_pkgs(self, value):
+        ''' Property setter '''
+        if self._options is not None:
+            self._options.inc_pkgs = value
+            return True
         return False
 
     def _parse_args(self, args):
@@ -782,11 +790,14 @@ def main():
         module = AnsibleModule(
             argument_spec=dict(
                 enabled=dict(default=True, type='bool'),
+                include_packages=dict(default=False, type='bool'),
                 key=dict(required=False)
             )
         )
         if module.params['key']:
             options.key = module.params['key']
+        if module.params['include_packages']:
+            options.inc_pkgs = module.params['include_packages']
     facts = dicttree()
 
     facts['_version'] = __version__
