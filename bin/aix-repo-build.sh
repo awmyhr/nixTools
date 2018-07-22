@@ -553,7 +553,7 @@ for program in $(cat ${BUNDLES}/ALL.* | sort -u); do
     if [ -e "${RPMS}/${program}" ]; then
         printf '%s already exists...\n' "${program}"
     else
-        aix=`echo ${program} | perl -pe 's/.+(aix.)\.(.)\.ppc.+/$1$2/'`
+        aix=$(echo "${program}" | perl -pe 's/.+(aix.)\.(.)\.ppc.+/$1$2/')
         wget -nv "${RPM_SRC}/${aix}/${program}" -O "${RPMS}/${program}"
     fi
 done
