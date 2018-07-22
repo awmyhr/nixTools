@@ -269,7 +269,7 @@ def CLILogger(debug=False): #: pylint: disable=invalid-name
                     )
     new_logger.debug('Platform:  %s', platform.platform())
     new_logger.debug('Hostname:  %s', platform.node())
-    new_logger.debug('[res]uid:  %s/%s/', os.getuid(),os.geteuid())
+    new_logger.debug('[res]uid:  %s/%s/', os.getuid(), os.geteuid())
     new_logger.debug('PID/PPID:  %s/%s', os.getpid(), os.getppid())
     if options._options is not None:                             #: pylint: disable=protected-access
         new_logger.debug('Parsed Options: %s', options._options) #: pylint: disable=protected-access
@@ -599,7 +599,7 @@ def get_subscription_service():
                 results['type'] = 'RHSM'
         except ImportError:
             pass
-    
+
     return results
 
 
@@ -689,7 +689,7 @@ def get_raw_packages_rpm():
                     'distribution': pkg['distribution'],
                     'os': pkg['os']
                 })
-            results['count'] += 1 
+            results['count'] += 1
     except ImportError:
         pass
 
@@ -702,7 +702,7 @@ def get_packages_yum():
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     repos = dicttree()
     count = 0
-    
+
     try:
         import yum
 
@@ -808,7 +808,7 @@ def main():
     facts['subscription_service'] = get_subscription_service()
     facts['package_manager'] = get_package_manager()
     facts['package_format'] = get_package_format()
-    
+
     try:
         get_packages = getattr(__import__(__name__), 'get_packages_%s' % facts['package_manager'])
         facts['packages_managed'] = get_packages()
@@ -838,7 +838,7 @@ def main():
         output_yaml(facts, options.key)
     else:
         output_console(facts)
-    
+
     return os.EX_OK
 
 #==============================================================================
