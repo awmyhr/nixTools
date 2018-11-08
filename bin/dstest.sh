@@ -29,7 +29,7 @@
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: UPDATE meta vars
 __version__='0.1.0-alpha' #: current version
-__revised__='20181108-120642' #: date of most recent revision
+__revised__='20181108-123420' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__='TODO: CHANGEME'
 __description__="
@@ -539,24 +539,30 @@ done
 init
 
 #==============================================================================
-#-- TODO: Do something more interesting here...
+#-- Loop through some simple dd tests
 DD_BYTES=1
 DD_COUNT=0
 TEMP_FILE='.tempfile'
 
 while [ ${DD_BYTES} -le 8192 ] ; do
-    DD_COUNT=$(( 250000 / "${DD_BYTES}" ))
-    printf 'Block size: %4sK\n' ${DD_BYTES}
-    printf 'Write: '
+    DD_COUNT=$(( 250000 / $DD_BYTES ))
+    sync
+    printf 'Block size: %4sK ; Block count: %s\n' "${DD_BYTES}" "${DD_COUNT}"
+    printf '    Write: '
     dd  bs="${DD_BYTES}"K count="${DD_COUNT}" if=/dev/zero \
         of="${TEMP_FILE}" oflag=direct 2>&1 | grep copied
+    sync
+    # sysctl -w vm.drop_caches=3 1>/dev/null 2>&1
 
-    printf 'Read: '
-    dd  bs="${DD_BYTES}"K if="${TEMP_FILE}" of=/dev/zero \
-        iflag=direct 2>&1 | grep copied
+    printf '    Read:  '
+    dd  bs="${DD_BYTES}"K of=/dev/null \
+        if="${TEMP_FILE}" iflag=direct 2>&1 | grep copied
 
-    DD_BYTES=$(( "${DD_BYTES}" * 2 ))
+    DD_BYTES=$(( $DD_BYTES * 2 ))
 done
 
+if [ -f "${TEMP_FILE}" ] ; then
+    rm -f "${TEMP_FILE}"
+fi
 #==============================================================================
 exit_clean
