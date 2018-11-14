@@ -20,7 +20,7 @@
 #:"""
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__='0.5.0-alpha' #: current version
+__version__='0.5.1-alpha' #: current version
 __revised__='20180505-154445' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__='AIX RPM Repo builder'
@@ -278,7 +278,7 @@ logger() {
         elif [ "${__logger_log_level_th}" -le 30 ]; then
             printf '%sWarning: %s%s\n' "${cf_yellow}" "${@}" "${c_reset}" 1>&2
         elif [ "${__logger_log_level_th}" -le 40 ]; then
-            printf '%sError: %s%s\n' "${cf_magenta}" "${@}" ""${c_reset} 1>&2
+            printf '%sError: %s%s\n' "${cf_magenta}" "${@}" "${c_reset}" 1>&2
         else
             printf '%sCRITICAL: %s%s\n' "${cf_red}" "${@}" "${c_reset}" 1>&2
         fi

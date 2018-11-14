@@ -28,7 +28,7 @@
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: UPDATE meta vars
-__version__='0.1.0-alpha' #: current version
+__version__='0.1.1-alpha' #: current version
 __revised__='20181108-123420' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__='TODO: CHANGEME'
@@ -263,7 +263,7 @@ logger() {
         elif [ "${__logger_log_level_th}" -le 30 ]; then
             printf '%sWarning: %s%s\n' "${cf_yellow}" "${@}" "${c_reset}" 1>&2
         elif [ "${__logger_log_level_th}" -le 40 ]; then
-            printf '%sError: %s%s\n' "${cf_magenta}" "${@}" ""${c_reset} 1>&2
+            printf '%sError: %s%s\n' "${cf_magenta}" "${@}" "${c_reset}" 1>&2
         else
             printf '%sCRITICAL: %s%s\n' "${cf_red}" "${@}" "${c_reset}" 1>&2
         fi
@@ -522,12 +522,14 @@ trap '_exit_trap ${LINENO} HUP'  HUP
 #   Be sure to update usage_options() as well
 #
 # [ "${#}" -gt 0 ] && while :; do
+TEMP_PATH="$(pwd)"
 while [ "${#}" -gt 0 ]; do  #
     case "${1}" in
         --debug)     ;;
-        -h|--help)   _usage   && exit 0 ;;
+        -h|--help)   _usage        && exit 0 ;;
         --help-rest) _usage_rest   && exit 0 ;;
-        --version)   _version && exit 0 ;;
+        --version)   _version      && exit 0 ;;
+        --path=*)    TEMP_PATH=$(printf  '%s' "${1#*=}") ;;
         # --)          shift && break ;;
         # -?*)         exit_error 64 "Invalid option: ${1}" ;;
         *)           exit_error 64 "Invalid option: ${1}" ;;
@@ -542,8 +544,9 @@ init
 #-- Loop through some simple dd tests
 DD_BYTES=1
 DD_COUNT=0
-TEMP_FILE='.tempfile'
+TEMP_FILE="${TEMP_PATH}/.tempfile"
 
+printf 'Test file: %s\n' "${TEMP_FILE}"
 while [ ${DD_BYTES} -le 8192 ] ; do
     DD_COUNT=$(( 250000 / $DD_BYTES ))
     sync
