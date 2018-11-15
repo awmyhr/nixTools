@@ -20,8 +20,8 @@
 #:"""
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__='0.5.1-alpha' #: current version
-__revised__='20180505-154445' #: date of most recent revision
+__version__='0.5.2-alpha' #: current version
+__revised__='20181115-115341' #: date of most recent revision
 __contact__='awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__='AIX RPM Repo builder'
 __description__="
@@ -412,15 +412,22 @@ set_value() {
     #: :param str file:   File to create/modify
     #: :param str key:    Key to create/modify
     #: :param str value:  Value to set key to
+    #: :param str quote:  set to 'noquote' if value is to be unquoted
     #:"""
     __set_value_file="${1}"
     __set_value_key="${2}"
     __set_value_value="${3}"
+    __set_value_quote="${4:="quote"}"
     if [ ! -e "${__set_value_file}" ]; then touch "${__set_value_file}" || return "${?}"; fi
-    if grep -q "^${__set_value_key}=" "${__set_value_file}"; then
-        sed -i "s/^${__set_value_key}=.*/${__set_value_key}='${__set_value_value}'/" "${__set_value_file}" || return "${?}"
+    if [ "${__set_value_quote}" = 'noquote' ] ; then
+        :
     else
-        printf '%s=%s\n' "${__set_value_key}" "'${__set_value_value}'" >> "${__set_value_file}" || return "${?}"
+        __set_value_value="'${__set_value_value}'"
+    fi
+    if grep -q "^${__set_value_key} *=" "${__set_value_file}"; then
+        sed -i -E "s/^${__set_value_key} *=.*/${__set_value_key}=${__set_value_value}/" "${__set_value_file}" || return "${?}"
+    else
+        printf '%s=%s\n' "${__set_value_key}" "${__set_value_value}" >> "${__set_value_file}" || return "${?}"
     fi
 
     return
