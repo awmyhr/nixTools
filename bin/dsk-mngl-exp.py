@@ -43,6 +43,7 @@ import optparse     #: pylint: disable=deprecated-module
 import logging      #: Python's standard logging facilities
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
+from subprocess import Popen, check_output, PIPE, STDOUT
 # import traceback    #: Print/retrieve a stack traceback
 #==============================================================================
 #-- Third Party Imports
@@ -64,7 +65,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha' #: current version
-__revised__ = '20190228-145507' #: date of most recent revision
+__revised__ = '20190305-164313' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = '''TODO: CHANGEME
@@ -594,13 +595,152 @@ class RunOptions(object):
 
 
 #==============================================================================
+class Convert():
+    ''' adopted from:
+        http://code.activestate.com/recipes/578019-bytes-to-human-human-to-bytes-converter/
+    '''
+    __version = '1.0.0-alpha01'
+    SYMBOLS = {
+        'customary': ('B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'),
+        'customary_ext': ('byte', 'kilo', 'mega', 'giga', 'tera', 'peta', 'exa', 'zetta', 'iotta'),
+        'customary_mod': ('B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'),
+        'customary_low': ('b', 'k', 'm', 'g', 't', 'p', 'e', 'z', 'y'),
+        'customary_modlow': ('b', 'kb', 'mb', 'gb', 'tb', 'pb', 'eb', 'zb', 'yb'),
+        'iec': ('Bi', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi', 'Yi'),
+        'iec_ext': ('byte', 'kibi', 'mebi', 'gibi', 'tebi', 'pebi', 'exbi', 'zebi', 'yobi'),
+        'iec_low': ('bi', 'ki', 'mi', 'gi', 'ti', 'pi', 'ei', 'zi', 'yi'),
+        }
+
+    @classmethod
+    def to_bytes(cls, value):
+        ''' Convert human to bytes '''
+        passed_value = value
+        num = ""
+        while value and value[0:1].isdigit() or value[0:1] == '.':
+            num += value[0]
+            value = value[1:]
+        num = float(num)
+        letter = value.strip()
+        for set_name, set_items in cls.SYMBOLS.items():
+            if letter in set_items:
+                break
+        else:
+            set_name = 'customary'
+            set_items = cls.SYMBOLS[set_name]
+            raise ValueError("can't interpret %r" % passed_value)
+        logger.debug('Using symbols set %s.', set_name)
+        prefix = {set_items[0]:1}
+        for i, s in enumerate(set_items[1:]):
+            prefix[s] = 1 << (i+1)*10
+        return int(num * prefix[letter])
+
+    @classmethod
+    def to_human(cls, num, fmt='%(value).1f %(symbol)s', symbols='customary'):
+        ''' Convert bytes to human '''
+        num = int(num)
+        if num < 0:
+            raise ValueError("num < 0")
+        symbols = cls.SYMBOLS[symbols]
+        prefix = {}
+        for i, sym in enumerate(symbols[1:]):
+            prefix[sym] = 1 << (i+1)*10
+        for symbol in reversed(symbols[1:]):
+            if num >= prefix[symbol]:
+                value = float(num) / prefix[symbol]
+                return fmt % locals()
+        return fmt % dict(symbol=symbols[0], value=num)
+
+
+#==============================================================================
+class Storage():
+    ''' docs
+    '''
+    __version = '1.0.0-alpha01'
+    blklst = {}
+    mntlst = {}
+
+    def __init__(self):
+        ''' '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        self._update_lists()
+
+    def _update_lists(self):
+        ''' '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        lsblk = Popen(['lsblk', '--raw', '--noheadings', '--output',
+                       'type,size,name,fstype,mountpoint'],
+                      stdout=PIPE, stderr=STDOUT)
+        for line in iter(lsblk.stdout.readline, ""):
+            ttype, size, name, fstype, mountpoint = (line.rstrip().split() + [None]*99)[:5]
+            sz_norm = Convert.to_bytes(size)
+            if ttype not in self.blklst:
+                self.blklst[ttype] = []
+            self.blklst[ttype].append({name: {
+                'fstype': fstype,
+                'size': size,
+                'sz_norm': sz_norm,
+                'mountpoint': mountpoint}})
+            if mountpoint is not None:
+                self.mntlst[mountpoint] = {
+                    'name': name,
+                    'fstype': fstype,
+                    'size': size,
+                    'sz_norm': sz_norm,
+                    'type': ttype}
+        with open('/etc/mtab', 'r') as mtab:
+            for line in mtab:
+                name, mountpoint, fstype, opts, _, _ = (line.rstrip().split())
+                if mountpoint not in self.mntlst:
+                    self.mntlst[mountpoint] = {
+                        'name': name,
+                        'fstype': fstype,
+                        'opts': opts}
+                else:
+                    self.mntlst[mountpoint].update({'opts': opts})
+
+    def is_mpoint(self, path):
+        ''' Takes a path, returns True if its a mountpoint, else False '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if path in self.mntlst:
+            return True
+        return False
+
+    @staticmethod
+    def mpoint_for(path):
+        ''' Takes a path, returns path of mountpoint it is on '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        return check_output(['findmnt', '--raw', '--noheadings', '--output', 'target', '-T', path]).strip()
+
+    @staticmethod
+    def fsys_for(path):
+        ''' Takes a path, returns path of mountpoint it is on '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        return check_output(['findmnt', '--raw', '--noheadings', '--output', 'source', '-T', path]).strip()
+
+#==============================================================================
 def main():
     ''' This is where the action takes place
         We expect options and logger to be global
     '''
     logger.debug('Starting main()')
     #-- TODO: Do something more interesting here...
+    devs = Storage()
 
+    # from pprint import pprint
+    # pprint(devs.blklst)
+    # pprint(devs.mntlst)
+
+    print('/var/tmp: %s' % devs.is_mpoint('/var/tmp'))
+    print('/var/tmp/test: %s' % devs.is_mpoint('/var/tmp/test'))
+    print('/tmp: %s' % devs.is_mpoint('/tmp'))
+    print('/tmp/test: %s' % devs.is_mpoint('/tmp/test'))
+    print('/var/log/anaconda: %s' % devs.mpoint_for('/var/log/anaconda'))
+    print('/var/log/anaconda: %s' % devs.fsys_for('/var/log/anaconda'))
 
 #==============================================================================
 if __name__ == '__main__':
