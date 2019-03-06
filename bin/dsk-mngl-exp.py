@@ -43,6 +43,8 @@ import optparse     #: pylint: disable=deprecated-module
 import logging      #: Python's standard logging facilities
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
+import json
+import shlex
 from subprocess import Popen, check_output, PIPE, STDOUT
 # import traceback    #: Print/retrieve a stack traceback
 #==============================================================================
@@ -50,7 +52,7 @@ from subprocess import Popen, check_output, PIPE, STDOUT
 #==============================================================================
 #-- Require a minimum Python version
 if sys.version_info <= (2, 6):
-    sys.exit("Minimum Python version: 2.6")
+    sys.exit("Minimum Python version: 2.7")
 #-- NOTE: default Python versions:
 #--       RHEL4    2.3.4
 #--       RHEL5    2.4.3
@@ -65,7 +67,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha' #: current version
-__revised__ = '20190305-164313' #: date of most recent revision
+__revised__ = '20190306-165516' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = '''TODO: CHANGEME
@@ -87,7 +89,7 @@ __basename__ = os.path.basename(sys.argv[0]) #: name script run as
 #------------------------------------------------------------------------------
 #-- Flags
 __logger_file_set__ = False #: If a file setup for logger
-__require_root__ = False    #: Does script require root
+__require_root__ = True    #: Does script require root
 #------------------------------------------------------------------------------
 #-- Load in environment variables, or set defaults
 __default_dsf__ = os.getenv('DEFAULT_TIMESTAMP') if 'DEFAULT_TIMESTAMP' in os.environ else "%Y%m%d-%H%M%S"
@@ -655,56 +657,126 @@ class Convert():
 class Storage():
     ''' docs
     '''
-    __version = '1.0.0-alpha01'
+    __version = '1.0.0-alpha02'
+    blktree = {}
     blklst = {}
     mntlst = {}
+    lvlst = {}
+    pvlst = {}
+    vglst = {}
 
     def __init__(self):
         ''' '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        self._update_lists()
+        self._update_blk_lists()
+        self._update_mnt_lists()
+        self._update_lvm_lists()
 
-    def _update_lists(self):
+    def _update_blk_lists(self):
         ''' '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        lsblk = Popen(['lsblk', '--raw', '--noheadings', '--output',
-                       'type,size,name,fstype,mountpoint'],
-                      stdout=PIPE, stderr=STDOUT)
-        for line in iter(lsblk.stdout.readline, ""):
-            ttype, size, name, fstype, mountpoint = (line.rstrip().split() + [None]*99)[:5]
-            sz_norm = Convert.to_bytes(size)
-            if ttype not in self.blklst:
-                self.blklst[ttype] = []
-            self.blklst[ttype].append({name: {
-                'fstype': fstype,
-                'size': size,
-                'sz_norm': sz_norm,
-                'mountpoint': mountpoint}})
-            if mountpoint is not None:
-                self.mntlst[mountpoint] = {
-                    'name': name,
-                    'fstype': fstype,
-                    'size': size,
-                    'sz_norm': sz_norm,
-                    'type': ttype}
-        with open('/etc/mtab', 'r') as mtab:
-            for line in mtab:
-                name, mountpoint, fstype, opts, _, _ = (line.rstrip().split())
-                if mountpoint not in self.mntlst:
-                    self.mntlst[mountpoint] = {
-                        'name': name,
-                        'fstype': fstype,
-                        'opts': opts}
-                else:
-                    self.mntlst[mountpoint].update({'opts': opts})
+        output = Popen(['lsblk', '--pairs', '--noheadings', '--bytes', '--all',
+                        '--output', 'type,size,name,kname,pkname,fstype,mountpoint,label,uuid'],
+                       stdout=PIPE, stderr=STDOUT)
+        for line in iter(output.stdout.readline, ""):
+            item = dict(token.split('=') for token in shlex.split(line))
+            item = {k.lower(): v for k, v in item.items()}
+            item['size'] = int(item['size'])
+            empty_item = {k for k, v in item.items() if v == ''}
+            for k in empty_item:
+                item[k] = None
+
+            if item['type'] not in self.blktree:
+                self.blktree[item['type']] = {}
+            self.blktree[item['type']][item['name']] = []
+            if item['mountpoint'] is not None:
+                self.mntlst[item['mountpoint']] = item
+            self.blklst[item['name']] = item
+            self.blklst[item['name']].update({'children': []})
+            if item['pkname'] is not None:
+                self.blklst[item['pkname']]['children'].append(item['name'])
+                self.blktree[self.blklst[item['pkname']]['type']][item['pkname']].append(item['name'])
+
+    def _update_mnt_lists(self):
+        ''' '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        output = Popen(['findmnt', '--pairs', '--noheadings', '--bytes', '--all',
+                        '--output', 'source,target,fstype,label,uuid,size,avail,used,fsroot'],
+                       stdout=PIPE, stderr=STDOUT)
+        # import pprint
+        for line in iter(output.stdout.readline, ""):
+            item = dict(token.split('=') for token in shlex.split(line))
+            item = {k.lower(): v for k, v in item.items()}
+            item['size'] = int(item['size'])
+            item['avail'] = int(item['avail'])
+            item['used'] = int(item['used'])
+            empty_item = {k for k, v in item.items() if v == ''}
+            for k in empty_item:
+                item[k] = None
+
+            # if item['target'] == '/var/tmp':
+            #     print('====================================================')
+            #     pprint.pprint(self.blklst['vg00-var_tmp'])
+            #     pprint.pprint(item['target'])
+            #     print('====================================================')
+            if item['target'] not in self.mntlst:
+                self.mntlst[item['target']] = item
+                # if item['target'] == '/var/tmp':
+                #     print('====================================================')
+                #     print('ADDING TO MNTLST')
+                #     pprint.pprint(item)
+                #     print('====================================================')
+            else:
+                item['size'] = self.mntlst[item['target']]['size']
+                self.mntlst[item['target']].update(item)
+                # if item['target'] == '/var/tmp':
+                #     print('====================================================')
+                #     print('UPDATING MNTLST')
+                #     pprint.pprint(item)
+                #     print('====================================================')
+                #     pprint.pprint(self.blklst['vg00-var_tmp'])
+                #     print('====================================================')
+            if item['target'] is not item['fsroot']:
+                self.mntlst[item['fsroot']]['children'].append(item['target'])
+
+    def _update_lvm_lists(self):
+        ''' '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        out = check_output(['pvs', '--noheadings', '--units', 'B', '--nosuffix',
+                            '--reportformat', 'json', '--options', 'pv_all'])
+        for entry in json.loads(out)['report'][0]['pv']:
+            self.pvlst[entry['pv_name']] = entry
+        # of interest: pv_name,pv_size,pv_free,pv_in_use
+        out = check_output(['vgs', '--readonly', '--noheadings', '--units', 'B',
+                            '--nosuffix', '--reportformat', 'json', '--options',
+                            'vg_all'])
+        for entry in json.loads(out)['report'][0]['vg']:
+            self.vglst[entry['vg_name']] = entry
+        # of interest: vg_name,vg_size,vg_free,pv_count,lv_count
+        out = check_output(['lvs', '--readonly', '--noheadings', '--units', 'B',
+                            '--nosuffix', '--reportformat', 'json', '--options',
+                            'lv_all'])
+        for entry in json.loads(out)['report'][0]['lv']:
+            self.lvlst[entry['lv_name']] = entry
+        # of interest: lv_name,lv_full_name,lv_path,lv_dm_path,lv_size
 
     def is_mpoint(self, path):
         ''' Takes a path, returns True if its a mountpoint, else False '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         if path in self.mntlst:
+            return True
+        return False
+
+    def is_fsys_bigger(self, path, size):
+        ''' Takes a path and size, checks if filesystem is equal or bigger '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if self.mntlst[self.mpoint_for(path)]['size'] >= Convert.to_bytes(size):
             return True
         return False
 
@@ -717,7 +789,7 @@ class Storage():
 
     @staticmethod
     def fsys_for(path):
-        ''' Takes a path, returns path of mountpoint it is on '''
+        ''' Takes a path, returns path of device it is on '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         return check_output(['findmnt', '--raw', '--noheadings', '--output', 'source', '-T', path]).strip()
@@ -729,18 +801,33 @@ def main():
     '''
     logger.debug('Starting main()')
     #-- TODO: Do something more interesting here...
+    from pprint import pprint
     devs = Storage()
 
-    # from pprint import pprint
+                                                                                             # print('------------------------------------------------------------')
+    # print('------------------------------------------------------------')
+    # pprint(devs.blktree)
+    # print('------------------------------------------------------------')
+    # pprint(devs.pvlst)
+    # print('------------------------------------------------------------')
+    # pprint(devs.vglst)
+    # print('------------------------------------------------------------')
+    # pprint(devs.lvlst)
+    # print('------------------------------------------------------------')
     # pprint(devs.blklst)
-    # pprint(devs.mntlst)
+    # print('------------------------------------------------------------')
+    pprint(devs.mntlst)
+    print('------------------------------------------------------------')
 
-    print('/var/tmp: %s' % devs.is_mpoint('/var/tmp'))
-    print('/var/tmp/test: %s' % devs.is_mpoint('/var/tmp/test'))
-    print('/tmp: %s' % devs.is_mpoint('/tmp'))
-    print('/tmp/test: %s' % devs.is_mpoint('/tmp/test'))
-    print('/var/log/anaconda: %s' % devs.mpoint_for('/var/log/anaconda'))
-    print('/var/log/anaconda: %s' % devs.fsys_for('/var/log/anaconda'))
+    # print('/var/tmp: %s' % devs.is_mpoint('/var/tmp'))
+    # print('/var/tmp/test: %s' % devs.is_mpoint('/var/tmp/test'))
+    # print('/tmp: %s' % devs.is_mpoint('/tmp'))
+    # print('/tmp/test: %s' % devs.is_mpoint('/tmp/test'))
+    print('/var/log/anaconda mntp: %s' % devs.mpoint_for('/var/log/anaconda'))
+    print('/var/log/anaconda fsys: %s' % devs.fsys_for('/var/log/anaconda'))
+    print('/var/tmp bigger 2G: %s' % devs.is_fsys_bigger('/var/tmp', '2G'))
+    print('/var/tmp bigger 9G: %s' % devs.is_fsys_bigger('/var/tmp', '9G'))
+    print(devs.blklst['vg00-var_tmp']['source'])
 
 #==============================================================================
 if __name__ == '__main__':
