@@ -44,6 +44,7 @@ import logging      #: Python's standard logging facilities
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
 import json
+import yaml
 import shlex
 from subprocess import Popen, check_output, PIPE, STDOUT
 # import traceback    #: Print/retrieve a stack traceback
@@ -67,7 +68,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha' #: current version
-__revised__ = '20190306-165516' #: date of most recent revision
+__revised__ = '20190307-145933' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = '''TODO: CHANGEME
@@ -657,13 +658,14 @@ class Convert():
 class Storage():
     ''' docs
     '''
-    __version = '1.0.0-alpha02'
+    __version = '1.0.0-alpha03'
     blktree = {}
     blklst = {}
     mntlst = {}
     lvlst = {}
     pvlst = {}
     vglst = {}
+    lv_paths2full_name = {}
 
     def __init__(self):
         ''' '''
@@ -683,7 +685,9 @@ class Storage():
         for line in iter(output.stdout.readline, ""):
             item = dict(token.split('=') for token in shlex.split(line))
             item = {k.lower(): v for k, v in item.items()}
-            item['size'] = int(item['size'])
+            for spec in ['size', 'avail', 'used']:
+                if spec in item:
+                    item[spec] = int(item[spec])
             empty_item = {k for k, v in item.items() if v == ''}
             for k in empty_item:
                 item[k] = None
@@ -710,9 +714,9 @@ class Storage():
         for line in iter(output.stdout.readline, ""):
             item = dict(token.split('=') for token in shlex.split(line))
             item = {k.lower(): v for k, v in item.items()}
-            item['size'] = int(item['size'])
-            item['avail'] = int(item['avail'])
-            item['used'] = int(item['used'])
+            for spec in ['size', 'avail', 'used']:
+                if spec in item:
+                    item[spec] = int(item[spec])
             empty_item = {k for k, v in item.items() if v == ''}
             for k in empty_item:
                 item[k] = None
@@ -749,50 +753,178 @@ class Storage():
         out = check_output(['pvs', '--noheadings', '--units', 'B', '--nosuffix',
                             '--reportformat', 'json', '--options', 'pv_all'])
         for entry in json.loads(out)['report'][0]['pv']:
+            for spec in ['dev_size', 'pv_free', 'pv_used', 'pv_size']:
+                if spec in entry:
+                    entry[spec] = int(entry[spec])
             self.pvlst[entry['pv_name']] = entry
         # of interest: pv_name,pv_size,pv_free,pv_in_use
         out = check_output(['vgs', '--readonly', '--noheadings', '--units', 'B',
                             '--nosuffix', '--reportformat', 'json', '--options',
                             'vg_all'])
         for entry in json.loads(out)['report'][0]['vg']:
+            for spec in ['vg_size', 'vg_free', 'vg_used']:
+                if spec in entry:
+                    entry[spec] = int(entry[spec])
             self.vglst[entry['vg_name']] = entry
         # of interest: vg_name,vg_size,vg_free,pv_count,lv_count
         out = check_output(['lvs', '--readonly', '--noheadings', '--units', 'B',
                             '--nosuffix', '--reportformat', 'json', '--options',
-                            'lv_all'])
+                            'lv_all,vg_name'])
         for entry in json.loads(out)['report'][0]['lv']:
-            self.lvlst[entry['lv_name']] = entry
-        # of interest: lv_name,lv_full_name,lv_path,lv_dm_path,lv_size
+            for spec in ['lv_size']:
+                if spec in entry:
+                    entry[spec] = int(entry[spec])
+            self.lvlst[entry['lv_full_name']] = entry
+            if entry['lv_path'] != '':
+                self.lv_paths2full_name[entry['lv_path']] = entry['lv_full_name']
+            if entry['lv_dm_path'] != '':
+                dm_path = entry['lv_dm_path']
+                self.lv_paths2full_name[dm_path] = entry['lv_full_name']
+                self.lv_paths2full_name[os.path.basename(dm_path)] = entry['lv_full_name']
+        # of interest: lv_name,lv_full_name,lv_path,lv_dm_path,lv_size,vg_name
 
-    def is_mpoint(self, path):
-        ''' Takes a path, returns True if its a mountpoint, else False '''
+    @staticmethod
+    def is_mpoint(path):
+        ''' Checks if a path is a mountpoint
+        Args:
+            path:   Filesystem path to check
+        Returns:
+            True if path is a mountpoint
+        '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        if path in self.mntlst:
+        return os.path.ismount(path)
+
+    @staticmethod
+    def mnt_for_path(path):
+        ''' Find mountpoint of a path
+        Args:
+            path:   Filesystem path to check
+        Returns:
+            [SWAP] if passed 'swap', 'SWAP', or '[SWAP]'
+            None if path does not exist
+            String of filesystem path to mountpoint
+        '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if path in ['swap', 'SWAP', '[SWAP]']:
+            return '[SWAP]'
+        if os.path.exists(path):
+            return check_output(['findmnt', '--raw', '--noheadings', '--output', 'target', '-T', path]).strip()
+        return None
+
+    def lvol_for_path(self, path):
+        ''' Find logical volume of a path
+        Args:
+            path:   Filesystem path to check
+        Returns:
+            None if path does not exist or is not on a logical volume
+            String of logical volume full name
+        '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        mpoint = self.mnt_for_path(path)
+        if mpoint is None or mpoint not in self.mntlst:
+            return None
+        mpoint = self.mntlst[mpoint]
+        if 'type' in mpoint and mpoint['type'] == 'lvm':
+            if 'source' in mpoint:
+                return self.lv_paths2full_name[mpoint['source']]
+            return self.lv_paths2full_name[mpoint['name']]
+        return None
+
+    def vg_for_path(self, path):
+        ''' Find volume group of a path
+        Args:
+            path:   Filesystem path to check
+        Returns:
+            None if path does not exist or is not in a volume group
+            String of volume group name
+        '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        lvol = self.lvol_for_path(path)
+        if lvol is None:
+            return None
+        if 'vg_name' in self.lvlst[lvol]:
+            return self.lvlst[lvol]['vg_name']
+        return None
+
+    def dev_for_path(self, path):
+        ''' Find device of a path
+        Args:
+            path:   Filesystem path to check
+        Returns:
+            None if path does not exist or device is not known
+            String of device path
+        '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        mpoint = self.mnt_for_path(path)
+        if mpoint is None or mpoint not in self.mntlst:
+            return None
+        mpoint = self.mntlst[mpoint]
+        if 'source' in mpoint:
+            return mpoint['source']
+        return None
+
+    def is_mnt_at_least(self, path, size):
+        ''' Check if size of a mountpoint is at least given size
+        Args:
+            path:   Filesystem path to check
+            size:   Minimum size to check
+        Returns:
+            None if path does not exist
+            True if mountpoint is at least given size
+            False if it is not
+        '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        mpoint = self.mnt_for_path(path)
+        if mpoint is None or mpoint not in self.mntlst:
+            return None
+        mpoint = self.mntlst[mpoint]
+        if 'size' in mpoint and mpoint['size'] >= Convert.to_bytes(size):
             return True
         return False
 
-    def is_fsys_bigger(self, path, size):
-        ''' Takes a path and size, checks if filesystem is equal or bigger '''
+    def is_lvol_at_least(self, lvol, size):
+        ''' Check if size of a logical volume is at least given size
+        Args:
+            lvol:   lvol full name to check
+            size:   Minimum size to check
+        Returns:
+            None if lvol does not exist
+            True if lvol is at least given size
+            False if it is not
+        '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        if self.mntlst[self.mpoint_for(path)]['size'] >= Convert.to_bytes(size):
+        if lvol not in self.lvlst:
+            return None
+        lvol = self.lvlst[lvol]
+        if 'lv_size' in lvol and lvol['lv_size'] >= Convert.to_bytes(size):
             return True
         return False
 
-    @staticmethod
-    def mpoint_for(path):
-        ''' Takes a path, returns path of mountpoint it is on '''
+    def is_vg_at_least(self, vgn, size):
+        ''' Check if size of a volume group is at least given size
+        Args:
+            vgn:    vg name to check
+            size:   Minimum size to check
+        Returns:
+            None if vgn does not exist
+            True if vgn is at least given size
+            False if it is not
+        '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        return check_output(['findmnt', '--raw', '--noheadings', '--output', 'target', '-T', path]).strip()
-
-    @staticmethod
-    def fsys_for(path):
-        ''' Takes a path, returns path of device it is on '''
-        if 'logger' in globals():
-            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        return check_output(['findmnt', '--raw', '--noheadings', '--output', 'source', '-T', path]).strip()
+        if vgn not in self.vglst:
+            return None
+        vgn = self.vglst[vgn]
+        if 'vg_size' in vgn and vgn['vg_size'] >= Convert.to_bytes(size):
+            return True
+        return False
 
 #==============================================================================
 def main():
@@ -804,30 +936,77 @@ def main():
     from pprint import pprint
     devs = Storage()
 
-                                                                                             # print('------------------------------------------------------------')
-    # print('------------------------------------------------------------')
+    print('------------------------------------------------------------')
+
     # pprint(devs.blktree)
     # print('------------------------------------------------------------')
+
     # pprint(devs.pvlst)
     # print('------------------------------------------------------------')
     # pprint(devs.vglst)
     # print('------------------------------------------------------------')
     # pprint(devs.lvlst)
     # print('------------------------------------------------------------')
+
     # pprint(devs.blklst)
     # print('------------------------------------------------------------')
-    pprint(devs.mntlst)
-    print('------------------------------------------------------------')
+    # pprint(devs.mntlst)
+    # print('------------------------------------------------------------')
 
-    # print('/var/tmp: %s' % devs.is_mpoint('/var/tmp'))
-    # print('/var/tmp/test: %s' % devs.is_mpoint('/var/tmp/test'))
-    # print('/tmp: %s' % devs.is_mpoint('/tmp'))
-    # print('/tmp/test: %s' % devs.is_mpoint('/tmp/test'))
-    print('/var/log/anaconda mntp: %s' % devs.mpoint_for('/var/log/anaconda'))
-    print('/var/log/anaconda fsys: %s' % devs.fsys_for('/var/log/anaconda'))
-    print('/var/tmp bigger 2G: %s' % devs.is_fsys_bigger('/var/tmp', '2G'))
-    print('/var/tmp bigger 9G: %s' % devs.is_fsys_bigger('/var/tmp', '9G'))
-    print(devs.blklst['vg00-var_tmp']['source'])
+    # pprint(devs.lv_paths2full_name)
+    # print('------------------------------------------------------------')
+    # pprint(devs.lv_dm_path2lv_full_name)
+    # print('------------------------------------------------------------')
+
+    for disk in devs.blktree['disk']:
+        print('%s - %s' % (disk, Convert.to_human(devs.blklst[disk]['size'])))
+        print('    num childs: %s' % len(devs.blklst[disk]['children']))
+    # print('------------------------------------------------------------')
+
+    # print('is_mpoint /var/tmp: %s' % devs.is_mpoint('/var/tmp'))
+    # print('is_mpoint /var/tmp/test: %s' % devs.is_mpoint('/var/tmp/test'))
+    # print('is_mpoint /tmp: %s' % devs.is_mpoint('/tmp'))
+    # print('is_mpoint /var: %s' % devs.is_mpoint('/var'))
+    # print('is_mpoint /var/lib: %s' % devs.is_mpoint('/var/lib'))
+    # print('is_mpoint /var/lib/containers: %s' % devs.is_mpoint('/var/lib/containers'))
+    # print('------------------------------------------------------------')
+
+    # print('/var/log/anaconda lvol: %s' % devs.lvol_for_path('/var/log/anaconda'))
+    # print('/var/log/anaconda vgrp: %s' % devs.vg_for_path('/var/log/anaconda'))
+    # print('/var/log/anaconda mntp: %s' % devs.mnt_for_path('/var/log/anaconda'))
+    # print('/var/log/anaconda  dev: %s' % devs.dev_for_path('/var/log/anaconda'))
+    # print('------------------------------------------------------------')
+
+    # print('swap lvol: %s' % devs.lvol_for_path('swap'))
+    # print('swap vgrp: %s' % devs.vg_for_path('swap'))
+    # print('swap mntp: %s' % devs.mnt_for_path('swap'))
+    # print('swap  dev: %s' % devs.dev_for_path('swap'))
+    # print('------------------------------------------------------------')
+
+    # print('/var/tmp bigger 2G: %s' % devs.is_mnt_at_least('/var/tmp', '2G'))
+    # print('/var/tmp bigger 9G: %s' % devs.is_mnt_at_least('/var/tmp', '9G'))
+    # print('/var/tmp lvol at lest 5G: %s' % devs.is_lvol_at_least(devs.lvol_for_path('/var/tmp'), '5G'))
+    # print('/var/tmp vg at least 10G: %s' % devs.is_vg_at_least(devs.vg_for_path('/var/tmp'), '10G'))
+    # print('swap lvol at lest 2G: %s' % devs.is_lvol_at_least(devs.lvol_for_path('swap'), '2G'))
+    # print('swap vg at least 90G: %s' % devs.is_vg_at_least(devs.vg_for_path('swap'), '90G'))
+    # print('------------------------------------------------------------')
+
+    # desired_conf = yaml.load(open('/home/amyhr/work/metlife/linux-engineering-tools/lib/default-dir.yml'))
+    # # pprint(desired_conf)
+    # for directory in desired_conf['directories']:
+    #     print('%s' % (directory['path']))
+    #     print('    lvol: %s' % devs.lvol_for_path(directory['path']))
+    #     print('      vg: %s' % devs.vg_for_path(directory['path']))
+    #     print('    fsys: %s' % devs.dev_for_path(directory['path']))
+    #     if directory['mpreq']:
+    #         print(' - is mountpoint? %s' % devs.is_mpoint(directory['path']))
+    #     print(' - is at least %s? %s' % (directory['size'], devs.is_mnt_at_least(directory['path'], directory['size'])))
+    # print('------------------------------------------------------------')
+
+    # for vgroup in desired_conf['vgroups']:
+    #     print('%s at least %s? %s' % (vgroup['name'], vgroup['size'], devs.is_vg_at_least(vgroup['name'], vgroup['size'])))
+    # print('------------------------------------------------------------')
+
 
 #==============================================================================
 if __name__ == '__main__':
