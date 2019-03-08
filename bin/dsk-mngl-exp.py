@@ -68,7 +68,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha' #: current version
-__revised__ = '20190307-145933' #: date of most recent revision
+__revised__ = '20190307-191024' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = '''TODO: CHANGEME
@@ -658,7 +658,7 @@ class Convert():
 class Storage():
     ''' docs
     '''
-    __version = '1.0.0-alpha03'
+    __version = '1.0.0-alpha04'
     blktree = {}
     blklst = {}
     mntlst = {}
@@ -868,6 +868,23 @@ class Storage():
             return mpoint['source']
         return None
 
+    def is_dsk_avail(self, disk):
+        ''' Check if disk is available for use
+        Args:
+            disk:   disk to check
+        Returns:
+            None if disk does not exist
+            True if disk has no children
+            False if it does
+        '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if disk not in self.blktree['disk']:
+            return None
+        if len(self.blktree['disk'][disk]) == 0:
+            return True
+        return False
+
     def is_mnt_at_least(self, path, size):
         ''' Check if size of a mountpoint is at least given size
         Args:
@@ -900,6 +917,8 @@ class Storage():
         '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if lvol in self.lv_paths2full_name:
+            lvol = self.lv_paths2full_name[lvol]
         if lvol not in self.lvlst:
             return None
         lvol = self.lvlst[lvol]
@@ -925,6 +944,71 @@ class Storage():
         if 'vg_size' in vgn and vgn['vg_size'] >= Convert.to_bytes(size):
             return True
         return False
+
+    def lvol_can_grow(self, lvol, size, size_is='static'):
+        ''' Check if vg has space to grow lvol
+        Args:
+            size:    size to check for
+            size_is: flag whether size value is static or additional
+        Returns:
+            None if lvol non-existant
+            True if vg has enough space to grow lvol, or growth not needed
+            False if not
+        '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if size_is not in ['add', 'additional', 'static']:
+            raise ValueError('size_is must be static or additional')
+        if lvol in self.lv_paths2full_name:
+            lvol = self.lv_paths2full_name[lvol]
+        if lvol not in self.lvlst:
+            return None
+        size = Convert.to_bytes(size)
+        if size_is in ['add', 'additional']:
+            size = self.lvlst[lvol]['lv_size'] + size
+        if size <= self.lvlst[lvol]['lv_size']:
+            return True
+        needed = size - self.lvlst[lvol]['lv_size']
+        if self.vglst[self.lvlst[lvol]['vg_name']]['vg_free'] >= needed:
+            return True
+        return False
+
+    def mnt_can_grow(self, mnt, size, size_is='static'):
+        ''' Check if vg has space to grow lvol mnt is on
+        Args:
+            size:    size to check for
+            size_is: flag whether size value is static or additional
+        Returns:
+            None if mnt non-existant, or not on a lvol
+            True if vg has enough space to grow lvol mnt is on, or growth not needed
+            False if not
+        '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if mnt not in self.mntlst:
+            return None
+        if 'type' in self.mntlst[mnt] and self.mntlst[mnt]['type'] == 'lvm':
+            return self.lvol_can_grow(self.lvol_for_path(mnt), size, size_is)
+        return None
+
+    def fnd_free_dsk(self, size):
+        ''' Find disk of at least size available for use
+        Args:
+            size:   size of disk to look for
+        Returns:
+            None if no disk available
+            String name of disk
+        '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        found = {'disk': None, 'size': 0}
+        for disk in self.blktree['disk']:
+            if self.is_dsk_avail(disk):
+                if self.blklst[disk]['size'] >= Convert.to_bytes(size):
+                    if found['disk'] is None or self.blklst[disk]['size'] < found['size']:
+                        found['disk'] = disk
+                        found['size'] = self.blklst[disk]['size']
+        return found['disk']
 
 #==============================================================================
 def main():
@@ -958,9 +1042,10 @@ def main():
     # pprint(devs.lv_dm_path2lv_full_name)
     # print('------------------------------------------------------------')
 
-    for disk in devs.blktree['disk']:
-        print('%s - %s' % (disk, Convert.to_human(devs.blklst[disk]['size'])))
-        print('    num childs: %s' % len(devs.blklst[disk]['children']))
+    # for disk in devs.blktree['disk']:
+    #     print('%s - %s' % (disk, Convert.to_human(devs.blklst[disk]['size'])))
+    #     print('    num childs: %s' % len(devs.blklst[disk]['children']))
+    #     print('    disk avail: %s' % devs.is_dsk_avail(disk))
     # print('------------------------------------------------------------')
 
     # print('is_mpoint /var/tmp: %s' % devs.is_mpoint('/var/tmp'))
@@ -991,21 +1076,45 @@ def main():
     # print('swap vg at least 90G: %s' % devs.is_vg_at_least(devs.vg_for_path('swap'), '90G'))
     # print('------------------------------------------------------------')
 
-    # desired_conf = yaml.load(open('/home/amyhr/work/metlife/linux-engineering-tools/lib/default-dir.yml'))
-    # # pprint(desired_conf)
-    # for directory in desired_conf['directories']:
-    #     print('%s' % (directory['path']))
-    #     print('    lvol: %s' % devs.lvol_for_path(directory['path']))
-    #     print('      vg: %s' % devs.vg_for_path(directory['path']))
-    #     print('    fsys: %s' % devs.dev_for_path(directory['path']))
-    #     if directory['mpreq']:
-    #         print(' - is mountpoint? %s' % devs.is_mpoint(directory['path']))
-    #     print(' - is at least %s? %s' % (directory['size'], devs.is_mnt_at_least(directory['path'], directory['size'])))
+    # print('find 2G disk: %s' % devs.fnd_free_dsk('2G'))
+    # print('find 5G disk: %s' % devs.fnd_free_dsk('5G'))
+    # print('find 7G disk: %s' % devs.fnd_free_dsk('7G'))
+    # print('find 12G disk: %s' % devs.fnd_free_dsk('12G'))
+    # print('find 20G disk: %s' % devs.fnd_free_dsk('20G'))
+    # print('find 30G disk: %s' % devs.fnd_free_dsk('30G'))
     # print('------------------------------------------------------------')
 
-    # for vgroup in desired_conf['vgroups']:
-    #     print('%s at least %s? %s' % (vgroup['name'], vgroup['size'], devs.is_vg_at_least(vgroup['name'], vgroup['size'])))
+    # print('can grow lvol vg00-root to 10G: %s' % devs.lvol_can_grow('vg00-root', '10G'))
+    # print('can grow lvol vg00-root to 40G: %s' % devs.lvol_can_grow('vg00-root', '40G'))
+    # print('can grow lvol home/home to 10G: %s' % devs.lvol_can_grow('home/home', '10G'))
+    # print('can grow lvol home/home to 15G: %s' % devs.lvol_can_grow('home/home', '15G'))
+    # print('can grow lvol home/home to 30G: %s' % devs.lvol_can_grow('home/home', '30G'))
+    # print('can add  5G to lvol home/home: %s' % devs.lvol_can_grow('home/home', '5G', 'add'))
+    # print('can add 50G to lvol home/home: %s' % devs.lvol_can_grow('home/home', '50G', 'add'))
+    # print('can grow mnt /var/tmp to 2G: %s' % devs.mnt_can_grow('/var/tmp', '2G'))
+    # print('can grow mnt /var/tmp to 3G: %s' % devs.mnt_can_grow('/var/tmp', '3G'))
+    # print('can grow mnt /var/tmp to 10G: %s' % devs.mnt_can_grow('/var/tmp', '10G'))
+    # print('can grow mnt /boot to 2G: %s' % devs.mnt_can_grow('/boot', '2G'))
     # print('------------------------------------------------------------')
+
+    # desired_conf = yaml.load(open('/home/amyhr/work/metlife/linux-engineering-tools/lib/default-dir.yml'))
+    desired_conf = yaml.load(open('/home/amyhr/work/metlife/linux-engineering-tools/lib/bigdata-dir.yml'))
+    pprint(desired_conf)
+    for directory in desired_conf['directories']:
+        print('%s' % (directory['path']))
+        print('    lvol: %s' % devs.lvol_for_path(directory['path']))
+        print('      vg: %s' % devs.vg_for_path(directory['path']))
+        print('    fsys: %s' % devs.dev_for_path(directory['path']))
+        if directory['mpreq']:
+            print(' - is mountpoint? %s' % devs.is_mpoint(directory['path']))
+        print(' - is at least %s? %s' % (directory['size'], devs.is_mnt_at_least(directory['path'], directory['size'])))
+        if not devs.is_mnt_at_least(devs.lvol_for_path(directory['path']), directory['size']):
+            print(' - can grow? %s' % devs.lvol_can_grow(devs.lvol_for_path(directory['path']), directory['size']))
+    print('------------------------------------------------------------')
+
+    for vgroup in desired_conf['vgroups']:
+        print('%s at least %s? %s' % (vgroup['name'], vgroup['size'], devs.is_vg_at_least(vgroup['name'], vgroup['size'])))
+    print('------------------------------------------------------------')
 
 
 #==============================================================================
