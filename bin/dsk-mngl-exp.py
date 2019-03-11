@@ -44,15 +44,15 @@ import logging      #: Python's standard logging facilities
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
 import json
-import yaml
 import shlex
+import yaml
 from subprocess import Popen, check_output, PIPE, STDOUT
 # import traceback    #: Print/retrieve a stack traceback
 #==============================================================================
 #-- Third Party Imports
 #==============================================================================
 #-- Require a minimum Python version
-if sys.version_info <= (2, 6):
+if sys.version_info <= (2, 7):
     sys.exit("Minimum Python version: 2.7")
 #-- NOTE: default Python versions:
 #--       RHEL4    2.3.4
@@ -68,7 +68,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha' #: current version
-__revised__ = '20190307-191024' #: date of most recent revision
+__revised__ = '20190311-165024' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = '''TODO: CHANGEME
@@ -602,7 +602,7 @@ class Convert():
     ''' adopted from:
         http://code.activestate.com/recipes/578019-bytes-to-human-human-to-bytes-converter/
     '''
-    __version = '1.0.0-alpha01'
+    __version = '1.0.0-alpha02'
     SYMBOLS = {
         'customary': ('B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'),
         'customary_ext': ('byte', 'kilo', 'mega', 'giga', 'tera', 'peta', 'exa', 'zetta', 'iotta'),
@@ -617,6 +617,11 @@ class Convert():
     @classmethod
     def to_bytes(cls, value):
         ''' Convert human to bytes '''
+        try:
+            value = int(value)
+            return value
+        except ValueError:
+            pass
         passed_value = value
         num = ""
         while value and value[0:1].isdigit() or value[0:1] == '.':
@@ -658,7 +663,7 @@ class Convert():
 class Storage():
     ''' docs
     '''
-    __version = '1.0.0-alpha04'
+    __version = '1.0.0-alpha05'
     blktree = {}
     blklst = {}
     mntlst = {}
@@ -679,10 +684,9 @@ class Storage():
         ''' '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        output = Popen(['lsblk', '--pairs', '--noheadings', '--bytes', '--all',
-                        '--output', 'type,size,name,kname,pkname,fstype,mountpoint,label,uuid'],
-                       stdout=PIPE, stderr=STDOUT)
-        for line in iter(output.stdout.readline, ""):
+        out = check_output(['lsblk', '--pairs', '--noheadings', '--bytes', '--all',
+                            '--output', 'type,size,name,kname,pkname,fstype,mountpoint,label,uuid'])
+        for line in out.splitlines():
             item = dict(token.split('=') for token in shlex.split(line))
             item = {k.lower(): v for k, v in item.items()}
             for spec in ['size', 'avail', 'used']:
@@ -707,11 +711,10 @@ class Storage():
         ''' '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        output = Popen(['findmnt', '--pairs', '--noheadings', '--bytes', '--all',
-                        '--output', 'source,target,fstype,label,uuid,size,avail,used,fsroot'],
-                       stdout=PIPE, stderr=STDOUT)
+        out = check_output(['findmnt', '--pairs', '--noheadings', '--bytes', '--all',
+                            '--output', 'source,target,fstype,label,uuid,size,avail,used,fsroot'])
         # import pprint
-        for line in iter(output.stdout.readline, ""):
+        for line in out.splitlines():
             item = dict(token.split('=') for token in shlex.split(line))
             item = {k.lower(): v for k, v in item.items()}
             for spec in ['size', 'avail', 'used']:
@@ -793,6 +796,8 @@ class Storage():
         '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if path is None:
+            return None
         return os.path.ismount(path)
 
     @staticmethod
@@ -802,16 +807,22 @@ class Storage():
             path:   Filesystem path to check
         Returns:
             [SWAP] if passed 'swap', 'SWAP', or '[SWAP]'
-            None if path does not exist
+            None if path passed is None
             String of filesystem path to mountpoint
         '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if path is None:
+            return None
         if path in ['swap', 'SWAP', '[SWAP]']:
             return '[SWAP]'
-        if os.path.exists(path):
-            return check_output(['findmnt', '--raw', '--noheadings', '--output', 'target', '-T', path]).strip()
-        return None
+        if not os.path.exists(path):
+            while True:
+                path = os.path.abspath(os.path.join(path, os.pardir))
+                if os.path.exists(path):
+                    break
+        return check_output(['findmnt', '--raw', '--noheadings', '--output', 'target', '-T', path]).strip()
+        # return None
 
     def lvol_for_path(self, path):
         ''' Find logical volume of a path
@@ -823,6 +834,8 @@ class Storage():
         '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if path is None:
+            return None
         mpoint = self.mnt_for_path(path)
         if mpoint is None or mpoint not in self.mntlst:
             return None
@@ -843,6 +856,8 @@ class Storage():
         '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if path is None:
+            return None
         lvol = self.lvol_for_path(path)
         if lvol is None:
             return None
@@ -860,6 +875,8 @@ class Storage():
         '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if path is None:
+            return None
         mpoint = self.mnt_for_path(path)
         if mpoint is None or mpoint not in self.mntlst:
             return None
@@ -867,6 +884,24 @@ class Storage():
         if 'source' in mpoint:
             return mpoint['source']
         return None
+
+    def is_lvol(self, path):
+        ''' Find logical volume of a path
+        Args:
+            path:   Filesystem path to check
+        Returns:
+            None if path does not exist
+            True if path is on a logical volume
+            False if not
+        '''
+        if 'logger' in globals():
+            logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if path is None:
+            return None
+        path = self.lvol_for_path(path)
+        if path is None:
+            return False
+        return True
 
     def is_dsk_avail(self, disk):
         ''' Check if disk is available for use
@@ -879,6 +914,8 @@ class Storage():
         '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if disk is None:
+            return None
         if disk not in self.blktree['disk']:
             return None
         if len(self.blktree['disk'][disk]) == 0:
@@ -897,6 +934,8 @@ class Storage():
         '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if path is None or size is None:
+            return None
         mpoint = self.mnt_for_path(path)
         if mpoint is None or mpoint not in self.mntlst:
             return None
@@ -917,6 +956,8 @@ class Storage():
         '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if lvol is None or size is None:
+            return None
         if lvol in self.lv_paths2full_name:
             lvol = self.lv_paths2full_name[lvol]
         if lvol not in self.lvlst:
@@ -926,22 +967,24 @@ class Storage():
             return True
         return False
 
-    def is_vg_at_least(self, vgn, size):
+    def is_vg_at_least(self, vgrp, size):
         ''' Check if size of a volume group is at least given size
         Args:
-            vgn:    vg name to check
+            vgrp:    vg name to check
             size:   Minimum size to check
         Returns:
-            None if vgn does not exist
-            True if vgn is at least given size
+            None if vgrp does not exist
+            True if vgrp is at least given size
             False if it is not
         '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        if vgn not in self.vglst:
+        if vgrp is None or size is None:
             return None
-        vgn = self.vglst[vgn]
-        if 'vg_size' in vgn and vgn['vg_size'] >= Convert.to_bytes(size):
+        if vgrp not in self.vglst:
+            return None
+        vgrp = self.vglst[vgrp]
+        if 'vg_size' in vgrp and vgrp['vg_size'] >= Convert.to_bytes(size):
             return True
         return False
 
@@ -957,6 +1000,8 @@ class Storage():
         '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if lvol is None or size is None:
+            return None
         if size_is not in ['add', 'additional', 'static']:
             raise ValueError('size_is must be static or additional')
         if lvol in self.lv_paths2full_name:
@@ -985,13 +1030,15 @@ class Storage():
         '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if mnt is None or size is None:
+            return None
         if mnt not in self.mntlst:
             return None
         if 'type' in self.mntlst[mnt] and self.mntlst[mnt]['type'] == 'lvm':
             return self.lvol_can_grow(self.lvol_for_path(mnt), size, size_is)
         return None
 
-    def fnd_free_dsk(self, size):
+    def fnd_free_dsk(self, size, smallest=True):
         ''' Find disk of at least size available for use
         Args:
             size:   size of disk to look for
@@ -1001,14 +1048,87 @@ class Storage():
         '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if size is None:
+            return None
         found = {'disk': None, 'size': 0}
         for disk in self.blktree['disk']:
             if self.is_dsk_avail(disk):
                 if self.blklst[disk]['size'] >= Convert.to_bytes(size):
-                    if found['disk'] is None or self.blklst[disk]['size'] < found['size']:
-                        found['disk'] = disk
-                        found['size'] = self.blklst[disk]['size']
+                    if smallest:
+                        if found['disk'] is None or self.blklst[disk]['size'] < found['size']:
+                            found['disk'] = disk
+                            found['size'] = self.blklst[disk]['size']
+                    else:
+                        if found['disk'] is None or self.blklst[disk]['size'] > found['size']:
+                            found['disk'] = disk
+                            found['size'] = self.blklst[disk]['size']
         return found['disk']
+
+#==============================================================================
+# def mk_pv(self, disk):
+# def mk_vg(self, name, disk):
+# def mk_lv(self, name, vgrp, size):
+# def mk_fsys(self, name, lvol, vgrp, size):
+# def grw_vg(self, vgrp, disk):
+# def grw_lv(self, lvol, size):
+#==============================================================================
+def ensure_vgrp(name=None, size=None, pool=None):
+    ''' x '''
+    if 'logger' in globals():
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if name is None:
+        raise ValueError('Must provide name of volume group.')
+    current_size = 0
+    devs = Storage()
+    if name not in devs.vglst:
+        logger.debug('will create vgroup %s', name)
+        command = ['vgcreate']
+    else:
+        command = ['vgextend']
+        current_size = devs.vglst[name]['vg_size']
+
+    if size is not None and devs.is_vg_at_least(name, size):
+        logger.debug('vgroup is larger than requested size.')
+        return True
+
+    device_list = []
+    if size is None and pool is None:
+        logger.debug('generate list of all available disks')
+        for disk in devs.blktree['disk']:
+            if devs.is_dsk_avail(disk):
+                device_list.append('/dev/%s' % disk)
+    elif size is None:
+        logger.debug('generate list of all disks in pool')
+        for item in pool:
+            disk = devs.fnd_free_dsk(item)
+            if disk:
+                device_list.append('/dev/%s' % disk)
+    elif pool is None:
+        logger.debug('generate list of disks to satisfy size req')
+        size = Convert.to_bytes(size)
+        for disk in devs.blktree['disk']:
+            if devs.is_dsk_avail(disk):
+                device_list.append('/dev/%s' % disk)
+                current_size += devs.blklst[disk]['size']
+            if current_size >= size:
+                break
+    else:
+        logger.debug('generate list of disks from pool to satisfy size req')
+        size = Convert.to_bytes(size)
+        for item in pool:
+            disk = devs.fnd_free_dsk(item)
+            if disk:
+                device_list.append('/dev/%s' % disk)
+                current_size += devs.blklst[disk]['size']
+            if current_size >= size:
+                break
+    if size is not None and current_size < size:
+        logger.debug('Unable to find enough free disk. Found: %s', (' '.join(device_list)))
+        return False
+    command.append(name)
+    command.extend(device_list)
+    logger.debug('Running: %s', (' '.join(command)))
+    return True
 
 #==============================================================================
 def main():
@@ -1068,14 +1188,15 @@ def main():
     # print('swap  dev: %s' % devs.dev_for_path('swap'))
     # print('------------------------------------------------------------')
 
-    # print('/var/tmp bigger 2G: %s' % devs.is_mnt_at_least('/var/tmp', '2G'))
-    # print('/var/tmp bigger 9G: %s' % devs.is_mnt_at_least('/var/tmp', '9G'))
+    # print('/var/tmp at least 2G: %s' % devs.is_mnt_at_least('/var/tmp', '2G'))
+    # print('/var/tmp at least 9G: %s' % devs.is_mnt_at_least('/var/tmp', '9G'))
     # print('/var/tmp lvol at lest 5G: %s' % devs.is_lvol_at_least(devs.lvol_for_path('/var/tmp'), '5G'))
     # print('/var/tmp vg at least 10G: %s' % devs.is_vg_at_least(devs.vg_for_path('/var/tmp'), '10G'))
     # print('swap lvol at lest 2G: %s' % devs.is_lvol_at_least(devs.lvol_for_path('swap'), '2G'))
     # print('swap vg at least 90G: %s' % devs.is_vg_at_least(devs.vg_for_path('swap'), '90G'))
     # print('------------------------------------------------------------')
 
+    # print('find 2G disk big: %s' % devs.fnd_free_dsk('2G', False))
     # print('find 2G disk: %s' % devs.fnd_free_dsk('2G'))
     # print('find 5G disk: %s' % devs.fnd_free_dsk('5G'))
     # print('find 7G disk: %s' % devs.fnd_free_dsk('7G'))
@@ -1097,25 +1218,57 @@ def main():
     # print('can grow mnt /boot to 2G: %s' % devs.mnt_can_grow('/boot', '2G'))
     # print('------------------------------------------------------------')
 
-    # desired_conf = yaml.load(open('/home/amyhr/work/metlife/linux-engineering-tools/lib/default-dir.yml'))
-    desired_conf = yaml.load(open('/home/amyhr/work/metlife/linux-engineering-tools/lib/bigdata-dir.yml'))
-    pprint(desired_conf)
-    for directory in desired_conf['directories']:
-        print('%s' % (directory['path']))
-        print('    lvol: %s' % devs.lvol_for_path(directory['path']))
-        print('      vg: %s' % devs.vg_for_path(directory['path']))
-        print('    fsys: %s' % devs.dev_for_path(directory['path']))
-        if directory['mpreq']:
-            print(' - is mountpoint? %s' % devs.is_mpoint(directory['path']))
-        print(' - is at least %s? %s' % (directory['size'], devs.is_mnt_at_least(directory['path'], directory['size'])))
-        if not devs.is_mnt_at_least(devs.lvol_for_path(directory['path']), directory['size']):
-            print(' - can grow? %s' % devs.lvol_can_grow(devs.lvol_for_path(directory['path']), directory['size']))
+    request = yaml.load(open('test1-dir.yml'))
+    # request = yaml.load(open('/home/amyhr/work/metlife/linux-engineering-tools/lib/default-dir.yml'))
+    # request = yaml.load(open('/home/amyhr/work/metlife/linux-engineering-tools/lib/bigdata-dir.yml'))
+    # pprint(request)
+    # print('------------------------------------------------------------')
+
+    # for vgroup in request['vgroups']:
+    #     print('%s at least %s? %s' % (vgroup['vg_name'], vgroup['vg_size'], devs.is_vg_at_least(vgroup['vg_name'], vgroup['vg_size'])))
+    # print('------------------------------------------------------------')
+
+    # ensure_vgrp('test01')
+    # ensure_vgrp('test01', pool=['5G', '20G'])
+    # for vgrp in request['vgroups']:
+    #     if ensure_vgrp(vgrp['vg_name'], vgrp['vg_size'], vgrp['add_pool']):
+    #         print('vgroup %s: okay' % vgrp['vg_name'])
+    #     else:
+    #         print('vgroup %s: not okay' % vgrp['vg_name'])
+    # print('------------------------------------------------------------')
+
+    work = {'create': [], 'grow': [], 'needed': {}, 'errors': []}
+    for directory in request['directories']:
+        path = directory['path']
+        size = Convert.to_bytes(directory['lv_size'])
+        if devs.is_lvol(path):
+            vgroup = devs.vg_for_path(path)
+            lvol = devs.lvol_for_path(path)
+            if directory['mpreq'] and not devs.is_mpoint(path):
+                if directory['vgroup'] in devs.vglst:
+                    work['create'].extend([directory])
+                    if directory['vgroup'] in work['needed']:
+                        work['needed'][directory['vgroup']] += size
+                    else:
+                        work['needed'][directory['vgroup']] = size
+                else:
+                    work['errors'].append('vgroup %s does not exist, required for %s' % (directory['vgroup'], path))
+            elif not devs.is_lvol_at_least(lvol, size):
+                work['grow'].extend([directory])
+                if vgroup in work['needed']:
+                    work['needed'][directory['vgroup']] += size - devs.lvlst[lvol]['lv_size']
+                else:
+                    work['needed'][directory['vgroup']] = size - devs.lvlst[lvol]['lv_size']
+        else:
+            work['errors'].append('%s not on a logical volume, manipulation not supported.' % path)
+    for vgroup in work['needed']:
+        if (devs.vglst[vgroup]['vg_size'] - work['needed'][vgroup]) < 0:
+            space_needed = Convert.to_human(work['needed'][vgroup] - devs.vglst[vgroup]['vg_size'])
+            work['errors'].append('vgroup %s too small, needs %s more space' % (vgroup, space_needed))
+    pprint(work)
     print('------------------------------------------------------------')
 
-    for vgroup in desired_conf['vgroups']:
-        print('%s at least %s? %s' % (vgroup['name'], vgroup['size'], devs.is_vg_at_least(vgroup['name'], vgroup['size'])))
-    print('------------------------------------------------------------')
-
+    # print('------------------------------------------------------------')
 
 #==============================================================================
 if __name__ == '__main__':
