@@ -46,7 +46,7 @@ import sys          #: System-specific parameters & functions
 import json
 import shlex
 import yaml
-from subprocess import Popen, check_output, PIPE, STDOUT
+from subprocess import check_output
 # import traceback    #: Print/retrieve a stack traceback
 #==============================================================================
 #-- Third Party Imports
@@ -68,7 +68,7 @@ if sys.version_info <= (2, 7):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha' #: current version
-__revised__ = '20190311-165024' #: date of most recent revision
+__revised__ = '20190312-152249' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = '''TODO: CHANGEME
@@ -1038,7 +1038,7 @@ class Storage():
             return self.lvol_can_grow(self.lvol_for_path(mnt), size, size_is)
         return None
 
-    def fnd_free_dsk(self, size, smallest=True):
+    def fnd_free_dsk(self, size, smallest=True, skip=[]):
         ''' Find disk of at least size available for use
         Args:
             size:   size of disk to look for
@@ -1052,6 +1052,8 @@ class Storage():
             return None
         found = {'disk': None, 'size': 0}
         for disk in self.blktree['disk']:
+            if disk in skip:
+                continue
             if self.is_dsk_avail(disk):
                 if self.blklst[disk]['size'] >= Convert.to_bytes(size):
                     if smallest:
@@ -1072,63 +1074,126 @@ class Storage():
 # def grw_vg(self, vgrp, disk):
 # def grw_lv(self, lvol, size):
 #==============================================================================
-def ensure_vgrp(name=None, size=None, pool=None):
+def get_vgroup_work(vgroups=None):
     ''' x '''
     if 'logger' in globals():
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-    if name is None:
-        raise ValueError('Must provide name of volume group.')
-    current_size = 0
+    if vgroups is None:
+        raise ValueError('Must provide dictionary of volume group requirements.')
     devs = Storage()
-    if name not in devs.vglst:
-        logger.debug('will create vgroup %s', name)
-        command = ['vgcreate']
-    else:
-        command = ['vgextend']
-        current_size = devs.vglst[name]['vg_size']
+    work = {'tasks': {}, 'error': [], 'warn': []}
+    used_disks = []
+    for vgroup in vgroups:
+        name = vgroup['vg_name']
+        size = vgroup['vg_size']
+        pool = vgroup['add_pool']
+        if name not in devs.vglst:
+            current_size = 0
+            action = 'vgcreate'
+        else:
+            current_size = devs.vglst[name]['vg_size']
+            action = 'vgextend'
 
-    if size is not None and devs.is_vg_at_least(name, size):
-        logger.debug('vgroup is larger than requested size.')
-        return True
+        if size is not None and devs.is_vg_at_least(name, size):
+            logger.debug('vgroup is larger than requested size.')
+            continue
+        disk_pool = []
+        if size is None and pool is None:
+            logger.debug('generate list of all available disks')
+            for disk in devs.blktree['disk']:
+                if disk in used_disks:
+                    continue
+                if devs.is_dsk_avail(disk):
+                    disk_pool.append('/dev/%s' % disk)
+                    used_disks.append(disk)
+        elif size is None:
+            logger.debug('generate list of all disks in pool')
+            for item in pool:
+                disk = devs.fnd_free_dsk(item, skip=used_disks)
+                if disk:
+                    disk_pool.append('/dev/%s' % disk)
+                    used_disks.append(disk)
+        elif pool is None:
+            logger.debug('generate list of disks to satisfy size req')
+            size = Convert.to_bytes(size)
+            for disk in devs.blktree['disk']:
+                if disk in used_disks:
+                    continue
+                if devs.is_dsk_avail(disk):
+                    disk_pool.append('/dev/%s' % disk)
+                    used_disks.append(disk)
+                    current_size += devs.blklst[disk]['size']
+                if current_size >= size:
+                    break
+        else:
+            logger.debug('generate list of disks from pool to satisfy size req')
+            size = Convert.to_bytes(size)
+            for item in pool:
+                disk = devs.fnd_free_dsk(item, skip=used_disks)
+                if disk:
+                    disk_pool.append('/dev/%s' % disk)
+                    used_disks.append(disk)
+                    current_size += devs.blklst[disk]['size']
+                if current_size >= size:
+                    break
+        if size is not None and current_size < size:
+            work['error'].append('%s: Unable to find enough free disk. Found: %s' % (name, ' '.join(disk_pool)))
+        else:
+            work['tasks'][name] = vgroup
+            work['tasks'][name]['action'] = action
+            work['tasks'][name]['disk_pool'] = disk_pool
+    return work
 
-    device_list = []
-    if size is None and pool is None:
-        logger.debug('generate list of all available disks')
-        for disk in devs.blktree['disk']:
-            if devs.is_dsk_avail(disk):
-                device_list.append('/dev/%s' % disk)
-    elif size is None:
-        logger.debug('generate list of all disks in pool')
-        for item in pool:
-            disk = devs.fnd_free_dsk(item)
-            if disk:
-                device_list.append('/dev/%s' % disk)
-    elif pool is None:
-        logger.debug('generate list of disks to satisfy size req')
-        size = Convert.to_bytes(size)
-        for disk in devs.blktree['disk']:
-            if devs.is_dsk_avail(disk):
-                device_list.append('/dev/%s' % disk)
-                current_size += devs.blklst[disk]['size']
-            if current_size >= size:
-                break
-    else:
-        logger.debug('generate list of disks from pool to satisfy size req')
-        size = Convert.to_bytes(size)
-        for item in pool:
-            disk = devs.fnd_free_dsk(item)
-            if disk:
-                device_list.append('/dev/%s' % disk)
-                current_size += devs.blklst[disk]['size']
-            if current_size >= size:
-                break
-    if size is not None and current_size < size:
-        logger.debug('Unable to find enough free disk. Found: %s', (' '.join(device_list)))
-        return False
-    command.append(name)
-    command.extend(device_list)
-    logger.debug('Running: %s', (' '.join(command)))
-    return True
+#==============================================================================
+def get_fsys_work(directories=None):
+    ''' x '''
+    if 'logger' in globals():
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if directories is None:
+        raise ValueError('Must provide dictionary of directory requirements.')
+    devs = Storage()
+    work = {'tasks': {}, 'vgroup': {}, 'error': [], 'warn': []}
+    for directory in directories:
+        path = directory['path']
+        size = Convert.to_bytes(directory['lv_size'])
+        if devs.is_lvol(path):
+            lvol = devs.lvol_for_path(path)
+            if directory['dedicated_fs'] and not devs.is_mpoint(path):
+                if directory['vg_name'] in devs.vglst:
+                    work['tasks'][path] = directory
+                    work['tasks'][path]['action'] = 'lvcreate'
+                    if directory['vg_name'] in work['vgroup']:
+                        work['vgroup'][directory['vg_name']]['space'] += size
+                        work['vgroup'][directory['vg_name']]['tasks'].append(path)
+                    else:
+                        work['vgroup'][directory['vg_name']] = {}
+                        work['vgroup'][directory['vg_name']]['space'] = size
+                        work['vgroup'][directory['vg_name']]['tasks'] = [path]
+                else:
+                    work['error'].append('%s: does not exist, required for %s' % (directory['vg_name'], path))
+            elif not devs.is_lvol_at_least(lvol, size):
+                vgroup = devs.vg_for_path(path)
+                mpath = devs.mnt_for_path(path)
+                work['tasks'][mpath] = directory
+                work['tasks'][mpath]['action'] = 'lvextend'
+                work['tasks'][mpath]['vg_name'] = vgroup
+                if vgroup in work['vgroup']:
+                    work['vgroup'][vgroup]['space'] += size - devs.lvlst[lvol]['lv_size']
+                    if mpath not in work['vgroup'][vgroup]['tasks']:
+                        work['vgroup'][vgroup]['tasks'].append(mpath)
+                else:
+                    work['vgroup'][vgroup] = {}
+                    work['vgroup'][vgroup]['space'] = size - devs.lvlst[lvol]['lv_size']
+                    work['vgroup'][vgroup]['tasks'] = [mpath]
+        else:
+            work['warn'].append('%s not on a logical volume, manipulation not supported.' % path)
+    for vgroup in work['vgroup']:
+        if (devs.vglst[vgroup]['vg_size'] - work['vgroup'][vgroup]['space']) < 0:
+            space_needed = Convert.to_human(work['vgroup'][vgroup]['space'] - devs.vglst[vgroup]['vg_size'])
+            work['error'].append('vgroup %s too small, needs %s more space' % (vgroup, space_needed))
+            for task in work['vgroup'][vgroup]['tasks']:
+                del work['tasks'][task]
+    return work
 
 #==============================================================================
 def main():
@@ -1228,43 +1293,11 @@ def main():
     #     print('%s at least %s? %s' % (vgroup['vg_name'], vgroup['vg_size'], devs.is_vg_at_least(vgroup['vg_name'], vgroup['vg_size'])))
     # print('------------------------------------------------------------')
 
-    # ensure_vgrp('test01')
-    # ensure_vgrp('test01', pool=['5G', '20G'])
-    # for vgrp in request['vgroups']:
-    #     if ensure_vgrp(vgrp['vg_name'], vgrp['vg_size'], vgrp['add_pool']):
-    #         print('vgroup %s: okay' % vgrp['vg_name'])
-    #     else:
-    #         print('vgroup %s: not okay' % vgrp['vg_name'])
-    # print('------------------------------------------------------------')
+    work = get_vgroup_work(request['vgroups'])
+    pprint(work)
+    print('------------------------------------------------------------')
 
-    work = {'create': [], 'grow': [], 'needed': {}, 'errors': []}
-    for directory in request['directories']:
-        path = directory['path']
-        size = Convert.to_bytes(directory['lv_size'])
-        if devs.is_lvol(path):
-            vgroup = devs.vg_for_path(path)
-            lvol = devs.lvol_for_path(path)
-            if directory['mpreq'] and not devs.is_mpoint(path):
-                if directory['vgroup'] in devs.vglst:
-                    work['create'].extend([directory])
-                    if directory['vgroup'] in work['needed']:
-                        work['needed'][directory['vgroup']] += size
-                    else:
-                        work['needed'][directory['vgroup']] = size
-                else:
-                    work['errors'].append('vgroup %s does not exist, required for %s' % (directory['vgroup'], path))
-            elif not devs.is_lvol_at_least(lvol, size):
-                work['grow'].extend([directory])
-                if vgroup in work['needed']:
-                    work['needed'][directory['vgroup']] += size - devs.lvlst[lvol]['lv_size']
-                else:
-                    work['needed'][directory['vgroup']] = size - devs.lvlst[lvol]['lv_size']
-        else:
-            work['errors'].append('%s not on a logical volume, manipulation not supported.' % path)
-    for vgroup in work['needed']:
-        if (devs.vglst[vgroup]['vg_size'] - work['needed'][vgroup]) < 0:
-            space_needed = Convert.to_human(work['needed'][vgroup] - devs.vglst[vgroup]['vg_size'])
-            work['errors'].append('vgroup %s too small, needs %s more space' % (vgroup, space_needed))
+    work = get_fsys_work(request['directories'])
     pprint(work)
     print('------------------------------------------------------------')
 
