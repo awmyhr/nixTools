@@ -68,7 +68,7 @@ if sys.version_info <= (2, 7):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha' #: current version
-__revised__ = '20190312-152249' #: date of most recent revision
+__revised__ = '20190312-163543' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = '''TODO: CHANGEME
@@ -1145,6 +1145,23 @@ def get_vgroup_work(vgroups=None):
     return work
 
 #==============================================================================
+def do_vgroup_work(work=None):
+    ''' x '''
+    if 'logger' in globals():
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if work is None or 'tasks' not in work:
+        raise ValueError('Must provide dictionary of work order.')
+    results = {'tasks': {}, 'error': [], 'warn': []}
+    for task in work['tasks']:
+        if work['tasks'][task]['action'] == 'vgcreate':
+            print('Running: vgcreate %s %s' % (work['tasks'][task]['vg_name'], ' '.join(work['tasks'][task]['disk_pool'])))
+        elif work['tasks'][task]['action'] == 'vgextend':
+            print('Running: vgextend %s %s' % (work['tasks'][task]['vg_name'], ' '.join(work['tasks'][task]['disk_pool'])))
+        else:
+            results['error'].append('%s: action unknown: %s' % (task, work['tasks'][task]['action']))
+    return results
+
+#==============================================================================
 def get_fsys_work(directories=None):
     ''' x '''
     if 'logger' in globals():
@@ -1174,9 +1191,11 @@ def get_fsys_work(directories=None):
             elif not devs.is_lvol_at_least(lvol, size):
                 vgroup = devs.vg_for_path(path)
                 mpath = devs.mnt_for_path(path)
+                device = devs.dev_for_path(path)
                 work['tasks'][mpath] = directory
                 work['tasks'][mpath]['action'] = 'lvextend'
                 work['tasks'][mpath]['vg_name'] = vgroup
+                work['tasks'][mpath]['device'] = device
                 if vgroup in work['vgroup']:
                     work['vgroup'][vgroup]['space'] += size - devs.lvlst[lvol]['lv_size']
                     if mpath not in work['vgroup'][vgroup]['tasks']:
@@ -1194,6 +1213,24 @@ def get_fsys_work(directories=None):
             for task in work['vgroup'][vgroup]['tasks']:
                 del work['tasks'][task]
     return work
+
+#==============================================================================
+def do_fsys_work(work=None):
+    ''' x '''
+    if 'logger' in globals():
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if work is None or 'tasks' not in work:
+        raise ValueError('Must provide dictionary of work order.')
+    results = {'tasks': {}, 'error': [], 'warn': []}
+    for task in work['tasks']:
+        if work['tasks'][task]['action'] == 'lvcreate':
+            print('Running: lvcreate -L %s -n %s %s' % (work['tasks'][task]['lv_size'], work['tasks'][task]['lv_name'], work['tasks'][task]['vg_name']))
+        elif work['tasks'][task]['action'] == 'lvextend':
+            print('Running: lvextend -r -L %s %s' % (work['tasks'][task]['lv_size'], work['tasks'][task]['device']))
+        else:
+            results['error'].append('%s: action unknown: %s' % (task, work['tasks'][task]['action']))
+
+    return results
 
 #==============================================================================
 def main():
@@ -1292,13 +1329,34 @@ def main():
     # for vgroup in request['vgroups']:
     #     print('%s at least %s? %s' % (vgroup['vg_name'], vgroup['vg_size'], devs.is_vg_at_least(vgroup['vg_name'], vgroup['vg_size'])))
     # print('------------------------------------------------------------')
-
     work = get_vgroup_work(request['vgroups'])
-    pprint(work)
+    if len(work['error']) > 0:
+        print('There were errors constructing task list:')
+        for error in work['error']:
+            print(' - %s' % error)
+        print('Will not do anything.')
+    else:
+        if len(work['warn']) > 0:
+            print('There were warnings constructing task list:')
+            for warn in work['warn']:
+                print(' - %s' % warn)
+            print('Will skip affected items and continue.')
+        do_vgroup_work(work)
     print('------------------------------------------------------------')
 
     work = get_fsys_work(request['directories'])
-    pprint(work)
+    if len(work['error']) > 0:
+        print('There were errors constructing task list:')
+        for error in work['error']:
+            print(' - %s' % error)
+        print('Will not do anything.')
+    else:
+        if len(work['warn']) > 0:
+            print('There were warnings constructing task list:')
+            for warn in work['warn']:
+                print(' - %s' % warn)
+            print('Will skip affected items and continue.')
+        do_fsys_work(work)
     print('------------------------------------------------------------')
 
     # print('------------------------------------------------------------')
