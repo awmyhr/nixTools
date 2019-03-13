@@ -45,9 +45,9 @@ import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
 import json
 import shlex
-import yaml
 from subprocess import check_output, CalledProcessError, STDOUT
 from shutil import copyfile
+import yaml
 # import traceback    #: Print/retrieve a stack traceback
 #==============================================================================
 #-- Third Party Imports
@@ -68,8 +68,8 @@ if sys.version_info <= (2, 7):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '0.1.0-alpha' #: current version
-__revised__ = '20190313-131923' #: date of most recent revision
+__version__ = '1.0.0-alpha' #: current version
+__revised__ = '20190313-134820' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = '''TODO: CHANGEME
@@ -664,7 +664,7 @@ class Convert():
 class Storage():
     ''' docs
     '''
-    __version = '1.0.0-alpha05'
+    __version = '1.0.0'
     blktree = {}
     blklst = {}
     mntlst = {}
@@ -685,9 +685,12 @@ class Storage():
         ''' '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        out = check_output(['lsblk', '--pairs', '--noheadings', '--bytes', '--all',
-                            '--output', 'type,size,name,kname,pkname,fstype,mountpoint,label,uuid'])
-        for line in out.splitlines():
+        command = ['lsblk', '--pairs', '--noheadings', '--bytes', '--all',
+                   '--output', 'type,size,name,kname,pkname,fstype,mountpoint,label,uuid']
+        output = run_cmd(command)
+        if not output['success']:
+            raise RuntimeError('lsblk reported: %s' % output['output'])
+        for line in output['output'].splitlines():
             item = dict(token.split('=') for token in shlex.split(line))
             item = {k.lower(): v for k, v in item.items()}
             for spec in ['size', 'avail', 'used']:
@@ -712,10 +715,13 @@ class Storage():
         ''' '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        out = check_output(['findmnt', '--pairs', '--noheadings', '--bytes', '--all',
-                            '--output', 'source,target,fstype,label,uuid,size,avail,used,fsroot'])
+        command = ['findmnt', '--pairs', '--noheadings', '--bytes', '--all',
+                   '--output', 'source,target,fstype,label,uuid,size,avail,used,fsroot']
+        output = run_cmd(command)
+        if not output['success']:
+            raise RuntimeError('findmnt reported: %s' % output['output'])
         # import pprint
-        for line in out.splitlines():
+        for line in output['output'].splitlines():
             item = dict(token.split('=') for token in shlex.split(line))
             item = {k.lower(): v for k, v in item.items()}
             for spec in ['size', 'avail', 'used']:
@@ -754,27 +760,34 @@ class Storage():
         ''' '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        out = check_output(['pvs', '--noheadings', '--units', 'B', '--nosuffix',
-                            '--reportformat', 'json', '--options', 'pv_all'])
-        for entry in json.loads(out)['report'][0]['pv']:
+        command = ['pvs', '--noheadings', '--units', 'B', '--nosuffix',
+                   '--reportformat', 'json', '--options', 'pv_all']
+        output = run_cmd(command)
+        if not output['success']:
+            raise RuntimeError('pvs reported: %s' % output['output'])
+        for entry in json.loads(output['output'])['report'][0]['pv']:
             for spec in ['dev_size', 'pv_free', 'pv_used', 'pv_size']:
                 if spec in entry:
                     entry[spec] = int(entry[spec])
             self.pvlst[entry['pv_name']] = entry
         # of interest: pv_name,pv_size,pv_free,pv_in_use
-        out = check_output(['vgs', '--readonly', '--noheadings', '--units', 'B',
-                            '--nosuffix', '--reportformat', 'json', '--options',
-                            'vg_all'])
-        for entry in json.loads(out)['report'][0]['vg']:
+        command = ['vgs', '--readonly', '--noheadings', '--units', 'B',
+                   '--nosuffix', '--reportformat', 'json', '--options', 'vg_all']
+        output = run_cmd(command)
+        if not output['success']:
+            raise RuntimeError('vgs reported: %s' % output['output'])
+        for entry in json.loads(output['output'])['report'][0]['vg']:
             for spec in ['vg_size', 'vg_free', 'vg_used']:
                 if spec in entry:
                     entry[spec] = int(entry[spec])
             self.vglst[entry['vg_name']] = entry
         # of interest: vg_name,vg_size,vg_free,pv_count,lv_count
-        out = check_output(['lvs', '--readonly', '--noheadings', '--units', 'B',
-                            '--nosuffix', '--reportformat', 'json', '--options',
-                            'lv_all,vg_name'])
-        for entry in json.loads(out)['report'][0]['lv']:
+        command = ['lvs', '--readonly', '--noheadings', '--units', 'B',
+                   '--nosuffix', '--reportformat', 'json', '--options', 'lv_all,vg_name']
+        output = run_cmd(command)
+        if not output['success']:
+            raise RuntimeError('lvs reported: %s' % output['output'])
+        for entry in json.loads(output['output'])['report'][0]['lv']:
             for spec in ['lv_size']:
                 if spec in entry:
                     entry[spec] = int(entry[spec])
