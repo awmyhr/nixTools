@@ -46,7 +46,8 @@ import sys          #: System-specific parameters & functions
 import json
 import shlex
 import yaml
-from subprocess import check_output
+from subprocess import check_output, CalledProcessError, STDOUT
+from shutil import copyfile
 # import traceback    #: Print/retrieve a stack traceback
 #==============================================================================
 #-- Third Party Imports
@@ -68,7 +69,7 @@ if sys.version_info <= (2, 7):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha' #: current version
-__revised__ = '20190312-163543' #: date of most recent revision
+__revised__ = '20190313-131923' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = '''TODO: CHANGEME
@@ -821,8 +822,11 @@ class Storage():
                 path = os.path.abspath(os.path.join(path, os.pardir))
                 if os.path.exists(path):
                     break
-        return check_output(['findmnt', '--raw', '--noheadings', '--output', 'target', '-T', path]).strip()
-        # return None
+        command = ['findmnt', '--raw', '--noheadings', '--output', 'target', '-T', path]
+        output = run_cmd(command)
+        if output['success']:
+            return output['output'].strip()
+        return None
 
     def lvol_for_path(self, path):
         ''' Find logical volume of a path
@@ -1067,12 +1071,27 @@ class Storage():
         return found['disk']
 
 #==============================================================================
-# def mk_pv(self, disk):
-# def mk_vg(self, name, disk):
-# def mk_lv(self, name, vgrp, size):
-# def mk_fsys(self, name, lvol, vgrp, size):
-# def grw_vg(self, vgrp, disk):
-# def grw_lv(self, lvol, size):
+def run_cmd(command=None):
+    ''' x '''
+    if 'logger' in globals():
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if command is None:
+        raise ValueError('Must provide command to run, either as a string or a list.')
+    logger.debug('Running: %s', (' '.join(command)))
+    try:
+        output = check_output(command, stderr=STDOUT)
+    except CalledProcessError as error:
+        logger.debug(' - fail: (%s) %s', error.returncode, error.output)
+        results = {'success': False,
+                   'rc': error.returncode,
+                   'output': error.output}
+    else:
+        logger.debug(' - success: %s', output)
+        results = {'success': True,
+                   'rc': 0,
+                   'output': output}
+    return results
+
 #==============================================================================
 def get_vgroup_work(vgroups=None):
     ''' x '''
@@ -1151,14 +1170,23 @@ def do_vgroup_work(work=None):
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     if work is None or 'tasks' not in work:
         raise ValueError('Must provide dictionary of work order.')
-    results = {'tasks': {}, 'error': [], 'warn': []}
+    results = {'success': [], 'error': [], 'warn': []}
     for task in work['tasks']:
         if work['tasks'][task]['action'] == 'vgcreate':
-            print('Running: vgcreate %s %s' % (work['tasks'][task]['vg_name'], ' '.join(work['tasks'][task]['disk_pool'])))
+            command = ['vgcreate', work['tasks'][task]['vg_name']]
+            command.extend(work['tasks'][task]['disk_pool'])
         elif work['tasks'][task]['action'] == 'vgextend':
-            print('Running: vgextend %s %s' % (work['tasks'][task]['vg_name'], ' '.join(work['tasks'][task]['disk_pool'])))
+            command = ['vgextend', work['tasks'][task]['vg_name']]
+            command.extend(work['tasks'][task]['disk_pool'])
         else:
-            results['error'].append('%s: action unknown: %s' % (task, work['tasks'][task]['action']))
+            results['warn'].append('%s: action unknown: %s' % (task, work['tasks'][task]['action']))
+            continue
+
+        output = run_cmd(command)
+        if output['success']:
+            results['success'].append('%s: success: %s' % (task, output['output']))
+        else:
+            results['error'].append('%s: fail: (%s) %s' % (task, output['rc'], output['output']))
     return results
 
 #==============================================================================
@@ -1221,16 +1249,71 @@ def do_fsys_work(work=None):
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     if work is None or 'tasks' not in work:
         raise ValueError('Must provide dictionary of work order.')
-    results = {'tasks': {}, 'error': [], 'warn': []}
+    results = {'success': [], 'error': [], 'warn': []}
     for task in work['tasks']:
         if work['tasks'][task]['action'] == 'lvcreate':
-            print('Running: lvcreate -L %s -n %s %s' % (work['tasks'][task]['lv_size'], work['tasks'][task]['lv_name'], work['tasks'][task]['vg_name']))
+            ##== ('Create the new filesystem LV')
+            command = ['lvcreate', '-L', work['tasks'][task]['lv_size'], '-n', work['tasks'][task]['lv_name'], work['tasks'][task]['vg_name']]
+            output = run_cmd(command)
+            if output['success']:
+                results['success'].append('%s: lvcreate success: %s' % (task, output['output']))
+            else:
+                results['error'].append('%s: lvcreate fail: (%s) %s' % (task, output['rc'], output['output']))
+                continue
+            ##== ('Get device path of the new filesystem LV')
+            command = ['lvs', '--readonly', '--noheadings', '--nosuffix', '--options', 'lv_path', '-S', "vg_name=%s && lv_name=%s" % (work['tasks'][task]['vg_name'], work['tasks'][task]['lv_name'])]
+            output = run_cmd(command)
+            if output['success']:
+                results['success'].append('%s: lvs success: %s' % (task, output['output']))
+                device = output['output'].strip()
+            else:
+                results['error'].append('%s: lvs fail: (%s) %s' % (task, output['rc'], output['output']))
+                continue
+            ##== ('Make the new filesystem')
+            command = ['mkfs.%s' % work['tasks'][task]['fstype'], device]
+            output = run_cmd(command)
+            if output['success']:
+                results['success'].append('%s: mkfs success: %s' % (task, output['output']))
+            else:
+                results['error'].append('%s: mkfs fail: (%s) %s' % (task, output['rc'], output['output']))
+                continue
+            ##== ('Create fstab entry for the new filesystem')
+            entry = '%s %s %s defaults 0 0\n' % (device, work['tasks'][task]['path'], work['tasks'][task]['fstype'])
+            try:
+                copyfile('/etc/fstab', '/etc/fstab.%s' % timestamp())
+                with open('/etc/fstab', 'a+') as fstab:
+                    fstab.write(entry)
+            except IOError as error:
+                results['error'].append('%s: fstab fail: %s' % (task, error))
+                continue
+            results['success'].append('%s: fstab success' % (task))
+            ##== ('Make directory path for the new filesystem')
+            command = ['mkdir', '-p', work['tasks'][task]['path']]
+            output = run_cmd(command)
+            if output['success']:
+                results['success'].append('%s: mkdir success: %s' % (task, output['output']))
+            else:
+                results['error'].append('%s: mkdir fail: (%s) %s' % (task, output['rc'], output['output']))
+                continue
+            ##== ('Mount the new filesystem')
+            command = ['mount', work['tasks'][task]['path']]
+            output = run_cmd(command)
+            if output['success']:
+                results['success'].append('%s: mount success: %s' % (task, output['output']))
+            else:
+                results['error'].append('%s: mount fail: (%s) %s' % (task, output['rc'], output['output']))
+                continue
         elif work['tasks'][task]['action'] == 'lvextend':
-            print('Running: lvextend -r -L %s %s' % (work['tasks'][task]['lv_size'], work['tasks'][task]['device']))
+            command = ['lvextend', '-r', '-L', work['tasks'][task]['lv_size'], work['tasks'][task]['device']]
+            output = run_cmd(command)
+            if output['success']:
+                results['success'].append('%s: success: %s' % (task, output['output']))
+            else:
+                results['error'].append('%s: fail: (%s) %s' % (task, output['rc'], output['output']))
         else:
             results['error'].append('%s: action unknown: %s' % (task, work['tasks'][task]['action']))
-
     return results
+
 
 #==============================================================================
 def main():
@@ -1329,6 +1412,7 @@ def main():
     # for vgroup in request['vgroups']:
     #     print('%s at least %s? %s' % (vgroup['vg_name'], vgroup['vg_size'], devs.is_vg_at_least(vgroup['vg_name'], vgroup['vg_size'])))
     # print('------------------------------------------------------------')
+    print('Volume group work:')
     work = get_vgroup_work(request['vgroups'])
     if len(work['error']) > 0:
         print('There were errors constructing task list:')
@@ -1341,9 +1425,14 @@ def main():
             for warn in work['warn']:
                 print(' - %s' % warn)
             print('Will skip affected items and continue.')
-        do_vgroup_work(work)
+        results = do_vgroup_work(work)
+        for error in results['error']:
+            print('ERROR: %s' % error)
+        for success in results['success']:
+            print('Finished: %s' % success)
     print('------------------------------------------------------------')
 
+    print('Directory work:')
     work = get_fsys_work(request['directories'])
     if len(work['error']) > 0:
         print('There were errors constructing task list:')
@@ -1356,7 +1445,11 @@ def main():
             for warn in work['warn']:
                 print(' - %s' % warn)
             print('Will skip affected items and continue.')
-        do_fsys_work(work)
+        results = do_fsys_work(work)
+        for error in results['error']:
+            print('ERROR: %s' % error)
+        for success in results['success']:
+            print('Finished: %s' % success)
     print('------------------------------------------------------------')
 
     # print('------------------------------------------------------------')
