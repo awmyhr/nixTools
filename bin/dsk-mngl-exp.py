@@ -69,7 +69,7 @@ if sys.version_info <= (2, 7):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '1.0.0-alpha' #: current version
-__revised__ = '20190313-134820' #: date of most recent revision
+__revised__ = '20190314-131342' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = '''TODO: CHANGEME
@@ -548,6 +548,20 @@ class RunOptions(object):
         return self._defaults['debug']
 
     @property
+    def get(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.get
+        return False
+
+    @property
+    def filename(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.filename
+        return None
+
+    @property
     def ansible_called(self):
         ''' Class property '''
         return bool(__basename__.startswith('ansible_module'))
@@ -564,7 +578,7 @@ class RunOptions(object):
                              __revised__, __version__,
                              __cononical_name__, __project_name__, __project_home__
                             )
-        usage_string = '%s [options]' % (__basename__)
+        usage_string = '%s [options] <filename>' % (__basename__)
         version_string = '%s (%s) %s' % (__cononical_name__, __project_name__, __version__)
         if __gnu_version__:
             version_string += '\nCopyright %s\nLicense %s\n' % (__copyright__, __license__)
@@ -573,6 +587,8 @@ class RunOptions(object):
         #-- TODO: Add options, also set _default and @property (if needed).
         #-- Visible Options
         #   These can *not* be set in a config file
+        parser.add_option('--get', dest='get', action='store_true',
+                          help='Get file from server.', default=False)
         #   These could be set in a config file
 
         #-- Hidden Options
@@ -594,6 +610,11 @@ class RunOptions(object):
             parser.print_help()
             sys.exit(os.EX_OK)
         #-- Put any option validation here...
+        if len(parsed_args) != 1:
+            parser.error('Must provide filename.')
+        parsed_opts.filename = parsed_args[0]
+        if not parsed_opts.filename.endswith('.yml'):
+            parsed_opts.filename += '.yml'
 
         return parsed_opts, parsed_args
 
@@ -1214,7 +1235,18 @@ def get_fsys_work(directories=None):
     for directory in directories:
         path = directory['path']
         size = Convert.to_bytes(directory['lv_size'])
-        if devs.is_lvol(path):
+        if directory['fstype'] == 'swap':
+            lvol = devs.lvol_for_path(path)
+            if not devs.is_lvol_at_least(lvol, size):
+                vgroup = devs.vg_for_path(path)
+                mpath = devs.mnt_for_path(path)
+                device = devs.dev_for_path(path)
+                print('%s - %s' % (vgroup, lvol))
+                work['tasks'][mpath] = directory
+                work['tasks'][mpath]['action'] = 'lvextend'
+                work['tasks'][mpath]['vg_name'] = vgroup
+                work['tasks'][mpath]['device'] = device
+        elif devs.is_lvol(path):
             lvol = devs.lvol_for_path(path)
             if directory['dedicated_fs'] and not devs.is_mpoint(path):
                 if directory['vg_name'] in devs.vglst:
@@ -1264,7 +1296,49 @@ def do_fsys_work(work=None):
         raise ValueError('Must provide dictionary of work order.')
     results = {'success': [], 'error': [], 'warn': []}
     for task in work['tasks']:
-        if work['tasks'][task]['action'] == 'lvcreate':
+        if task == '[SWAP]':
+            ##== ('Get device path of the swap LV')
+            command = ['lvs', '--readonly', '--noheadings', '--nosuffix', '--options', 'lv_path', '-S', "vg_name=%s && lv_name=%s" % (work['tasks'][task]['vg_name'], work['tasks'][task]['lv_name'])]
+            output = run_cmd(command)
+            if output['success']:
+                results['success'].append('%s: lvs success: %s' % (task, output['output']))
+                device = output['output'].strip()
+            else:
+                results['error'].append('%s: lvs fail: (%s) %s' % (task, output['rc'], output['output']))
+                continue
+            ##== ('Turn swap off')
+            command = ['swapoff', device]
+            output = run_cmd(command)
+            if output['success']:
+                results['success'].append('%s: swapoff success: %s' % (task, output['output']))
+            else:
+                results['error'].append('%s: swapoff fail: (%s) %s' % (task, output['rc'], output['output']))
+                continue
+            ##== ('Extend swap lvol')
+            command = ['lvextend', '-L', work['tasks'][task]['lv_size'], device]
+            output = run_cmd(command)
+            if output['success']:
+                results['success'].append('%s: lvextend success: %s' % (task, output['output']))
+            else:
+                results['error'].append('%s: lvextend fail: (%s) %s' % (task, output['rc'], output['output']))
+                continue
+            ##== ('mkswap <device>')
+            command = ['mkswap', device]
+            output = run_cmd(command)
+            if output['success']:
+                results['success'].append('%s: mkswap success: %s' % (task, output['output']))
+            else:
+                results['error'].append('%s: mkswap fail: (%s) %s' % (task, output['rc'], output['output']))
+                continue
+            ##== ('Turn swap on')
+            command = ['swapon', device]
+            output = run_cmd(command)
+            if output['success']:
+                results['success'].append('%s: swapon success: %s' % (task, output['output']))
+            else:
+                results['error'].append('%s: swapon fail: (%s) %s' % (task, output['rc'], output['output']))
+                continue
+        elif work['tasks'][task]['action'] == 'lvcreate':
             ##== ('Create the new filesystem LV')
             command = ['lvcreate', '-L', work['tasks'][task]['lv_size'], '-n', work['tasks'][task]['lv_name'], work['tasks'][task]['vg_name']]
             output = run_cmd(command)
@@ -1333,10 +1407,10 @@ def main():
     ''' This is where the action takes place
         We expect options and logger to be global
     '''
-    logger.debug('Starting main()')
+    if 'logger' in globals():
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     #-- TODO: Do something more interesting here...
-    from pprint import pprint
-    devs = Storage()
+    # devs = Storage()
 
     print('------------------------------------------------------------')
 
@@ -1416,53 +1490,57 @@ def main():
     # print('can grow mnt /boot to 2G: %s' % devs.mnt_can_grow('/boot', '2G'))
     # print('------------------------------------------------------------')
 
-    request = yaml.load(open('test1-dir.yml'))
-    # request = yaml.load(open('/home/amyhr/work/metlife/linux-engineering-tools/lib/default-dir.yml'))
-    # request = yaml.load(open('/home/amyhr/work/metlife/linux-engineering-tools/lib/bigdata-dir.yml'))
+    try:
+        request = yaml.load(open(options.filename))
+    except yaml.YAMLError as error:
+        raise yaml.YAMLError('[YAMLError] %s' % error)
     # pprint(request)
     # print('------------------------------------------------------------')
 
-    # for vgroup in request['vgroups']:
-    #     print('%s at least %s? %s' % (vgroup['vg_name'], vgroup['vg_size'], devs.is_vg_at_least(vgroup['vg_name'], vgroup['vg_size'])))
-    # print('------------------------------------------------------------')
-    print('Volume group work:')
-    work = get_vgroup_work(request['vgroups'])
-    if len(work['error']) > 0:
-        print('There were errors constructing task list:')
-        for error in work['error']:
-            print(' - %s' % error)
-        print('Will not do anything.')
+    if 'vgroups' in request:
+        print('Volume group work:')
+        work = get_vgroup_work(request['vgroups'])
+        if work['error']:
+            print('There were errors constructing task list:')
+            for error in work['error']:
+                print(' - %s' % error)
+            print('Will not do anything.')
+        else:
+            if work['warn']:
+                print('There were warnings constructing task list:')
+                for warn in work['warn']:
+                    print(' - %s' % warn)
+                print('Will skip affected items and continue.')
+            results = do_vgroup_work(work)
+            for error in results['error']:
+                print('ERROR: %s' % error)
+            for success in results['success']:
+                print('Finished: %s' % success)
     else:
-        if len(work['warn']) > 0:
-            print('There were warnings constructing task list:')
-            for warn in work['warn']:
-                print(' - %s' % warn)
-            print('Will skip affected items and continue.')
-        results = do_vgroup_work(work)
-        for error in results['error']:
-            print('ERROR: %s' % error)
-        for success in results['success']:
-            print('Finished: %s' % success)
+        print('No vgroup work found')
     print('------------------------------------------------------------')
 
-    print('Directory work:')
-    work = get_fsys_work(request['directories'])
-    if len(work['error']) > 0:
-        print('There were errors constructing task list:')
-        for error in work['error']:
-            print(' - %s' % error)
-        print('Will not do anything.')
+    if 'directories' in request:
+        print('Directory work:')
+        work = get_fsys_work(request['directories'])
+        if work['error']:
+            print('There were errors constructing task list:')
+            for error in work['error']:
+                print(' - %s' % error)
+            print('Will not do anything.')
+        else:
+            if work['warn']:
+                print('There were warnings constructing task list:')
+                for warn in work['warn']:
+                    print(' - %s' % warn)
+                print('Will skip affected items and continue.')
+            results = do_fsys_work(work)
+            for error in results['error']:
+                print('ERROR: %s' % error)
+            for success in results['success']:
+                print('Finished: %s' % success)
     else:
-        if len(work['warn']) > 0:
-            print('There were warnings constructing task list:')
-            for warn in work['warn']:
-                print(' - %s' % warn)
-            print('Will skip affected items and continue.')
-        results = do_fsys_work(work)
-        for error in results['error']:
-            print('ERROR: %s' % error)
-        for success in results['success']:
-            print('Finished: %s' % success)
+        print('No directory work found')
     print('------------------------------------------------------------')
 
     # print('------------------------------------------------------------')
