@@ -45,7 +45,7 @@ import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
 import json
 import shlex
-from subprocess import check_output, CalledProcessError, STDOUT
+from subprocess import Popen, PIPE
 from shutil import copyfile
 import yaml
 # import traceback    #: Print/retrieve a stack traceback
@@ -69,7 +69,7 @@ if sys.version_info <= (2, 7):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '1.0.0-alpha' #: current version
-__revised__ = '20190314-131342' #: date of most recent revision
+__revised__ = '20190315-135208' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = '''TODO: CHANGEME
@@ -685,7 +685,7 @@ class Convert():
 class Storage():
     ''' docs
     '''
-    __version = '1.0.0'
+    __version = '1.0.2'
     blktree = {}
     blklst = {}
     mntlst = {}
@@ -736,7 +736,7 @@ class Storage():
         ''' '''
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        command = ['findmnt', '--pairs', '--noheadings', '--bytes', '--all',
+        command = ['findmnt', '--pairs', '--noheadings', '--all',
                    '--output', 'source,target,fstype,label,uuid,size,avail,used,fsroot']
         output = run_cmd(command)
         if not output['success']:
@@ -747,7 +747,7 @@ class Storage():
             item = {k.lower(): v for k, v in item.items()}
             for spec in ['size', 'avail', 'used']:
                 if spec in item:
-                    item[spec] = int(item[spec])
+                    item[spec] = int(Convert.to_bytes(item[spec]))
             empty_item = {k for k, v in item.items() if v == ''}
             for k in empty_item:
                 item[k] = None
@@ -782,7 +782,7 @@ class Storage():
         if 'logger' in globals():
             logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         command = ['pvs', '--noheadings', '--units', 'B', '--nosuffix',
-                   '--reportformat', 'json', '--options', 'pv_all']
+                   '--reportformat', 'json', '--options', 'pv_all,vg_name']
         output = run_cmd(command)
         if not output['success']:
             raise RuntimeError('pvs reported: %s' % output['output'])
@@ -1112,18 +1112,24 @@ def run_cmd(command=None):
     if command is None:
         raise ValueError('Must provide command to run, either as a string or a list.')
     logger.debug('Running: %s', (' '.join(command)))
-    try:
-        output = check_output(command, stderr=STDOUT)
-    except CalledProcessError as error:
-        logger.debug(' - fail: (%s) %s', error.returncode, error.output)
+
+    output = Popen(command, stdout=PIPE, stderr=PIPE)
+    std_out, std_err = output.communicate()
+
+    if output.returncode != 0:
+        logger.debug(' - fail: (%s) %s', output.returncode, std_err)
         results = {'success': False,
-                   'rc': error.returncode,
-                   'output': error.output}
+                   'rc': output.returncode,
+                   'output': std_err,
+                   'std_out': std_out,
+                   'std_err': std_err}
     else:
-        logger.debug(' - success: %s', output)
+        logger.debug(' - success: %s', std_out)
         results = {'success': True,
                    'rc': 0,
-                   'output': output}
+                   'output': std_out,
+                   'std_out': std_out,
+                   'std_err': std_err}
     return results
 
 #==============================================================================
@@ -1410,9 +1416,10 @@ def main():
     if 'logger' in globals():
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     #-- TODO: Do something more interesting here...
+    # from pprint import pprint
     # devs = Storage()
 
-    print('------------------------------------------------------------')
+    # print('------------------------------------------------------------')
 
     # pprint(devs.blktree)
     # print('------------------------------------------------------------')
@@ -1430,8 +1437,6 @@ def main():
     # print('------------------------------------------------------------')
 
     # pprint(devs.lv_paths2full_name)
-    # print('------------------------------------------------------------')
-    # pprint(devs.lv_dm_path2lv_full_name)
     # print('------------------------------------------------------------')
 
     # for disk in devs.blktree['disk']:
