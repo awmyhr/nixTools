@@ -42,6 +42,7 @@ import optparse     #: pylint: disable=deprecated-module
 import logging      #: Python's standard logging facilities
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
+import collections
 # import traceback    #: Print/retrieve a stack traceback
 #==============================================================================
 #-- Third Party Imports
@@ -62,8 +63,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.0.1' #: current version
-__revised__ = '20180601-163738' #: date of most recent revision
+__version__ = '2.1.0' #: current version
+__revised__ = '20190319-141606' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Discover information about installed packages.'
 __description__ = '''This will try to discover information about packages installed on a system,
@@ -353,6 +354,13 @@ class CLIOptions(object):
         return None
 
     @property
+    def rhsm(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.rhsm
+        return None
+
+    @property
     def all(self):
         ''' Class property '''
         if self._options is not None:
@@ -435,6 +443,9 @@ class CLIOptions(object):
         group.add_option('--yaml', dest='yaml', action='store_true',
                          help='output yaml snippet', default=False
                         )
+        group.add_option('--rhsm', dest='rhsm', action='store_true',
+                         help='output rhsm snippet', default=False
+                        )
         parser.add_option_group(group)
         #-- Put hidden options here (don't forget @property if needed).
         parser.add_option('-a', '--all', dest='all', action='store_true',
@@ -486,6 +497,39 @@ def dicttree():
     from collections import defaultdict #: easily build an empty dictionary
     tree = lambda: defaultdict(tree)
     return tree()
+
+
+#==============================================================================
+def flatten(_dict, parent_key='', sep='.'):
+    '''
+        Originally stolen from: https://stackoverflow.com/a/6027615
+    '''
+    items = []
+    for _key, _value in _dict.items():
+        if _key is None:
+            _key = 'None'
+        new_key = parent_key + sep + _key if parent_key else _key
+        if isinstance(_value, collections.MutableMapping):
+            items.extend(flatten(_value, new_key, sep=sep).items())
+        else:
+            items.append((new_key, _value))
+    return dict(items)
+
+#==============================================================================
+def output_rhsm(facts, key=None):
+    ''' Output a dictionary in json '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if key is not None:
+        facts = {key: facts}
+    facts = flatten(facts)
+    print('{')
+    for _key, _value in facts.items():
+        if _value is None:
+            continue
+        print('  "%s":"%s",' % (_key, _value))
+    print('  "%s._date":"%s"' % (key, timestamp()))
+    print('}')
+    return True
 
 
 #==============================================================================
@@ -836,6 +880,8 @@ def main():
         output_json(facts, options.key)
     elif options.yaml:
         output_yaml(facts, options.key)
+    elif options.rhsm:
+        output_rhsm(facts, options.key)
     else:
         output_console(facts)
 
