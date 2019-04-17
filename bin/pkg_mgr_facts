@@ -63,8 +63,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.1.0' #: current version
-__revised__ = '20190319-141606' #: date of most recent revision
+__version__ = '2.1.1' #: current version
+__revised__ = '20190417-161537' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Discover information about installed packages.'
 __description__ = '''This will try to discover information about packages installed on a system,
@@ -508,6 +508,8 @@ def flatten(_dict, parent_key='', sep='.'):
     for _key, _value in _dict.items():
         if _key is None:
             _key = 'None'
+        _key = _key.replace('.', '_')
+        _key = _key.replace(' ', '_')
         new_key = parent_key + sep + _key if parent_key else _key
         if isinstance(_value, collections.MutableMapping):
             items.extend(flatten(_value, new_key, sep=sep).items())
@@ -517,7 +519,7 @@ def flatten(_dict, parent_key='', sep='.'):
 
 #==============================================================================
 def output_rhsm(facts, key=None):
-    ''' Output a dictionary in json '''
+    ''' Output a dictionary in RHSM fact file format (slightly modified json) '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     if key is not None:
         facts = {key: facts}
