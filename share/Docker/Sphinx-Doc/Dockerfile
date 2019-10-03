@@ -30,12 +30,10 @@ RUN apk add \
       linux-headers \
       openjdk8-jre-base \
       python3-dev \
-      py3-sphinx \
       zlib-dev \
-    && easy_install-3.5 pip \
+    && easy_install-3.7 pip \
     && pip install --upgrade pip \
-    && pip freeze --local | grep -v '^\-e' | cut -d = -f 1  | xargs pip install -U \
-    && pip install --upgrade \
+    && pip install --upgrade --upgrade-strategy only-if-needed \
         alabaster \
         Sphinx \
         sphinx-better-theme \
@@ -63,8 +61,8 @@ CMD ["/bin/bash"]
 
 LABEL org.label-schema.name="Sphinx-Doc" \
       org.label-schema.vendor="awmyhr <awmyhr@gmail.com" \
-      org.label-schema.version="1.0.0" \
-      org.label-schema.release="2017-03-03" \
+      org.label-schema.version="1.0.1" \
+      org.label-schema.release="2019-10-03" \
       org.label-schema.url="https://github.com/awmyhr/nixTools" \
       org.label-schema.vcs-type="git" \
       org.label-schema.vcs-url="https://github.com/awmyhr/nixTools" \
