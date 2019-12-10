@@ -7,13 +7,14 @@ import optparse     #: pylint: disable=deprecated-module
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
 #==============================================================================
-__version__ = '0.1.0-alpha' #: current version
-__revised__ = '20191210-113308' #: date of most recent revision
-__contact__ = 'ET_DSE_Linux <ET_DSE_Linux@metlife.com>' #: primary contact for support/?'s
+#-- These are only here to support the class
+__version__ = '0.1.0-alpha'
+__revised__ = '20191210-113655'
+__contact__ = 'awmyhr <awmyhr@gmail.com>'
 __synopsis__ = 'Experiments with the CyberArk API'
 __description__ = '''Functionality to be added.
 '''
-__author__ = ['MyHR, Andy <andy.myhr@metlife.com>']
+__author__ = ['awmyhr <awmyhr@gmail.com>']
 __created__ = '2019-12-10'
 __copyright__ = '2019, awmyhr'
 __license__ = 'TODO: CHANGEME'
