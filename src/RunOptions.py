@@ -2,14 +2,17 @@
 # -*- coding: utf-8 -*-
 ''' My base class for dealing with options and configurations '''
 #===============================================================================
-import ConfigParser #: 'Easy' configuration parsing
-import optparse     #: pylint: disable=deprecated-module
-import os           #: Misc. OS interfaces
-import sys          #: System-specific parameters & functions
+import ConfigParser
+#-- NOTE: We use optparse for compatibility with python < 2.7 as
+#--       argparse wasn't standard until 2.7 (2.7 deprecates optparse)
+#--       As of 20161212 the template is coded for optparse only
+import optparse #: pylint: disable=deprecated-module
+import os
+import sys
 #==============================================================================
 #-- These are only here to support the class
 __version__ = '0.1.0-alpha'
-__revised__ = '20191210-113655'
+__revised__ = '20191210-114118'
 __contact__ = 'awmyhr <awmyhr@gmail.com>'
 __synopsis__ = 'Experiments with the CyberArk API'
 __description__ = '''Functionality to be added.
